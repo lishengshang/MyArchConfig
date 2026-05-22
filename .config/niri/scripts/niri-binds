@@ -1,0 +1,220 @@
+# #!/usr/bin/env bash
+
+# # === 单实例检查：如果已有窗口，聚焦它并退出 ===
+# INSTANCE_CLASS="niri-hotkey-menu"
+
+# # 检查是否已有窗口在运行（通过 niri IPC）
+# if niri msg windows 2>/dev/null | grep -q "$INSTANCE_CLASS"; then
+#     # 尝试聚焦已有窗口（需要 nirius 或直接发送焦点命令）
+#     # 方法1：如果有 nirius
+#     if command -v nirius >/dev/null 2>&1; then
+#         nirius focus --app-id "$INSTANCE_CLASS" 2>/dev/null
+#     fi
+#     exit 0
+# fi
+
+
+# NIRI_DIR="$HOME/.config/niri"
+
+# # === 界面尺寸设置 (在这里微调，下方的所有终端会自动应用) ===
+# MENU_WIDTH=90
+# MENU_HEIGHT=20
+
+# # 检查目录
+# if [[ ! -d "$NIRI_DIR" ]]; then
+#     echo "Error: 找不到配置目录 $NIRI_DIR"
+#     exit 1
+# fi
+
+# # 提取并使用 column 对齐
+# MENU_ITEMS=$(grep -Rh 'hotkey-overlay-title=' "$NIRI_DIR" --include="*.kdl" | \
+#              grep -v '^[ \t]*//' | \
+#              sed -n -E 's/^[ \t]*(.*)[ \t]+hotkey-overlay-title="([^"]+)".*/\1|\2/p' | \
+#              sed -E 's/[ \t]*\|/\|/' | \
+#              column -t -s '|')
+
+# if [[ -z "$MENU_ITEMS" ]]; then
+#     echo "没有找到有效的快捷键配置。"
+#     exit 1
+# fi>
+
+# # Fzf 核心命令
+# FZF_CMD="echo \"$MENU_ITEMS\" | fzf --reverse --prompt='󰌌 快捷键: ' --info=hidden --border=none > /dev/null"
+
+# # 动态检测终端并使用对应的参数启动
+# if command -v kitty >/dev/null 2>&1; then
+#     kitty --class "niri-hotkey-menu" --title "快捷键菜单" \
+#           -o remember_window_size=no -o initial_window_width=${MENU_WIDTH}c -o initial_window_height=${MENU_HEIGHT}c \
+#           bash -c "$FZF_CMD"
+
+# elif command -v foot >/dev/null 2>&1; then
+#     foot --app-id "niri-hotkey-menu" --title "快捷键菜单" \
+#          --window-size-chars=${MENU_WIDTH}x${MENU_HEIGHT} \
+#          bash -c "$FZF_CMD"
+
+# elif command -v alacritty >/dev/null 2>&1; then
+#     alacritty --class "niri-hotkey-menu" --title "快捷键菜单" \
+#               -o window.dimensions.columns=${MENU_WIDTH} -o window.dimensions.lines=${MENU_HEIGHT} \
+#               -e bash -c "$FZF_CMD"
+
+# elif command -v wezterm >/dev/null 2>&1; then
+#     wezterm start --class "niri-hotkey-menu" -- bash -c "$FZF_CMD"
+
+# elif [[ -n "$TERMINAL" ]]; then
+#     $TERMINAL -e bash -c "$FZF_CMD"
+
+# else
+#     echo "Error: 未检测到支持的终端模拟器。"
+#     if command -v fuzzel >/dev/null 2>&1; then
+#          # Fuzzel 降级方案也会自动读取顶层变量
+#          echo "$MENU_ITEMS" | fuzzel --dmenu -i -p "󰌌 快捷键: " -w ${MENU_WIDTH} > /dev/null
+#     fi
+# fi
+
+
+#!/usr/bin/env bash
+# === 配置 ===
+INSTANCE_CLASS="niri-hotkey-menu"
+NIRI_DIR="$HOME/.config/niri"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/niri-hotkeys"
+CACHE_FILE="$CACHE_DIR/hotkeys.cache"
+CACHE_TIMESTAMP="$CACHE_DIR/timestamp"
+MENU_WIDTH=100
+MENU_HEIGHT=25
+
+# === 错误处理 ===
+error_exit() {
+    notify-send "快捷键菜单" "$1" --icon=dialog-error 2>/dev/null
+    printf "❌ %s\n" "$1" >&2
+    exit 1
+}
+
+# === 检查依赖 ===
+command -v fzf >/dev/null 2>&1 || error_exit "需要安装 fzf"
+
+# === 创建缓存目录 ===
+mkdir -p "$CACHE_DIR"
+
+# === 单实例检查（优化版）===
+check_existing() {
+    # 首先检查进程（最快）
+    pgrep -f "niri-hotkey-menu" | grep -qv "$$" && return 0
+    
+    # 然后检查窗口（仅在需要时）
+    if command -v jq >/dev/null 2>&1; then
+        niri msg windows 2>/dev/null | jq -e \
+            '.[] | select(.app_id == "'"$INSTANCE_CLASS"'" or .title == "快捷键菜单")' \
+            >/dev/null 2>&1 && return 0
+    fi
+    return 1
+}
+
+if check_existing; then
+    command -v nirius >/dev/null 2>&1 && nirius focus --app-id "$INSTANCE_CLASS" 2>/dev/null
+    exit 0
+fi
+
+# === 智能缓存生成（保留配置文件顺序）===
+generate_cache() {
+    local need_update=false
+    
+    # 快速检查缓存有效性
+    if [[ ! -f "$CACHE_FILE" ]] || [[ ! -f "$CACHE_TIMESTAMP" ]]; then
+        need_update=true
+    elif find "$NIRI_DIR" -name "*.kdl" -newer "$CACHE_FILE" -print -quit 2>/dev/null | grep -q .; then
+        need_update=true
+    fi
+    
+    if $need_update; then
+        # 优化版 awk：保留原始顺序
+        find "$NIRI_DIR" -name "*.kdl" -print0 | xargs -0 awk '
+        BEGIN { 
+            OFS="\t"
+            line_num = 0
+        }
+        /hotkey-overlay-title=/ {
+            # 跳过注释行
+            if (/^[[:space:]]*\/\//) next
+            
+            # 提取标题
+            if (match($0, /hotkey-overlay-title="([^"]*)"/, arr)) {
+                title = arr[1]
+                if (title == "null" || title == "") next
+            } else {
+                next
+            }
+            
+            # 提取快捷键部分
+            key = $0
+            sub(/[[:space:]]*hotkey-overlay-title=.*/, "", key)
+            sub(/^[[:space:]]+/, "", key)
+            sub(/[[:space:]]+$/, "", key)
+            
+            if (key == "") next
+            
+            # 去重但保留第一次出现的顺序
+            if (!seen[key]++) {
+                printf "%d\t%-50s\t%s\n", ++line_num, key, title
+            }
+        }
+        ' | sort -t$'\t' -k1,1n | cut -f2- > "$CACHE_FILE.tmp"  # 按行号排序后去掉行号
+        
+        # 原子性更新缓存
+        mv "$CACHE_FILE.tmp" "$CACHE_FILE"
+        date +%s > "$CACHE_TIMESTAMP"
+        
+        printf "✅ 缓存已更新：%d 个快捷键\n" "$(wc -l < "$CACHE_FILE")" >&2
+    fi
+}
+
+# === 获取快捷键数量 ===
+get_count() {
+    wc -l < "$CACHE_FILE"
+}
+
+# === 选择终端 ===
+launch_terminal() {
+    local count
+    count=$(get_count)
+    
+    # 构建 fzf 参数
+    local fzf_args=(
+        --reverse
+        --prompt='🔑 快捷键: '
+        --info=hidden
+        --border=none
+        --header="输入搜索 | ESC 退出 | 共 ${count} 个快捷键"
+        --header-first
+        --bind='ctrl-c:abort,esc:abort'
+        --bind='ctrl-r:reload(cat "$CACHE_FILE")'
+        --color='header:italic:gray,prompt:bold:blue'
+        --delimiter=$'\t'
+        --nth=1,2
+        --tiebreak=index
+    )
+    
+    if command -v kitty >/dev/null 2>&1; then
+        kitty --class "$INSTANCE_CLASS" --title "快捷键菜单" \
+              -o remember_window_size=no \
+              -o initial_window_width="${MENU_WIDTH}c" \
+              -o initial_window_height="${MENU_HEIGHT}c" \
+              bash -c 'cat "'"$CACHE_FILE"'" | fzf "${@}"' _ "${fzf_args[@]}"
+    elif command -v foot >/dev/null 2>&1; then
+        foot --app-id "$INSTANCE_CLASS" --title "快捷键菜单" \
+             --window-size-chars="${MENU_WIDTH}x${MENU_HEIGHT}" \
+             bash -c 'cat "'"$CACHE_FILE"'" | fzf "${@}"' _ "${fzf_args[@]}"
+    elif command -v alacritty >/dev/null 2>&1; then
+        alacritty --class "$INSTANCE_CLASS" --title "快捷键菜单" \
+                  -o window.dimensions.columns="$MENU_WIDTH" \
+                  -o window.dimensions.lines="$MENU_HEIGHT" \
+                  -e bash -c 'cat "'"$CACHE_FILE"'" | fzf "${@}"' _ "${fzf_args[@]}"
+    else
+        # 降级方案：直接在当前终端运行
+        fzf "${fzf_args[@]}" < "$CACHE_FILE"
+    fi
+}
+
+# === 主流程 ===
+generate_cache
+[[ ! -s "$CACHE_FILE" ]] && error_exit "没有找到有效的快捷键配置"
+launch_terminal

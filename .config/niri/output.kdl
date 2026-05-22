@@ -1,0 +1,14 @@
+output "eDP-1" {
+    // 右边：笔记本屏幕
+    mode "2560x1600@165.004"
+    scale 1.5
+    position x=2048 y=0
+}
+output "DP-1" {
+    // 左边：外接显示器，设为主显示器
+    mode "2560x1440@180.000"
+    scale 1.25
+    position x=0 y=0
+    focus-at-startup  // 启动时把焦点放在这个屏幕上
+}
+
