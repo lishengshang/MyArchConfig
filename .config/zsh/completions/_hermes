@@ -1,0 +1,57 @@
+#compdef hermes
+
+_hermes() {
+  local -a subcmds
+  subcmds=(
+    'acp:作为 ACP 服务端运行'
+    'auth:管理提供商凭证'
+    'backup:备份 Hermes 主目录'
+    'chat:交互式对话'
+    'checkpoints:检查/清理/清除检查点'
+    'claw:OpenClaw 迁移工具'
+    'completion:生成 shell 补全脚本'
+    'config:查看和编辑配置'
+    'cron:定时任务管理'
+    'curator:后台技能维护'
+    'dashboard:启动 Web 管理面板'
+    'debug:调试工具'
+    'doctor:检查配置和依赖'
+    'dump:导出配置摘要供调试'
+    'fallback:管理备用模型提供商'
+    'gateway:消息网关管理'
+    'hooks:管理 shell 脚本钩子'
+    'import:恢复 Hermes 备份'
+    'insights:显示使用统计'
+    'kanban:多 Profile 协作看板'
+    'login:登录模型提供商'
+    'logout:登出模型提供商'
+    'logs:查看和过滤日志'
+    'mcp:管理 MCP 服务端'
+    'memory:配置外部记忆'
+    'model:选择默认模型'
+    'pairing:管理 DM 配对码'
+    'plugins:管理插件'
+    'profile:管理多个 Profile'
+    'sessions:管理会话历史'
+    'setup:交互式设置向导'
+    'skills:搜索/安装/配置技能'
+    'slack:Slack 集成辅助'
+    'status:显示组件状态'
+    'tools:配置启用的工具'
+    'uninstall:卸载 Hermes Agent'
+    'update:更新到最新版本'
+    'version:显示版本'
+    'webhook:管理 Webhook 订阅'
+    'whatsapp:设置 WhatsApp 集成'
+  )
+
+  if [[ $words[CURRENT] == -* ]]; then
+    _arguments \
+      '(-h --help)'{-h,--help}'[显示帮助]' \
+      '(-V --version)'{-V,--version}'[显示版本]' \
+      '(-p --profile)'{-p,--profile}'[指定 Profile]:profile:->profiles'
+    return
+  fi
+
+  _describe 'hermes 命令' subcmds
+}

@@ -1,0 +1,57 @@
+# =============================================================================
+# ~/.config/zsh/zshrc — main entry point for interactive Zsh
+# =============================================================================
+# Symlink: ~/.zshrc -> ~/.config/zsh/zshrc
+#
+# Load order:
+#   1. env.zsh        — interactive-only environment variables
+#   2. options.zsh    — setopt flags
+#   3. plugins.zsh    — Zinit + all plugins
+#   4. completions.zsh— completion system (compinit runs here, AFTER plugins)
+#   5. aliases.zsh    — command aliases
+#   6. functions.zsh  — shell functions
+#   7. bindings.zsh   — key bindings
+#   8. prompt.zsh     — Powerlevel10k instant prompt + theme
+#
+# Custom completions live in: ~/.config/zsh/completions/
+# =============================================================================
+
+ZSH_CONFIG_HOME="${ZDOTDIR:-$HOME}/.config/zsh"
+
+# ---------------------------------------------------------------------------
+# Stage 1: Powerlevel10k instant prompt (must be FIRST, before any output)
+# ---------------------------------------------------------------------------
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# ---------------------------------------------------------------------------
+# Stage 2: Load all modules
+# ---------------------------------------------------------------------------
+source "$ZSH_CONFIG_HOME/env.zsh"
+source "$ZSH_CONFIG_HOME/options.zsh"
+source "$ZSH_CONFIG_HOME/plugins.zsh"
+source "$ZSH_CONFIG_HOME/completions.zsh"
+source "$ZSH_CONFIG_HOME/aliases.zsh"
+source "$ZSH_CONFIG_HOME/functions.zsh"
+source "$ZSH_CONFIG_HOME/bindings.zsh"
+
+# 配置翻译插件
+# 在 zshrc 文件末尾，其他配置加载之后添加
+source ~/.config/zsh/translate.zsh
+
+# ---------------------------------------------------------------------------
+# Stage 3: Powerlevel10k theme configuration
+# ---------------------------------------------------------------------------
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# ---------------------------------------------------------------------------
+# Integrations that require compinit to have already run
+# ---------------------------------------------------------------------------
+# fnm (Node.js version manager)
+if [[ -d "$HOME/.local/share/fnm" ]]; then
+  export PATH="$HOME/.local/share/fnm:$PATH"
+  eval "$(fnm env --shell zsh)"
+fi
+
+. "$HOME/.local/share/../bin/env"

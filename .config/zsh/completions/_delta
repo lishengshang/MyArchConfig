@@ -1,0 +1,150 @@
+#compdef delta
+
+autoload -U is-at-least
+
+_delta() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" \
+'--blame-code-style=[git blame 代码段样式]:STYLE: ' \
+'--blame-format=[git blame 提交元数据格式]:FMT: ' \
+'--blame-palette=[git blame 行背景色(空格分隔)]:COLORS: ' \
+'--blame-separator-format=[blame 格式与代码段之间的分隔符]:FMT: ' \
+'--blame-separator-style=[blame 分隔符样式]:STYLE: ' \
+'--blame-timestamp-format=[Format of \`git blame\` timestamp in raw git output received by delta]:FMT: ' \
+'--blame-timestamp-output-format=[git blame 时间戳输出格式]:FMT: ' \
+'--config=[加载指定路径的配置文件]:PATH:_files' \
+'--commit-decoration-style=[commit hash 装饰样式]:STYLE: ' \
+'--commit-regex=[识别 commit 行的正则表达式]:REGEX: ' \
+'--commit-style=[commit hash 行样式]:STYLE: ' \
+'--default-language=[语法高亮的默认语言]:LANG: ' \
+'--detect-dark-light=[检测终端是深色还是浅色背景]:DETECT_DARK_LIGHT:((auto\:"仅在输出未被重定向时查询终端颜色"
+always\:"始终查询终端颜色"
+never\:"从不查询终端颜色"))' \
+'-@+[Extra arguments to pass to \`git diff\` when using delta to diff two files]:STRING: ' \
+'--diff-args=[Extra arguments to pass to \`git diff\` when using delta to diff two files]:STRING: ' \
+'--diff-stat-align-width=[diff stat 区域文件路径宽度]:N: ' \
+'--features=[激活的 delta 功能名称(空格分隔)]:FEATURES: ' \
+'--file-added-label=[新增文件路径前显示的文本]:STRING: ' \
+'--file-copied-label=[复制文件路径前显示的文本]:STRING: ' \
+'--file-decoration-style=[文件装饰样式]:STYLE: ' \
+'--file-modified-label=[修改文件路径前显示的文本]:STRING: ' \
+'--file-removed-label=[删除文件路径前显示的文本]:STRING: ' \
+'--file-renamed-label=[重命名文件路径前显示的文本]:STRING: ' \
+'--file-style=[文件区域样式]:STYLE: ' \
+'--file-transformation=[转换文件路径显示的 sed 命令]:SED_CMD: ' \
+'--generate-completion=[生成指定 shell 的补全文件]:GENERATE_COMPLETION:(bash elvish fish powershell zsh)' \
+'--grep-context-line-style=[grep 输出非匹配行样式]:STYLE: ' \
+'--grep-file-style=[grep 输出文件路径样式]:STYLE: ' \
+'--grep-header-decoration-style=[grep 输出头部装饰样式]:STYLE: ' \
+'--grep-header-file-style=[grep 输出头部文件路径样式]:STYLE: ' \
+'--grep-line-number-style=[grep 输出行号样式]:STYLE: ' \
+'--grep-output-type=[Grep output format. Possible values\: "ripgrep" - file name printed once, followed by matching lines within that file, each preceded by a line number. "classic" - file name\:line number, followed by matching line. Default is "ripgrep" if \`rg --json\` format is detected, otherwise "classic"]:OUTPUT_TYPE:(ripgrep classic)' \
+'--grep-match-line-style=[grep 输出匹配行样式]:STYLE: ' \
+'--grep-match-word-style=[grep 输出匹配子串样式]:STYLE: ' \
+'--grep-separator-symbol=[grep 输出文件路径和行号后的分隔符]:STRING: ' \
+'--hunk-header-decoration-style=[hunk 头部装饰样式]:STYLE: ' \
+'--hunk-header-file-style=[hunk 头部文件路径样式]:STYLE: ' \
+'--hunk-header-line-number-style=[hunk 头部行号样式]:STYLE: ' \
+'--hunk-header-style=[hunk 头部样式]:STYLE: ' \
+'--hunk-label=[hunk 头部前显示的文本]:STRING: ' \
+'--hyperlinks-commit-link-format=[commit 超链接格式(需 --hyperlinks)]:FMT: ' \
+'--hyperlinks-file-link-format=[文件超链接格式(需 --hyperlinks)]:FMT: ' \
+'--inline-hint-style=[行内提示文本样式]:STYLE: ' \
+'--inspect-raw-lines=[--color-moved 支持的开关]:true|false:(true false)' \
+'--line-buffer-size=[内部行缓冲区大小]:N: ' \
+'--line-fill-method=[并排模式下的行填充方式]:STRING:(ansi spaces)' \
+'--line-numbers-left-format=[行号左侧列格式]:FMT: ' \
+'--line-numbers-left-style=[行号左侧列样式]:STYLE: ' \
+'--line-numbers-minus-style=[旧文件(删除)行号样式]:STYLE: ' \
+'--line-numbers-plus-style=[新文件(新增)行号样式]:STYLE: ' \
+'--line-numbers-right-format=[行号右侧列格式]:FMT: ' \
+'--line-numbers-right-style=[行号右侧列样式]:STYLE: ' \
+'--line-numbers-zero-style=[未变更行号样式]:STYLE: ' \
+'--map-styles=[将原始输入样式映射到输出样式]:STYLES_MAP: ' \
+'--max-line-distance=[行内 diff 算法的最大行对距离]:DIST: ' \
+'--max-syntax-highlighting-length=[超过此长度的行停止语法高亮]:N: ' \
+'--max-line-length=[超过此长度的行截断]:N: ' \
+'--merge-conflict-begin-symbol=[合并冲突区域开始标记]:STRING: ' \
+'--merge-conflict-end-symbol=[合并冲突区域结束标记]:STRING: ' \
+'--merge-conflict-ours-diff-header-decoration-style=[Style string for the decoration of the header above the '\''ours'\'' merge conflict diff]:STYLE: ' \
+'--merge-conflict-ours-diff-header-style=[Style string for the header above the '\''ours'\'' branch merge conflict diff]:STYLE: ' \
+'--merge-conflict-theirs-diff-header-decoration-style=[Style string for the decoration of the header above the '\''theirs'\'' merge conflict diff]:STYLE: ' \
+'--merge-conflict-theirs-diff-header-style=[Style string for the header above the '\''theirs'\'' branch merge conflict diff]:STYLE: ' \
+'--minus-empty-line-marker-style=[已删除空行标记样式]:STYLE: ' \
+'--minus-emph-style=[已删除行强调部分样式]:STYLE: ' \
+'--minus-non-emph-style=[已删除行非强调部分样式]:STYLE: ' \
+'--minus-style=[已删除行样式]:STYLE: ' \
+'--navigate-regex=[定义导航停止点的正则表达式]:REGEX: ' \
+'--pager=[使用的分页器]:CMD: ' \
+'--paging=[是否使用分页器显示输出]:auto|always|never:(auto always never)' \
+'--plus-emph-style=[已新增行强调部分样式]:STYLE: ' \
+'--plus-empty-line-marker-style=[已新增空行标记样式]:STYLE: ' \
+'--plus-non-emph-style=[已新增行非强调部分样式]:STYLE: ' \
+'--plus-style=[已新增行样式]:STYLE: ' \
+'--right-arrow=[文件路径变更时显示的文本]:STRING: ' \
+'--syntax-theme=[语法高亮主题]:SYNTAX_THEME: ' \
+'--tabs=[Tab 替换的空格数]:N: ' \
+'--true-color=[是否输出 24 位真彩色 RGB]:auto|always|never:(auto always never)' \
+'--whitespace-error-style=[空白错误样式]:STYLE: ' \
+'-w+[下划线/上划线装饰宽度]:N: ' \
+'--width=[下划线/上划线装饰宽度]:N: ' \
+'--word-diff-regex=[Regular expression defining a '\''word'\'' in within-line diff algorithm]:REGEX: ' \
+'--wrap-left-symbol=[行尾换行符号(左对齐)]:STRING: ' \
+'--wrap-max-lines=[行超出时的换行频率]:N: ' \
+'--wrap-right-percent=[右对齐换行内容的阈值]:PERCENT: ' \
+'--wrap-right-prefix-symbol=[换行前内容符号(右对齐)]:STRING: ' \
+'--wrap-right-symbol=[行尾换行符号(右对齐)]:STRING: ' \
+'--zero-style=[未变更行样式]:STYLE: ' \
+'--24-bit-color=[Deprecated\: use --true-color]:auto|always|never:(auto always never)' \
+'--color-only[不以任何方式改变输入结构]' \
+'--dark[使用适合深色终端背景的默认颜色]' \
+'--diff-highlight[模拟 diff-highlight]' \
+'--diff-so-fancy[模拟 diff-so-fancy]' \
+'--hyperlinks[将 commit hash/文件名/行号渲染为超链接]' \
+'--keep-plus-minus-markers[像 git 一样在增删行前加 +/- 标记]' \
+'--light[使用适合浅色终端背景的默认颜色]' \
+'-n[在 diff 旁显示行号]' \
+'--line-numbers[在 diff 旁显示行号]' \
+'--list-languages[列出支持的语言及关联文件扩展名]' \
+'--list-syntax-themes[列出可用的语法高亮颜色主题]' \
+'--navigate[激活 diff 导航]' \
+'--no-gitconfig[不从 git config 读取任何设置]' \
+'--parse-ansi[以可读形式显示 ANSI 颜色转义序列]' \
+'--raw[不以任何方式改变输入]' \
+'--relative-paths[输出相对于当前目录的文件路径]' \
+'--show-colors[显示可用的命名颜色]' \
+'--show-config[显示所有 Delta 选项的当前值]' \
+'--show-syntax-themes[显示可用语法高亮主题的示例 diff]' \
+'--show-themes[显示可用 delta 主题的示例 diff]' \
+'-s[并排显示 diff]' \
+'--side-by-side[并排显示 diff]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'-V[显示版本]' \
+'--version[显示版本]' \
+'::minus_file -- First file to be compared when delta is being used to diff two files:_files' \
+'::plus_file -- Second file to be compared when delta is being used to diff two files:_files' \
+&& ret=0
+}
+
+(( $+functions[_delta_commands] )) ||
+_delta_commands() {
+    local commands; commands=()
+    _describe -t commands 'delta commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_delta" ]; then
+    _delta "$@"
+else
+    compdef _delta delta
+fi

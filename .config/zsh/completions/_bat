@@ -1,0 +1,127 @@
+#compdef bat
+
+local curcontext="$curcontext" ret=1
+local -a state state_descr line
+typeset -A opt_args
+
+(( $+functions[_bat_cache_subcommand] )) ||
+_bat_cache_subcommand() {
+    local -a args
+    args=(
+        '(-b --build -c --clear)'{-b,--build}'[初始化或更新语法/主题缓存]'
+        '(-b --build -c --clear)'{-c,--clear}'[删除缓存的语法定义和主题]'
+        --source='[指定加载语法和主题的目录]:目录:_files -/'
+        --target='[指定存储缓存语法和主题的目录]:目录:_files -/'
+        --blank'[创建全新的语法和主题集]'
+        --acknowledgements'[构建 acknowledgements.bin]'
+        '(: -)'{-h,--help}'[显示帮助]'
+    )
+
+    _arguments -S -s $args
+}
+
+(( $+functions[_bat_main] )) ||
+_bat_main() {
+    local -a args
+    args=(
+        '(-A --show-all)'{-A,--show-all}'[显示不可打印字符 (空格/Tab/换行等)]'
+        --nonprintable-notation='[指定如何显示不可打印字符]:符号:(caret unicode)'
+        --binary='[指定如何处理二进制内容]:行为:(no-printing as-text)'
+        \*{-p,--plain}'[显示纯文本风格 (等同于 --style=plain), 重复两次禁用自动分页]'
+        '(-l --language)'{-l+,--language=}'[设置语法高亮语言]:语言:->languages'
+        \*{-H+,--highlight-line=}'[高亮指定行范围]:起始行\:结束行'
+        \*--file-name='[指定文件显示名称]:名称:_files'
+        '(-d --diff)'--diff'[只显示被添加/删除/修改的行]'
+        --diff-context='[指定 --diff 模式下显示的上下文行数]:行数'
+        --tabs='[设置 Tab 宽度]:Tab 宽度 [4]'
+        --wrap='[指定文本换行模式]:模式 [auto]:(auto never character)'
+        '!(--wrap)'{-S,--chop-long-lines}
+        --terminal-width='[显式设置终端宽度]:宽度'
+        '(-n --number --diff --diff-context)'{-n,--number}'[显示行号]'
+        --color='[指定何时使用颜色]:时机:(auto never always)'
+        --italic-text='[在输出中使用斜体]:时机:(always never)'
+        --decorations='[指定何时显示装饰]:时机:(auto never always)'
+        '(-f --force-colorization)'--force-colorization'[强制启用颜色和装饰]'
+        --paging='[指定何时使用分页器]:时机:(auto never always)'
+        '(-P --no-paging)'--no-paging'[等同于 --paging=never]'
+        --pager='[指定分页器]:命令:'
+        '(-m --map-syntax)'{-m+,--map-syntax=}'[将 glob 模式映射到已有语法名称]: :->syntax-maps'
+        --ignored-suffix='[忽略扩展名]:后缀:'
+        '(--theme)'--theme='[设置语法高亮颜色主题]:主题:->theme_preferences'
+        '(--theme-dark)'--theme-dark='[设置深色背景下的语法高亮颜色主题]:主题:->themes'
+        '(--theme-light)'--theme-light='[设置浅色背景下的语法高亮颜色主题]:主题:->themes'
+        '(: --list-themes --list-languages -L)'--list-themes'[显示所有支持的高亮主题]'
+        --squeeze-blank'[将连续空行压缩为单个空行]'
+        --squeeze-limit='[设置连续空行的最大数量]:数量:'
+        --strip-ansi='[指定何时去除 ANSI 转义序列]:时机:(auto never always)'
+        --style='[逗号分隔的显示元素列表]: : _values "风格 [default]"
+            default auto full plain changes header header-filename header-filesize grid rule numbers snip'
+        \*{-r+,--line-range=}'[只打印指定行范围]:起始行\:结束行'
+        '(* -)'{-L,--list-languages}'[显示所有支持的语言]'
+        '(-u --unbuffered)'--unbuffered'[此选项仅为 POSIX 兼容而存在]'
+        --completion='[为指定 shell 生成补全]:shell:(bash fish zsh ps1)'
+        --set-terminal-title'[使用分页器时设置终端标题为文件名]'
+        --diagnostic'[显示诊断信息用于 bug 报告]'
+        -P'[禁用分页]'
+        "--no-config[不使用配置文件]"
+        "--no-custom-assets[不加载自定义资源]"
+        '(--no-lessopen)'--lessopen'[启用 $LESSOPEN 预处理器]'
+        '(--lessopen)'--no-lessopen'[禁用 $LESSOPEN 预处理器 (覆盖 --lessopen)]'
+        '(* -)'--config-dir"[显示 bat 配置目录]"
+        '(* -)'--config-file'[显示配置文件路径]'
+        '(* -)'--generate-config-file'[生成默认配置文件]'
+        '(* -)'--cache-dir"[显示 bat 缓存目录]"
+        '(* -)'{-h,--help}'[显示帮助]'
+        '(* -)'{-V,--version}'[显示版本]'
+        '*: :{ _files || compadd cache }'
+    )
+
+    _arguments -S -s $args && ret=0
+
+    case "$state" in
+        syntax-maps)
+          if ! compset -P '*:'; then
+            _message -e patterns 'glob 模式:语言'
+            return
+          fi
+        ;& # fall-through
+
+        languages)
+            local IFS=$'\n'
+            local -a languages
+            languages=( $(bat --list-languages | awk -F':|,' '{ for (i = 1; i <= NF; ++i) printf("%s:%s\n", $i, $1) }') )
+
+            _describe '语言' languages && ret=0
+        ;;
+
+        themes)
+            local -a themes expl
+            themes=(${(f)"$(_call_program themes bat --list-themes)"} )
+
+            _wanted themes expl '主题' compadd -a themes && ret=0
+        ;;
+        theme_preferences)
+            local -a themes expl
+            themes=(auto dark light auto:always auto:system ${(f)"$(_call_program themes bat --list-themes)"} )
+
+            _wanted themes expl '主题' compadd -a themes && ret=0
+        ;;
+    esac
+
+    return ret
+}
+
+case $words[2] in
+    cache)
+        ## Completion of the 'cache' command itself is removed for better UX
+        ## See https://github.com/sharkdp/bat/issues/2085#issuecomment-1271646802
+        shift words
+        (( CURRENT-- ))
+        curcontext="${curcontext%:*}-${words[1]}:"
+        _bat_cache_subcommand
+    ;;
+
+    *)
+        _bat_main
+    ;;
+esac
