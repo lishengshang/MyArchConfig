@@ -65,8 +65,8 @@ window-rule{
 
 window-rule{
 	match app-id="yesplaymusic"
-	default-column-width { fixed 600; }
-    default-window-height { fixed 400; }
+	default-column-width { fixed 1000; }
+    default-window-height { fixed 800; }
     //min-height 800
 	open-floating true
 	//default-floating-position x=50 y=100 relative-to="top"
