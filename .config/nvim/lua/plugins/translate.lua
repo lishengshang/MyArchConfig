@@ -1,0 +1,19 @@
+-- lua/plugins/translate.lua
+-- 翻译插件：F4 翻译光标所在单词/选中文本
+
+return {
+    "SilverofLight/kd_translate.nvim",
+    config = function()
+        require("kd").setup({
+            window = {
+                width = 80,
+                height = 10,
+                border = 'rounded',
+                title = ' 翻译结果 ',
+                title_pos = 'center',
+            },
+        })
+        vim.keymap.set("n", "<F4>", ":TranslateNormal<CR>", { desc = "翻译光标所在单词" })
+        vim.keymap.set("v", "<F4>", ":TranslateVisual<CR>", { desc = "翻译选中文本" })
+    end,
+}
