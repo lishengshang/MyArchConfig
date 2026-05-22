@@ -1,0 +1,3 @@
+# MyArchConfig
+
+My personal dotfiles
