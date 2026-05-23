@@ -157,30 +157,53 @@
       "pulseaudio/slider"
     ],
   },
+  // "pulseaudio": {
+  //   "tooltip-format": "左键：静音\n右键：关闭麦克风\n中键：打开面板",
+  //   "format": "{icon} {format_source} ",
+  //   "format-bluetooth": " {format_source} ",
+  //   "format-source": "{volume}%",
+  //   "format-source-muted": "",
+  //   "format-muted": " {format_source} ",
+  //   "format-icons": {
+  //     "headphone": "",
+  //     "headset": "",
+  //     "bluetooth": "",
+  //     // "speaker":"󰓃"
+  //     "speaker": [
+  //       "",
+  //       "",
+  //       ""
+  //     ],
+  //   },
+  //   "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+  //   "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+  //   "on-click-middle": "pavucontrol --tab=3",
+  //   "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%+",
+  //   "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-",
+  // },
   "pulseaudio": {
     "tooltip-format": "左键：静音\n右键：关闭麦克风\n中键：打开面板",
-    "format": "{icon} {format_source} ",
-    "format-bluetooth": " {format_source} ",
+    "format": "{icon} {volume}% ",
+    "format-bluetooth": " {volume}% ",
     "format-source": "{volume}%",
     "format-source-muted": "",
-    "format-muted": " {format_source} ",
+    "format-muted": " {volume}% ",
     "format-icons": {
-      "headphone": "",
-      "headset": "",
-      "bluetooth": "",
-      // "speaker":"󰓃"
-      "speaker": [
-        "",
-        "",
-        ""
-      ],
+        "headphone": "",
+        "headset": "",
+        "bluetooth": "",
+        "speaker": [
+            "",
+            "",
+            ""
+        ]
     },
     "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
     "on-click-middle": "pavucontrol --tab=3",
-    "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%+",
-    "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-",
-  },
+    "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+",
+    "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
+},
   "pulseaudio/slider": {
     "min": 0,
     "max": 100,
@@ -286,10 +309,10 @@
     ],
   },
   "custom/ddcutil-day": {
-    "tooltip-format": "左键：100%外接屏幕亮度\n右键：切换护眼模式",
+    "tooltip-format": "左键：100%外接屏幕亮度",
     "format": "󰃠",
     "on-click": "ddcutil --display 1 setvcp 10 100 ",
-    "on-click-right": "~/.local/bin/toggle-wlsunset",
+    // "on-click-right": "~/.local/bin/toggle-wlsunset",
     "on-scroll-up": "true",
     "on-scroll-down": "true"
   },
@@ -427,13 +450,13 @@
     "format": "[{layout}]{title}",
   },
   //剪贴板
-  "custom/clipboard":{
-    "format":"󰅍",
-    "on-click":"kitty --class cliphist-tui -e cliphist-tui",
-    "on-click-middle":"pkill wl-paste || true && wl-paste --watch cliphist store && sleep 0.5 && systemctl restart --user clipsync-git",
-    "on-click-right":"rm -f ~/.cache/cliphist/db",
-    "tooltip-format":"左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
-  },
+  // "custom/clipboard":{
+  //   "format":"󰅍",
+  //   "on-click":"kitty --class cliphist-tui -e cliphist-tui",
+  //   "on-click-middle":"pkill wl-paste || true && wl-paste --watch cliphist store && sleep 0.5 && systemctl restart --user clipsync-git",
+  //   "on-click-right":"rm -f ~/.cache/cliphist/db",
+  //   "tooltip-format":"左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
+  // },
   // 壁纸切换
  "custom/wallpapers":{
     "format":"󰸉",
