@@ -55,3 +55,5 @@ if [[ -d "$HOME/.local/share/fnm" ]]; then
 fi
 
 . "$HOME/.local/share/../bin/env"
+
+source /home/mio/.config/broot/launcher/bash/br
