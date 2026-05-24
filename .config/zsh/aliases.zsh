@@ -95,15 +95,5 @@ alias ya='yazi'
 # -----------------------------------------------------------------------------
 # Dotfiles 管理：`dot` 函数（裸仓库位于 $HOME/dotfiles/.git，工作区是 $HOME）
 # 使用方式：dot add .config/niri
-# -----------------------------------------------------------------------------
-if [[ -d "$HOME/dotfiles" ]]; then
-	dot() {
-		git --git-dir="$HOME/dotfiles/.git" --work-tree="$HOME" "$@"
-	}
-else
-	# 提供一个占位函数以避免误用；实际使用前请确保已运行 setup-bare-repo.sh
-	dot() {
-		echo "Error: $HOME/dotfiles 不存在；先运行 ~/dotfiles/setup-bare-repo.sh 或修改路径。"
-	}
-fi
-
+# ----------------------------------------------------------------------------
+alias dotfiles='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
