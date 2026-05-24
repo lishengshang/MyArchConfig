@@ -63,14 +63,25 @@ window-rule{
 	default-floating-position x=50 y=100 relative-to="top"
 }
 
-window-rule{
-	match app-id="yesplaymusic"
-	default-column-width { fixed 1000; }
-    default-window-height { fixed 800; }
-    //min-height 800
-	open-floating true
-	//default-floating-position x=50 y=100 relative-to="top"
+// window-rule{
+// 	match app-id="yesplaymusic"
+//     default-column-width { proportion 0.75; }
+//     default-window-height { proportion 0.75; }
+//     //min-height 800
+// 	open-floating true
+// 	//default-floating-position x=50 y=100 relative-to="top"
+// }
+
+// yesplaymusic音乐的配置浮窗
+window-rule {
+    match app-id="yesplaymusic"
+    open-floating true
+    min-width 1280
+    max-width 1280
+    min-height 800
+    max-height 800
 }
+
 
 // bilibili webapp 的窗口规则，以标签页模式打开
 window-rule{
@@ -80,9 +91,6 @@ window-rule{
 
 // 以浮动模式打开的软件
 window-rule {
-    // This app-id regular expression will work for both:
-    // - host Firefox (app-id is "firefox")
-    // - Flatpak Firefox (app-id is "org.mozilla.firefox")
     match app-id="motrix-next"
     match app-id="com.gabm.satty"
     match app-id="media_info"
@@ -121,6 +129,14 @@ window-rule {
     match app-id="org.gnome.Nautilus"
     open-floating true
 }
+// QQ 主窗口：浮动打开，占屏幕 75% 居中
+// window-rule {
+//     match app-id="QQ"
+//     open-floating true
+//     default-column-width { proportion 0.75; }
+//     default-window-height { proportion 0.75; }
+// }
+
 // 开启后不聚焦的窗口
 window-rule {
     match app-id="QQ" title="资料卡"
@@ -138,7 +154,7 @@ window-rule {
 // waybar命令中心模块
 window-rule {
     match app-id="command-center"
-default-column-width { fixed 1000; }
+    default-column-width { fixed 1000; }
     default-window-height { fixed 600; }
     open-floating true
 }
@@ -153,12 +169,12 @@ window-rule{
     match app-id="bluetui"
     match app-id="impala"
     match app-id="network-tui"
-default-column-width { fixed 800; }
+    default-column-width { fixed 800; }
     default-window-height { fixed 800; }
 	open-floating true
 }
 window-rule {
-	    match app-id="clipse"
+	match app-id="clipse"
 	default-column-width { fixed 625; }
     default-window-height { fixed 700; }
 	open-floating true

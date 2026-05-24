@@ -130,6 +130,8 @@ gestures {
 // 自动启动设置
 // 使用文件监听自动更新
 spawn-at-startup "~/.config/niri/scripts/auto-update-cache.sh"
+//启用这个nm-applet 需要下载 --> sudo pacman -S network-manager-applet nm-connection-editor   
+spawn-at-startup "nm-applet"
 
 // 桌面壁纸的守护进程
 spawn-at-startup "awww-daemon"

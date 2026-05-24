@@ -214,7 +214,7 @@ binds {
     Mod+Shift+F10 hotkey-overlay-title="随机下载动漫壁纸 Random download anime wallpaper" { spawn "~/.config/scripts/random-anime-wallpaper.sh"; }
 
     // 主题与颜色
-    Mod+Alt+M hotkey-overlay-title="切换颜色策略 Change color strategy" { spawn "~/.config/scripts/matugen-select-type.sh"; }
+    // Mod+Alt+M hotkey-overlay-title="切换颜色策略 Change color strategy" { spawn "~/.config/scripts/matugen-select-type.sh"; }
     Mod+Alt+T hotkey-overlay-title="切换颜色策略 Change color strategy" { spawn "~/.config/scripts/matugen-select-type.sh"; }
 
     // 任务栏
@@ -257,8 +257,8 @@ binds {
     // 侧边栏管理 (需要 niri-sidebar)
     Mod+M hotkey-overlay-title="收起窗口 Move to Sidebar" { spawn "niri-sidebar" "toggle-window"; }
     Mod+Alt+S hotkey-overlay-title="收起窗口 Move to Sidebar" { spawn "niri-sidebar" "toggle-window"; }
-    Mod+Alt+Z hotkey-overlay-title="展开/收起侧边栏 Toggle Sidebar" { spawn "niri-sidebar" "toggle-visibility"; }
-    Mod+Alt+X hotkey-overlay-title="反向排序侧边栏 Flip Sidebar" { spawn "niri-sidebar" "flip"; }
+    Mod+Alt+M hotkey-overlay-title="展开/收起侧边栏 Toggle Sidebar" { spawn "niri-sidebar" "toggle-visibility"; }
+//    Mod+Alt+X hotkey-overlay-title="打开QQ Open QQ" { spawn "~/.config/niri/scripts/qq-launcher.sh"; }
     Mod+Alt+R hotkey-overlay-title="重置侧边栏 Reorder Sidebar" { spawn "niri-sidebar" "reorder"; }
 
     // 全屏
