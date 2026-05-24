@@ -224,6 +224,9 @@ binds {
 
     // 输入法
     Mod+F1 hotkey-overlay-title="开关输入法 Toggle fcitx" { spawn-sh "pkill fcitx5 || fcitx5"; }
+    
+    // 将快捷键 Mod+F3 绑定到执行脚本的命令
+    Mod+F3 { spawn "~/.config/niri/scripts/toggle-touchpad-kde.sh"; }
 
     // 剪贴板
     Mod+V hotkey-overlay-title="剪贴板 Clipboard" {
