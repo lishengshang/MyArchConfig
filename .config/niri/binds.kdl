@@ -208,6 +208,12 @@ binds {
     // 五、系统与外观控制
     // ============================================================
 
+    // 全屏截图
+    Mod+Alt+A { screenshot; }
+    // 区域截图（带选区界面）
+    // Mod+Alt+A { spawn "~/.config/niri/scripts/screenshot.sh"; }
+
+
     // 壁纸
     Mod+Alt+W hotkey-overlay-title="切换壁纸 Change wallpaper" { spawn "waypaper"; }
     Mod+F10 hotkey-overlay-title="随机切换壁纸 Random wallpaper" { spawn "waypaper" "--random"; }
