@@ -17,19 +17,6 @@ MENU_CMD='fuzzel --dmenu'
 PICTURES_DIR="$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Pictures")"
 SCREEN_DIR="$PICTURES_DIR/Screenshots"
 
-# ===========================
-# [新增] 音效配置
-# ===========================
-# 音效文件路径 (默认 freedesktop 快门声)
-SOUND_FILE="/usr/share/sounds/freedesktop/stereo/camera-shutter.oga"
-# 播放命令 (后台运行，静默)
-# 如果你没有 pw-play，可以换成 paplay 或 aplay
-PLAY_SOUND_CMD() {
-    if [[ -f "$SOUND_FILE" ]]; then
-        pw-play "$SOUND_FILE" >/dev/null 2>&1 &
-    fi
-}
-
 ########################
 # 本地化（中/英）
 ########################
@@ -96,18 +83,17 @@ else
 fi
 
 ########################
-# 持久化配置路径 (已修改为 .cache 目录)
+# 持久化配置路径
 ########################
 
 XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
-# 旧路径: CONFIG_DIR="$HOME/.config/waybar/waybar-shot"
 CONFIG_DIR="$XDG_CACHE_HOME/waybar-power-screenshot-sh"
 
 BACKEND_FILE="$CONFIG_DIR/backend"
 EDITOR_FILE="$CONFIG_DIR/editor"
 EDIT_MODE_FILE="$CONFIG_DIR/edit_mode"    # yes / no
 
-# 确保新的缓存目录存在
+# 确保缓存目录存在
 mkdir -p "$CONFIG_DIR"
 
 ########################
@@ -121,8 +107,7 @@ menu() {
 menu_prompt() {
     local prompt="$1"
     shift
-    local esc_prompt="${prompt//\"/\\\"}"
-    printf '%s\n' "$@" | eval "$MENU_CMD --prompt \"$esc_prompt\"" 2>/dev/null || true
+    printf '%s\n' "$@" | eval "$MENU_CMD --prompt \"$prompt\"" 2>/dev/null || true
 }
 
 load_backend_mode() {
@@ -142,9 +127,7 @@ load_backend_mode() {
 }
 
 save_backend_mode() {
-    local mode="$1"
-    # 由于脚本开始时已创建，这里只需要保证文件写入成功
-    printf '%s\n' "$mode" >"$BACKEND_FILE"
+    printf '%s\n' "$1" >"$BACKEND_FILE"
 }
 
 load_editor() {
@@ -166,9 +149,7 @@ load_editor() {
 }
 
 save_editor() {
-    local ed="$1"
-    # 由于脚本开始时已创建，这里只需要保证文件写入成功
-    printf '%s\n' "$ed" >"$EDITOR_FILE"
+    printf '%s\n' "$1" >"$EDITOR_FILE"
 }
 
 load_edit_mode() {
@@ -178,15 +159,13 @@ load_edit_mode() {
     fi
     case "$v" in
         yes|no) ;;
-        *) v="yes" ;;    # 默认：编辑开启
+        *) v="yes" ;;
     esac
     printf '%s\n' "$v"
 }
 
 save_edit_mode() {
-    local v="$1"
-    # 由于脚本开始时已创建，这里只需要保证文件写入成功
-    printf '%s\n' "$v" >"$EDIT_MODE_FILE"
+    printf '%s\n' "$1" >"$EDIT_MODE_FILE"
 }
 
 detect_backend() {
@@ -418,10 +397,6 @@ niri_capture_and_maybe_edit() {
             shot="$(latest_in_dir "$NIRI_SHOT_DIR" || true)"
             if [[ -z "$before" && -n "$shot" ]] || \
                [[ -n "$before" && -n "$shot" && "$shot" != "$before" ]]; then
-                
-                # [新增] 检测到新文件生成，截图成功，播放音效！
-                PLAY_SOUND_CMD
-                
                 break
             fi
             sleep 0.05
@@ -436,9 +411,6 @@ niri_capture_and_maybe_edit() {
         echo "等待剪贴板中的截图超时" >&2
         return 0
     fi
-
-    # [新增] 剪贴板内容变化，截图成功，播放音效！
-    PLAY_SOUND_CMD
 
     edit_from_clipboard "niri"
     return 0
@@ -543,11 +515,6 @@ grim_capture_and_maybe_edit() {
             *)
                 return 0 ;;
         esac
-        
-        # [新增] Grim 执行成功后，播放音效
-        if [[ -f "$shot" ]]; then
-            PLAY_SOUND_CMD
-        fi
 
         edit_file_image "$shot" "grim"
         return 0
@@ -566,11 +533,6 @@ grim_capture_and_maybe_edit() {
             *)
                 return 0 ;;
         esac
-
-        # [新增] Grim 执行成功后，播放音效
-        if [[ -f "$shot" ]]; then
-            PLAY_SOUND_CMD
-        fi
 
         return 0
     fi
@@ -680,4 +642,4 @@ while :; do
             exit 0
             ;;
     esac
-done
+doney

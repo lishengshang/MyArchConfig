@@ -219,7 +219,7 @@
     "status-icons": {
       "paused": "⏸"
     },
-    "toooltip": "{dynamic}",
+    "tooltip": "{dynamic}",
     "enable-tooltip-len-limits": true
   },
   //logo+程序启动器
@@ -450,13 +450,13 @@
     "format": "[{layout}]{title}"
   },
   //剪贴板
-  // "custom/clipboard":{
-  //   "format":"󰅍",
-  //   "on-click":"kitty --class cliphist-tui -e cliphist-tui",
-  //   "on-click-middle":"pkill wl-paste || true && wl-paste --watch cliphist store && sleep 0.5 && systemctl restart --user clipsync-git",
-  //   "on-click-right":"rm -f ~/.cache/cliphist/db",
-  //   "tooltip-format":"左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
-  // },
+  "custom/clipboard":{
+    "format":"󰅍",
+    "on-click":"kitty --class cliphist-tui -e cliphist-tui",
+    "on-click-middle":"pkill wl-paste || true && wl-paste --watch cliphist store && sleep 0.5 && systemctl restart --user clipsync-git",
+    "on-click-right":"rm -f ~/.cache/cliphist/db",
+    "tooltip-format":"左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
+  },
   // 壁纸切换
  "custom/wallpapers":{
     "format":"󰸉",

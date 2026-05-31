@@ -27,7 +27,7 @@
 	"custom/actions",
         "custom/wfrec",
         "custom/screenshot",
-	//"custom/wallpapers",
+	"custom/wallpapers",
 	"custom/clipboard",
         "custom/left_div#2",
         "idle_inhibitor",
