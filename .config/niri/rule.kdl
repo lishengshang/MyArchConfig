@@ -76,12 +76,21 @@ window-rule{
 window-rule {
     match app-id="yesplaymusic"
     open-floating true
+    default-column-width { fixed 1000; }
+    default-window-height { fixed 600; }
     min-width 1280
     max-width 1280
     min-height 800
     max-height 800
 }
 
+// mpv浮窗配置
+window-rule {
+    match app-id="mpv"
+    open-floating true
+    // default-column-width { fixed 1000; }
+    // default-window-height { fixed 600; }
+}
 
 // bilibili webapp 的窗口规则，以标签页模式打开
 window-rule{
@@ -158,6 +167,7 @@ window-rule {
     default-window-height { fixed 600; }
     open-floating true
 }
+
 //快速终端和笔记
 window-rule {
     match app-id="notebook"
@@ -179,7 +189,7 @@ window-rule {
     default-window-height { fixed 700; }
 	open-floating true
 }
-    // waydroid调整
+// waydroid调整
 window-rule {
     match title="gsr ui"
     match app-id="waydroid"

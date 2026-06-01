@@ -157,30 +157,6 @@
       "pulseaudio/slider"
     ]
   },
-  // "pulseaudio": {
-  //   "tooltip-format": "左键：静音\n右键：关闭麦克风\n中键：打开面板",
-  //   "format": "{icon} {format_source} ",
-  //   "format-bluetooth": " {format_source} ",
-  //   "format-source": "{volume}%",
-  //   "format-source-muted": "",
-  //   "format-muted": " {format_source} ",
-  //   "format-icons": {
-  //     "headphone": "",
-  //     "headset": "",
-  //     "bluetooth": "",
-  //     // "speaker":"󰓃"
-  //     "speaker": [
-  //       "",
-  //       "",
-  //       ""
-  //     ],
-  //   },
-  //   "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
-  //   "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
-  //   "on-click-middle": "pavucontrol --tab=3",
-  //   "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%+",
-  //   "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-",
-  // },
   "pulseaudio": {
     "tooltip-format": "左键：静音\n右键：关闭麦克风\n中键：打开面板",
     "format": "{icon} {volume}% ",
@@ -189,21 +165,21 @@
     "format-source-muted": "",
     "format-muted": " {volume}% ",
     "format-icons": {
-        "headphone": "",
-        "headset": "",
-        "bluetooth": "",
-        "speaker": [
-            "",
-            "",
-            ""
-        ]
+      "headphone": "",
+      "headset": "",
+      "bluetooth": "",
+      "speaker": [
+        "",
+        "",
+        ""
+      ]
     },
     "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
     "on-click-middle": "pavucontrol --tab=3",
     "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+",
     "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
-},
+  },
   "pulseaudio/slider": {
     "min": 0,
     "max": 100,
@@ -227,7 +203,7 @@
     "tooltip-format": "左键：软件启动菜单\n右键：打开终端",
     "format": "",
     "on-click": "fuzzel",
-    "on-click-right":"kitty || ghostty || alacritty || foot || konsole",
+    "on-click-right": "kitty || ghostty || alacritty || foot || konsole",
     "on-click-middle": "~/.config/scripts/niri_auto_blur_bg.sh || pkill -f niri_auto_blur_bg.sh"
   },
   //电源菜单
@@ -279,7 +255,7 @@
   },
   "backlight": {
     "tooltip": true,
-    "tooltip-format":"调节内屏亮度",
+    "tooltip-format": "调节内屏亮度",
     "format": "{icon}",
     "format-icons": [
       "",
@@ -366,9 +342,9 @@
     "tooltip": true,
     "format": "󱏜",
     "on-click": "hyprpicker -a && pw-play /usr/share/sounds/freedesktop/stereo/message.oga",
-    "on-click-middle":"~/.config/scripts/matugen-select-type.sh",
-    "on-click-right":"waypaper",
-    "tooltip-format":"左键：提取颜色\n右键：打开壁纸切换器\n中键：切换系统配置方案"
+    "on-click-middle": "~/.config/scripts/matugen-select-type.sh",
+    "on-click-right": "waypaper",
+    "tooltip-format": "左键：提取颜色\n右键：打开壁纸切换器\n中键：切换系统配置方案"
   },
   //音频可视化
   "custom/cava": {
@@ -385,7 +361,7 @@
       "deactivated": ""
     },
     // 这一项设置启动waybar的时候自动禁止熄屏
-    "start-activated":true,
+    "start-activated": true,
     "tooltip-format-activated": "自动熄屏已禁止",
     "tooltip-format-deactivated": "自动熄屏已开启",
     "on-click-right": "~/.config/scripts/matugen-select-type.sh"
@@ -396,7 +372,7 @@
     "tooltip": false
   },
   //archupdater
-"custom/updates": {
+  "custom/updates": {
     "format": "{}{icon}",
     "return-type": "json",
     "format-icons": {
@@ -407,7 +383,7 @@
     "restart-interval": 0,
     "on-click": "",
     "on-click-middle": "pkill -SIGUSR1 -f ~/.config/waybar/scripts/check-updates.sh",
-    "on-click-right": "" 
+    "on-click-right": ""
   },
   //隐私
   "privacy": {
@@ -450,26 +426,25 @@
     "format": "[{layout}]{title}"
   },
   //剪贴板
-  "custom/clipboard":{
-    "format":"󰅍",
-    "on-click":"kitty --class cliphist-tui -e cliphist-tui",
-    "on-click-middle":"pkill wl-paste || true && wl-paste --watch cliphist store && sleep 0.5 && systemctl restart --user clipsync-git",
-    "on-click-right":"rm -f ~/.cache/cliphist/db",
-    "tooltip-format":"左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
+  "custom/clipboard": {
+    "format": "󰅍",
+    "on-click": "kitty --class cliphist-tui -e cliphist-tui",
+    "on-click-middle": "pkill wl-paste || true && wl-paste --watch cliphist store && sleep 0.5 && systemctl restart --user clipsync-git",
+    "on-click-right": "rm -f ~/.cache/cliphist/db",
+    "tooltip-format": "左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
   },
   // 壁纸切换
- "custom/wallpapers":{
-    "format":"󰸉",
-    "tooltip-format":"左键：打开壁纸切换器\n右键：随机切换壁纸\n中键：随机下载动漫壁纸",
-    "on-click":"waypaper",
-    "on-click-right":"waypaper --random",
-    "on-click-middle":"~/.config/scripts/random-anime-wallpaper.sh"
- },
- // 常用命令
- "custom/actions":{
-   "format":"",
-   "tooltip-format":"左键：常用命令",
-   "on-click":"~/.config/waybar/scripts/command-center.sh"
- }
-
+  "custom/wallpapers": {
+    "format": "󰸉",
+    "tooltip-format": "左键：打开壁纸切换器\n右键：随机切换壁纸\n中键：随机下载动漫壁纸",
+    "on-click": "waypaper",
+    "on-click-right": "waypaper --random",
+    "on-click-middle": "~/.config/scripts/random-anime-wallpaper.sh"
+  },
+  // 常用命令
+  "custom/actions": {
+    "format": "",
+    "tooltip-format": "左键：常用命令",
+    "on-click": "~/.config/waybar/scripts/command-center.sh"
+  }
 }
