@@ -1,0 +1,51 @@
+# =============================================================================
+# Dotfiles bare repo .gitignore — 工作区是 $HOME，默认忽略一切
+# 只白名单你想版本控制的配置，用 dota <文件> 添加新配置
+# =============================================================================
+
+# 默认忽略所有文件
+/*
+
+# === 白名单：你想管理的配置 ===
+
+# .gitignore 本身
+!.gitignore
+
+# 顶层配置
+!.zshenv
+!.p10k.zsh
+
+# .config 下的白名单（只放你真正想备份的）
+!.config/zsh/
+!.config/niri/
+!.config/nvim/
+!.config/waybar/
+!.config/mako/
+!.config/fish/
+!.config/kitty/
+!.config/mpv/
+!.config/yazi/
+!.config/fastfetch/
+!.config/fcitx5/
+!.config/fontconfig/
+!.config/ghostty/
+!.config/swaylock/
+!.config/swayosd/
+!.config/waypaper/
+!.config/btop/
+!.config/cava/
+!.config/matugen/
+!.config/scripts/
+!.config/starship.toml
+!.config/fuzzel/
+!.config/gtk-3.0/
+!.config/gtk-4.0/
+
+
+# === 敏感文件（双重保险）===
+.env
+.env.*
+*.pem
+*.key
+*.secret
+credentials

@@ -93,7 +93,14 @@ alias y='yazi'
 alias ya='yazi'
 
 # -----------------------------------------------------------------------------
-# Dotfiles 管理：`dot` 函数（裸仓库位于 $HOME/dotfiles/.git，工作区是 $HOME）
-# 使用方式：dot add .config/niri
+# Dotfiles 管理：裸仓库位于 $HOME/dotfiles，工作区是 $HOME
+# 使用方式：dot add -f .config/niri  （-f 因为 .gitignore 默认忽略所有）
 # ----------------------------------------------------------------------------
-alias dotfiles='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
+alias dot='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
+alias dots='dot status'                                # 查看变更概览
+alias dotd='dot diff'                                  # 查看具体改动
+alias dotds='dot diff --staged'                        # 查看暂存区改动
+alias dotl='dot log --oneline --graph --decorate -15'  # 最近提交
+alias dota='dot add -f'                                # 强制跟踪文件（绕过 .gitignore）
+alias dotc='dot commit -m'                             # 提交
+alias dotp='dot push'                                  # 推送

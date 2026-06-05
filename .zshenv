@@ -1,0 +1,1 @@
+/home/mio/.config/zsh/zshenv

@@ -9,7 +9,7 @@ include optional=true "debug.kdl"
 screenshot-path "~/Pictures/Pictures/screenshots/%Y-%m-%d %H-%M-%S.png"
 
 // 环境变量
-environment {
+environment {J
     //LC_CTYPE "zh_CN.UTF-8" 会导致输入法出现漏字
     //LC_MESSAGES "zh_CN.UTF-8" 让系统全局使用英文，仅主要界面为英文时使用这个环境变量
     // 设置界面语言
@@ -142,7 +142,6 @@ spawn-sh-at-startup "sleep 1 &&  waypaper --random"
 // 恢复壁纸
 //spawn-at-startup "waypaper" "--restore"
 
-
 // 询问管理员权限功能（身份验证）
 spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 
@@ -159,7 +158,6 @@ spawn-at-startup "waybar"
 
 // 输入法
 spawn-at-startup "fcitx5" 
-
 
 // 剪贴板守护进程
 //cliphist

@@ -88,13 +88,13 @@ window-rule {
 window-rule {
     match app-id="mpv"
     open-floating true
-    // default-column-width { fixed 1000; }
-    // default-window-height { fixed 600; }
+    // default-column-width { fixed 1200; }
+    // default-window-height { fixed 750; }
 }
 
 // bilibili webapp 的窗口规则，以标签页模式打开
 window-rule{
-	match app-id="WebApp-bilibili8002"
+	match app-id="WebApp-bilibili8002" 
 	 default-column-display "tabbed"
 }
 
