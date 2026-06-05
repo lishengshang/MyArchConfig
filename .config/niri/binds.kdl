@@ -253,6 +253,17 @@ binds {
     XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+5%"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "5%-"; }
 
+
+    // 下面的两个键盘配置是我个人的使用方案 笔记本电脑的一些小配置
+    // 要求 ：
+    // 键盘背光亮度
+    Mod+F8 hotkey-overlay-title="键盘背光减亮 Kbd backlight down" { spawn "brightnessctl" "-d" "rgb:kbd_backlight" "set" "10%-"; }
+    Mod+F9 hotkey-overlay-title="键盘背光增亮 Kbd backlight up" { spawn "brightnessctl" "-d" "rgb:kbd_backlight" "set" "+10%"; }
+
+    // 键盘背光颜色循环
+    Mod+Shift+F8 hotkey-overlay-title="背光颜色上一个 Kbd color prev" { spawn "~/.config/niri/scripts/kbd-backlight-color.sh" "prev"; }
+    Mod+Shift+F9 hotkey-overlay-title="背光颜色下一个 Kbd color next" { spawn "~/.config/niri/scripts/kbd-backlight-color.sh" "next"; }
+
     // ============================================================
     // 六、实验性与高级功能
     // ============================================================
