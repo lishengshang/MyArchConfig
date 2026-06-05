@@ -431,7 +431,7 @@ window#waybar.empty #window {
     
 }
 
-#battery.critical:not(.charging) {
+#battery.critical.discharging {
     background-color: @surface_container;
     color: @error;
     animation-name: blink;
@@ -439,6 +439,12 @@ window#waybar.empty #window {
     animation-timing-function: steps(12);
     animation-iteration-count: infinite;
     animation-direction: alternate;
+    padding: 0px 0.39em; /* 7px */
+}
+
+#battery.not-charging {
+    background-color: @surface_container;
+    color: @secondary;
     padding: 0px 0.39em; /* 7px */
 }
 

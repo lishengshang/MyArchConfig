@@ -1,12 +1,13 @@
 {
   //电池电量
   "battery": {
-    "interval": 60,
+    "interval": 30,
     "states": {
       "critical": 20
     },
     "format": "{icon} {capacity}%",
     "format-charging": "󰂄 {capacity}% ",
+    "format-not-charging": "󰂄 {capacity}% ",
     "format-icons": [
       "󰂎",
       "󰁺",
