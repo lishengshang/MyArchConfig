@@ -27,7 +27,7 @@ environment {
     // 默认文本编辑器
     EDITOR "vim"
     // 一个可能kde遇到的环境问题
-    XDG_MENU_PREFIX "arch-"    
+    // XDG_MENU_PREFIX "arch-"    
 }
 
 // 光标配置

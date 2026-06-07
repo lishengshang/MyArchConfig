@@ -9,4 +9,5 @@ alias dotfiles='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
 
 starship init fish | source
 zoxide init fish --cmd cd | source
+fzf_key_bindings
 
