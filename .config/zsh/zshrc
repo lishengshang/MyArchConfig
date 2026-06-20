@@ -11,7 +11,7 @@
 #   5. aliases.zsh    — command aliases
 #   6. functions.zsh  — shell functions
 #   7. bindings.zsh   — key bindings
-#   8. prompt.zsh     — Powerlevel10k instant prompt + theme
+#   8. p10k.zsh       — Powerlevel10k theme configuration
 #
 # Custom completions live in: ~/.config/zsh/completions/
 # =============================================================================
@@ -36,10 +36,6 @@ source "$ZSH_CONFIG_HOME/aliases.zsh"
 source "$ZSH_CONFIG_HOME/functions.zsh"
 source "$ZSH_CONFIG_HOME/bindings.zsh"
 
-# 配置翻译插件
-# 在 zshrc 文件末尾，其他配置加载之后添加
-source ~/.config/zsh/translate.zsh
-
 # ---------------------------------------------------------------------------
 # Stage 3: Powerlevel10k theme configuration
 # ---------------------------------------------------------------------------
@@ -54,6 +50,13 @@ if [[ -d "$HOME/.local/share/fnm" ]]; then
   eval "$(fnm env --shell zsh)"
 fi
 
-. "$HOME/.local/share/../bin/env"
+# Conda/Mamba environment
+[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 
-source /home/mio/.config/broot/launcher/bash/br
+# Broot
+[[ -f "$HOME/.config/broot/launcher/zsh/br" ]] && source "$HOME/.config/broot/launcher/zsh/br"
+
+export VAPOURSYNTH_PLUGIN_PATH=/usr/lib/vapoursynth
+
+# mimocode
+export PATH=/home/mio/.mimocode/bin:$PATH

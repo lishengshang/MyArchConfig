@@ -67,7 +67,7 @@ fkill() {
   if [[ -n "$pid" ]]; then
     echo "Kill process $pid? (y/N)"
     read -r confirm
-    [[ "$confirm" =~ ^[Yy]$ ]] && kill -9 "$pid"
+    [[ "$confirm" =~ ^[Yy]$ ]] && kill "$pid"
   fi
 }
 
@@ -130,6 +130,50 @@ backup-dotfiles() {
   cp ~/.p10k.zsh "$backup_dir/" 2>/dev/null
   echo "Dotfiles backed up to: $backup_dir"
 }
+
+# --- Auto-refresh git status via inotifywait ---
+# Requires: inotify-tools (install: sudo pacman -S inotify-tools)
+# Watches the current git repo's working tree; on file change, sends USR1
+# to trigger prompt refresh automatically.
+__git_watch_pid=0
+
+__git_watch_start() {
+  __git_watch_stop
+
+  local git_root
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
+  [[ -z "$git_root" ]] && return 0
+
+  # Silently skip if inotifywait is not installed
+  (( $+commands[inotifywait] )) || return 0
+
+  inotifywait -r -m -q \
+    -e modify,create,delete,move,close_write \
+    --exclude '(\.git/|node_modules/|__pycache__/|\.venv/|target/|build/|dist/|\.cache/)' \
+    "$git_root" 2>/dev/null | while read -r; do
+    kill -USR1 $$ 2>/dev/null || exit
+  done &!
+  __git_watch_pid=$!
+}
+
+__git_watch_stop() {
+  (( __git_watch_pid )) && kill $__git_watch_pid 2>/dev/null
+  __git_watch_pid=0
+}
+
+TRAPUSR1() {
+  p10k refresh 2>/dev/null
+  zle reset-prompt 2>/dev/null
+}
+
+__git_watch_chpwd() { __git_watch_start }
+add-zsh-hook chpwd __git_watch_chpwd
+
+__git_watch_exit() { __git_watch_stop }
+add-zsh-hook zshexit __git_watch_exit
+
+# Start watching on initial load
+__git_watch_start
 
 # --- Chezmoi helper ---
 chez() {

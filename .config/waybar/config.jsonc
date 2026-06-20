@@ -54,7 +54,7 @@
         "custom/left_div#4",
         "group/ddcutil",
         "privacy",
-        "group/audio",
+        "pulseaudio",
         "custom/left_div#8",
         "bluetooth",
         "network",

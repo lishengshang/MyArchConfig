@@ -7,6 +7,9 @@
 # =============================================================================
 
 # --- Modern replacements ---
+# These tools are loaded async by zinit and may not be available for the
+# first ~1 second after shell start. If that's an issue, use the original
+# command name directly (e.g. \ls or command ls).
 alias ls='eza --icons --group-directories-first'
 alias ll='eza -l --icons --group-directories-first --git --time-style=long-iso'
 alias la='eza -la --icons --group-directories-first --git'
@@ -19,8 +22,8 @@ alias du='dust'
 alias df='duf'
 alias ps='procs'
 alias top='btm'
-alias cd='z'       # zoxide smart jump
-alias cdi='zi'     # zoxide interactive
+alias cd='z'
+alias cdi='zi'
 
 # --- Navigation ---
 alias ..='cd ..'
@@ -28,6 +31,7 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias ~='cd ~'
 alias -- -='cd -'
+alias ds='dirs -v'
 
 # --- File operations ---
 alias mkdir='mkdir -pv'
@@ -90,7 +94,6 @@ alias py='python'
 alias ip='ip -color=auto'
 alias free='free -h'
 alias y='yazi'
-alias ya='yazi'
 
 # -----------------------------------------------------------------------------
 # Dotfiles 管理：裸仓库位于 $HOME/dotfiles，工作区是 $HOME

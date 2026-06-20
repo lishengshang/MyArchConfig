@@ -1,3 +1,7 @@
--- Keymaps are automatically loaded on the VeryLazy event
--- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
--- Add any additional keymaps here
+vim.keymap.set("n", "<leader>w", "<cmd>w<cr>", { desc = "Save" })
+vim.keymap.set("n", "<leader>q", "<cmd>q<cr>", { desc = "Quit" })
+vim.keymap.set("n", "<Esc>", "<cmd>noh<cr>", { desc = "Clear Highlight" })
+vim.keymap.set("n", "<C-h>", "<C-w>h", { desc = "Move to Left Window" })
+vim.keymap.set("n", "<C-j>", "<C-w>j", { desc = "Move to Lower Window" })
+vim.keymap.set("n", "<C-k>", "<C-w>k", { desc = "Move to Upper Window" })
+vim.keymap.set("n", "<C-l>", "<C-w>l", { desc = "Move to Right Window" })

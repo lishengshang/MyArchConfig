@@ -12,10 +12,13 @@
 autoload -Uz compinit
 zmodload zsh/complist
 
-# Always rebuild the dump. This is fast enough on modern machines and avoids
-# the cache-staleness problems that break newly installed completion files.
-# The dump file is still written so that zsh can mmap it for fast access.
-compinit -d "${ZDOTDIR:-$HOME}/.zcompdump"
+# Only rebuild compinit dump once per day (avoids ~30ms overhead every shell start)
+local compdump="${ZDOTDIR:-$HOME}/.zcompdump"
+if [[ -f "$compdump" ]] && [[ $(date -r "$compdump" +%j 2>/dev/null || echo 0) == $(date +%j) ]]; then
+    compinit -C -d "$compdump"
+else
+    compinit -d "$compdump"
+fi
 
 # --- Completion styles ---
 # Completers: _complete (normal), _match (glob patterns like *gate*)

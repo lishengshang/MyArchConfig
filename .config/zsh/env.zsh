@@ -10,11 +10,10 @@ export VISUAL='nvim'
 
 # --- Locale ---
 export LANG=zh_CN.UTF-8
-export LC_ALL=zh_CN.UTF-8
 
 # --- History ---
-export HISTSIZE=100000
-export SAVEHIST=100000
+HISTSIZE=100000
+SAVEHIST=100000
 export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
 # --- FZF ---

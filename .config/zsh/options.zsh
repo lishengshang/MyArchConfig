@@ -23,3 +23,6 @@ setopt SHARE_HISTORY        # Share history across sessions
 # --- Job control ---
 setopt NOTIFY               # Report background job status immediately
 setopt INTERACTIVE_COMMENTS # Allow comments in interactive shells
+
+# --- Shell hooks ---
+autoload -Uz add-zsh-hook

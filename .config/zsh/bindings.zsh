@@ -18,7 +18,6 @@ bindkey '^[[Z' reverse-menu-complete    # Shift+Tab
 bindkey ',' autosuggest-accept
 
 # --- Directory stack navigation ---
-alias d='dirs -v'
 for index ({1..9}) alias "$index"="cd +${index}"; unset index
 
 # --- fzf key bindings (Ctrl+T files, Ctrl+R history, Alt+C cd) ---
