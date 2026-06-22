@@ -14,7 +14,7 @@ environment {
     //LC_MESSAGES "zh_CN.UTF-8" 让系统全局使用英文，仅主要界面为英文时使用这个环境变量
     // 设置界面语言
     LANG "zh_CN.UTF-8"
-    LC_CTYPE "en_US.UTF-8" //这一项可以解决漏字问题，但是也许会导致steam之类的x11应用无法使用中文输入法
+    fLC_CTYPE "en_US.UTF-8" //这一项可以解决漏字问题，但是也许会导致steam之类的x11应用无法使用中文输入法
     // 输入法环境变量
     XMODIFIERS "@im=fcitx"
     // qt主题
@@ -182,10 +182,12 @@ spawn-at-startup "swayosd-server"
 spawn-at-startup "~/.local/bin/niri-sidebar" "listen"
 
 // 允许root通过用户的xwayland打开窗口
+// 注释掉：xhost 未安装，Wayland 环境下通常不需要
+// 如需使用，安装 xorg-xhost 后取消注释
 spawn-at-startup "xhost" "+si:localuser:root"
 
 // 音频调整程序，easyeffects，-w可以在后台启动
-spawn-at-startup "flatpak" "run" "com.github.wwmm.easyeffects" "-w"
+spawn-at-startup "easyeffects" "-w"
 // nirius
 spawn-at-startup "niriusd"
 
