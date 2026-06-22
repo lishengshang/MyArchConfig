@@ -87,18 +87,19 @@ input {
     // Omitting settings disables them, or leaves them at their default values.
     // All commented-out settings here are examples, not defaults.
     touchpad {
-        // off
-        tap
-        // dwt
-        // dwtp
-        // drag false
-        // drag-lock
+        // off                          // 完全禁用触控板
+        tap                              // 启用轻点点击：单指=左键，双指=右键，三指=中键
+        dwt                              // disable-while-typing：打字时临时禁用触控板，防误触
+        // dwtp                          // disable-while-trackpointing：使用指点杆(小红帽)时禁用触控板
+        // drag false                    // 关闭「轻点拖拽」（默认开启；轻点后按住可拖动）
+        // drag-lock                     // 拖拽锁：拖动中短暂抬起手指仍保持拖拽状态
         // nautural-scroll可以翻转触摸板滚动的方向
-        natural-scroll
-        //accel-speed -0.5
-        // accel-profile "flat"
-        // scroll-method "two-finger"
-        // disabled-on-external-mouse
+        natural-scroll                   // 自然滚动：手指上滑=页面上移（macOS 风格）；关闭则反向
+        //accel-speed -0.5               // 指针速度，范围 -1.0~1.0，负值变慢、正值变快
+        accel-profile "flat"          // 加速曲线："flat" 线性无加速；"adaptive"(默认) 自适应加速
+        // scroll-method "two-finger"    // 滚动方式：two-finger 双指 / edge 边缘 / on-button-down 按键时滚动 / no-scroll
+        // disabled-on-external-mouse    // 接入外部鼠标时自动禁用触控板
+        scroll-factor 0.3                // 滚动速度倍数：<1 变慢，>1 变快
     }
 
     mouse {
