@@ -57,6 +57,3 @@ fi
 [[ -f "$HOME/.config/broot/launcher/zsh/br" ]] && source "$HOME/.config/broot/launcher/zsh/br"
 
 export VAPOURSYNTH_PLUGIN_PATH=/usr/lib/vapoursynth
-
-# mimocode
-export PATH=/home/mio/.mimocode/bin:$PATH
