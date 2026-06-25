@@ -1,109 +1,36 @@
 # =============================================================================
-# aliases.zsh — Command aliases
+# aliases.zsh — 传统别名（abbr 之外的场景）
 # =============================================================================
-# Note: Some modern replacement tools (eza, bat, rg, etc.) are loaded
-# asynchronously via zinit. They may not be available for the first ~1 second
-# after shell start. Add a guard if this causes issues.
+# 大部分 alias 已迁移到 abbreviations.zsh（按空格展开为完整命令）。
+# 此文件保留以下场景的别名：
+#   1. 透明替换：ls/cat/find/grep（不需要看到原命令）
+#   2. 安全标志：rm/cp/mv 必须永远生效
+#   3. 颜色：ip/diff 默认加 --color
 # =============================================================================
 
-# --- Modern replacements ---
-# These tools are loaded async by zinit and may not be available for the
-# first ~1 second after shell start. If that's an issue, use the original
-# command name directly (e.g. \ls or command ls).
+# --- 现代化透明替换 ---
 alias ls='eza --icons --group-directories-first'
-alias ll='eza -l --icons --group-directories-first --git --time-style=long-iso'
-alias la='eza -la --icons --group-directories-first --git'
-alias tree='eza --tree --icons --level=2'
 alias cat='bat --style=plain --paging=never'
-alias less='bat'
 alias grep='rg --smart-case'
 alias find='fd'
 alias du='dust'
 alias df='duf'
 alias ps='procs'
-alias top='btm'
-alias cd='z'
-alias cdi='zi'
+alias top='btop'
+# cd 由 integrations.zsh 中 zoxide --cmd cd 接管
 
-# --- Navigation ---
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
-alias ~='cd ~'
-alias -- -='cd -'
-alias ds='dirs -v'
-
-# --- File operations ---
-alias mkdir='mkdir -pv'
-alias cp='cp -iv'
-alias mv='mv -iv'
-
-# --- Safety ---
+# --- 安全标志（强制） ---
 alias rm='rm -I --preserve-root'
 alias chmod='chmod --preserve-root'
 alias chown='chown --preserve-root'
+alias cp='cp -iv'
+alias mv='mv -iv'
+alias mkdir='mkdir -pv'
 
-# --- System (Arch Linux) ---
-alias pacup='sudo pacman -Syu'
-alias pacss='pacman -Ss'
-alias pacrm='sudo pacman -Rns'
-alias pacclean='sudo pacman -Sc && yay -Sc'
-alias paclist='pacman -Qq | fzf --preview "pacman -Qi {}"'
-alias yayup='yay -Syu'
+# --- 颜色 ---
+alias ip='ip --color=auto'
+alias diff='diff --color=auto'
 
-# --- Git ---
-alias g='git'
-alias gs='git status'
-alias ga='git add'
-alias gaa='git add --all'
-alias gc='git commit'
-alias gcm='git commit -m'
-alias gp='git push'
-alias gl='git log --oneline --graph --decorate'
-alias gd='git diff'
-alias gds='git diff --staged'
-alias gb='git branch'
-alias gco='git checkout'
-alias gpl='git pull'
-alias gst='git stash'
-alias lg='lazygit'
-
-# --- Docker ---
-alias d='docker'
-alias dc='docker-compose'
-alias dps='docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"'
-alias dstop='docker stop $(docker ps -aq)'
-alias drm='docker rm $(docker ps -aq)'
-alias dclean='docker system prune -af'
-
-# --- Network ---
-alias myip='curl -s https://ipinfo.io/json | jq'
-alias ports='ss -tulanp'
-
-# --- Editors ---
-alias vim='nvim'
-
-# --- Config management ---
-alias zshrc='$EDITOR ~/.config/zsh/zshrc'
-alias zshreload='exec zsh'
-alias aliasrc='$EDITOR ~/.config/zsh/aliases.zsh'
-alias envrc='$EDITOR ~/.config/zsh/env.zsh'
-
-# --- Misc ---
-alias py='python'
-alias ip='ip -color=auto'
-alias free='free -h'
-alias y='yazi'
-
-# -----------------------------------------------------------------------------
-# Dotfiles 管理：裸仓库位于 $HOME/dotfiles，工作区是 $HOME
-# 使用方式：dot add -f .config/niri  （-f 因为 .gitignore 默认忽略所有）
-# ----------------------------------------------------------------------------
-alias dot='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
-alias dots='dot status'                                # 查看变更概览
-alias dotd='dot diff'                                  # 查看具体改动
-alias dotds='dot diff --staged'                        # 查看暂存区改动
-alias dotl='dot log --oneline --graph --decorate -15'  # 最近提交
-alias dota='dot add -f'                                # 强制跟踪文件（绕过 .gitignore）
-alias dotc='dot commit -m'                             # 提交
-alias dotp='dot push'                                  # 推送
+# --- 目录栈 ---
+alias ds='dirs -v'
+for index ({1..9}) alias "$index"="cd +${index}"; unset index

@@ -1,8 +1,7 @@
-function fwatch
+function fwatch -d "Continuous mode for f (anime girl mascot)"
     while true
-    	clear
+        clear
         f $argv
         sleep 5
     end
 end
-

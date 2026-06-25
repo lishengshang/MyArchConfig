@@ -14,9 +14,15 @@ environment {
     //LC_MESSAGES "zh_CN.UTF-8" 让系统全局使用英文，仅主要界面为英文时使用这个环境变量
     // 设置界面语言
     LANG "zh_CN.UTF-8"
-    fLC_CTYPE "en_US.UTF-8" //这一项可以解决漏字问题，但是也许会导致steam之类的x11应用无法使用中文输入法
-    // 输入法环境变量
+    LC_CTYPE "en_US.UTF-8" //这一项可以解决漏字问题，但是也许会导致steam之类的x11应用无法使用中文输入法
+    // 输入法环境变量 (Wayland 原生应用走 text-input-v3 不需要这些,以下主要给 XWayland 应用)
     XMODIFIERS "@im=fcitx"
+    GTK_IM_MODULE "fcitx"
+    QT_IM_MODULE "fcitx"
+    SDL_IM_MODULE "fcitx"
+    INPUT_METHOD "fcitx"
+    // GLFW (kitty 等) 只识别 ibus 字符串,fcitx5 提供 ibus 兼容前端
+    GLFW_IM_MODULE "ibus"
     // qt主题
     QT_QPA_PLATFORMTHEME "gtk3"
     QT_QPA_PLATFORMTHEME_QT6 "gtk3"
@@ -190,6 +196,8 @@ spawn-at-startup "xhost" "+si:localuser:root"
 spawn-at-startup "easyeffects" "-w"
 // nirius
 spawn-at-startup "niriusd"
+// nirinit 会话保存：开机只保存不恢复，手动恢复用 ~/.config/niri/scripts/nirinit-restore.sh
+spawn-at-startup "~/.cargo/bin/nirinit" "--save-interval" "300" "--no-restore"
 
 // 取消启动niri时自动开启快捷键教程
 hotkey-overlay {
