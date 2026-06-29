@@ -27,7 +27,7 @@ autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey '^X^E'    edit-command-line        # Ctrl+X Ctrl+E
 
-# --- 历史搜索（按前缀，需要 history-substring-search 或原生）---
+# --- 历史搜索（按前缀）---
 bindkey '^[[A'    up-line-or-search        # ↑
 bindkey '^[[B'    down-line-or-search      # ↓
 bindkey '^P'      up-line-or-search
@@ -42,26 +42,7 @@ bindkey '^L'      clear-screen
 
 # ============================================================================
 # fzf 键绑定（Ctrl+T 文件 / Ctrl+R 历史 / Alt+C cd）
-# fzf 包安装位置因系统而异，做兼容性检查
+# 来源：pacman -S fzf，路径稳定为 /usr/share/fzf/*.zsh
 # ============================================================================
-for fzf_keys in \
-    /usr/share/fzf/key-bindings.zsh \
-    /usr/share/doc/fzf/examples/key-bindings.zsh \
-    "$HOME/.fzf/shell/key-bindings.zsh"
-do
-    if [[ -r "$fzf_keys" ]]; then
-        source "$fzf_keys"
-        break
-    fi
-done
-
-# fzf-tab 补全（如果 fzf-tab 异步加载完成）
-for fzf_comp in \
-    /usr/share/fzf/completion.zsh \
-    /usr/share/doc/fzf/examples/completion.zsh
-do
-    if [[ -r "$fzf_comp" ]]; then
-        source "$fzf_comp"
-        break
-    fi
-done
+[[ -r /usr/share/fzf/key-bindings.zsh ]] && source /usr/share/fzf/key-bindings.zsh
+[[ -r /usr/share/fzf/completion.zsh   ]] && source /usr/share/fzf/completion.zsh

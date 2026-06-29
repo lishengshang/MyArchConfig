@@ -6,23 +6,38 @@
 #   1. 透明替换：ls/cat/find/grep（不需要看到原命令）
 #   2. 安全标志：rm/cp/mv 必须永远生效
 #   3. 颜色：ip/diff 默认加 --color
+#
+# 透明替换的工具做存在性检查：未装时回退原命令，避免 "command not found"。
 # =============================================================================
 
-# --- 现代化透明替换 ---
-alias ls='eza --icons --group-directories-first'
-alias cat='bat --style=plain --paging=never'
-alias grep='rg --smart-case'
-alias find='fd'
-alias du='dust'
-alias df='duf'
-alias ps='procs'
-alias top='btop'
+# --- 现代化透明替换（带存在性检查）---
+if (( $+commands[eza] )); then
+    alias ls='eza --icons --group-directories-first'
+fi
+if (( $+commands[bat] )); then
+    alias cat='bat --style=plain --paging=never'
+fi
+if (( $+commands[rg] )); then
+    alias grep='rg --smart-case'
+fi
+if (( $+commands[dust] )); then
+    alias du='dust'
+fi
+if (( $+commands[duf] )); then
+    alias df='duf'
+fi
+if (( $+commands[procs] )); then
+    alias ps='procs'
+fi
+if (( $+commands[btop] )); then
+    alias top='btop'
+fi
 # cd 由 integrations.zsh 中 zoxide --cmd cd 接管
+# find 不替换：fd 语法与 find 不兼容，破坏脚本调用
 
 # --- 安全标志（强制） ---
-alias rm='rm -I --preserve-root'
-alias chmod='chmod --preserve-root'
-alias chown='chown --preserve-root'
+# --preserve-root 自 coreutils 8.x 起已是默认，无需显式声明
+alias rm='rm -I'
 alias cp='cp -iv'
 alias mv='mv -iv'
 alias mkdir='mkdir -pv'
@@ -31,6 +46,14 @@ alias mkdir='mkdir -pv'
 alias ip='ip --color=auto'
 alias diff='diff --color=auto'
 
+# --- 杂项 ---
+alias weather='curl -s "wttr.in/Wuhan?F&lang=zh"'
+
 # --- 目录栈 ---
 alias ds='dirs -v'
-for index ({1..9}) alias "$index"="cd +${index}"; unset index
+# 匿名函数：循环变量天然局部，不污染全局命名空间
+() { local i; for i in {1..9}; do alias "$i"="cd +$i"; done }
+
+
+# dotfiles 裸仓库
+alias dot='git --git-dir=$HOME/dotfiles --work-tree=$HOME'

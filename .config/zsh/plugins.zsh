@@ -2,17 +2,23 @@
 # plugins.zsh — Zinit 插件管理
 # =============================================================================
 # 加载策略：
-#   - 即时加载 (synchronous)：关键插件、需要在 compinit 前就绪的
-#   - 异步加载 (wait lucid)：装饰性、补全增强、版本管理
-#   - GitHub Release 二进制 (gh-r)：CLI 工具
+#   - 同步：instant prompt 主题、abbr（在 abbreviations.zsh 之前）
+#   - 异步 (wait lucid)：补全、语法高亮、自动建议、fzf-tab、forgit
 #
-# compinit 在 completions.zsh 中显式调用一次
+# compinit 由 fast-syntax-highlighting 的 atinit 钩子调用（zicompinit）。
+# completions.zsh 只放 zstyle，不再重复调用 compinit。
+#
+# 工具策略：fd/bat/eza/rg/sd/delta/hyperfine/dust/procs/btop/fzf 等
+# 一律来自 pacman（更新由系统统一管理），不再 zinit gh-r 下载。
 # =============================================================================
 
-# --- fpath 设置（必须在 compinit 之前）---
-fpath=("$HOME/.local/share/zinit/completions" $fpath)
-fpath=("$HOME/.config/zsh/completions" $fpath)
-fpath=(/usr/share/zsh/site-functions $fpath)
+# --- fpath 设置（必须在 compinit 之前；用户补全放最前以覆盖 carapace 桥接）---
+fpath=(
+    "$ZDOTDIR/completions"
+    "$HOME/.local/share/zinit/completions"
+    /usr/share/zsh/site-functions
+    $fpath
+)
 
 # --- 安装 Zinit（自举）---
 ZINIT_HOME="$HOME/.local/share/zinit/zinit.git"
@@ -27,70 +33,46 @@ source "$ZINIT_HOME/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 
-# --- Zinit annexes（必需）---
+# --- Zinit annexes ---
+# 仅保留 as-monitor（监控插件更新）和 patch-dl（补丁下载）。
+# bin-gem-node / rust 已废弃：工具一律来自 pacman，不再用 zinit ice bin=/gem=/rust= 装二进制。
 zinit light-mode for \
     zdharma-continuum/zinit-annex-as-monitor \
-    zdharma-continuum/zinit-annex-bin-gem-node \
-    zdharma-continuum/zinit-annex-patch-dl \
-    zdharma-continuum/zinit-annex-rust
-
-# --- Oh-My-Zsh 库（同步，体积小、被其他插件依赖）---
-zinit light-mode for \
-    OMZL::clipboard.zsh \
-    OMZL::history.zsh \
-    OMZL::key-bindings.zsh \
-    OMZL::completion.zsh
+    zdharma-continuum/zinit-annex-patch-dl
 
 # --- Powerlevel10k（同步，instant prompt 依赖）---
 zinit ice depth=1
 zinit light romkatv/powerlevel10k
 
-# --- zsh-abbr（同步，提供 fish 风格 abbreviation）---
-# 必须同步加载，否则 abbr 命令在 abbreviations.zsh 执行时不存在
+# --- zsh-abbr（同步：abbreviations.zsh 在 source 时需要 abbr 命令存在）---
 zinit light olets/zsh-abbr
 
 # ============================================================================
 # 异步加载（启动后约 100ms 才注入，不影响 prompt 出现速度）
 # ============================================================================
 
-# --- 核心增强（自动建议、语法高亮、历史搜索）---
+# --- 核心增强 ---
+# compinit 由 completions.zsh 同步完成；这里 fsh 的 atinit 只重放补全队列。
+# autosuggestions 键绑定：
+#   ^[  (Ctrl+Space)  接受整条建议
+#   ^[^M (Alt+Enter)  接受整条建议（备用，避开 emacs 的 ^Y yank）
+#   ^[[C (Right)      接受整条建议（右箭头）
 zinit wait lucid light-mode for \
-    atinit"ZINIT[COMPINIT_OPTS]=-C; zicompinit; zicdreplay" \
+    atinit"zicdreplay" \
         zdharma-continuum/fast-syntax-highlighting \
-    atload"_zsh_autosuggest_start; bindkey '^ ' autosuggest-accept; bindkey '^Y' autosuggest-accept; bindkey '^[[C' forward-char" \
+    atload"_zsh_autosuggest_start; bindkey '^ ' autosuggest-accept; bindkey '^[^M' autosuggest-accept; bindkey '^[[C' autosuggest-accept" \
         zsh-users/zsh-autosuggestions \
     blockf atpull'zinit creinstall -q .' \
-        zsh-users/zsh-completions \
-    zdharma-continuum/history-search-multi-word
+        zsh-users/zsh-completions
 
-# --- fzf-tab（增强 Tab 补全为 fzf 界面）---
+# --- zsh-history-substring-search（↑/↓ 按子串搜索历史）---
+# atload 里覆盖 bindings.zsh 的 up-line-or-search：现在 ↑/↓ 走子串搜索。
+# 必须在 autosuggestions 之后加载，绑定才会赢。
+zinit ice wait lucid atload"bindkey '^[[A' history-substring-search-up; bindkey '^[[B' history-substring-search-down; bindkey '^P' history-substring-search-up; bindkey '^N' history-substring-search-down"
+zinit light zsh-users/zsh-history-substring-search
+
+# --- fzf-tab（Tab 补全 fzf 化；必须在 compinit 之后） ---
 zinit wait lucid for Aloxaf/fzf-tab
 
 # --- forgit（fzf + git 交互）---
 zinit wait lucid for wfxr/forgit
-
-# --- fnm（Node.js 版本管理，异步）---
-zinit wait lucid as"command" from"gh-r" \
-    atclone"./fnm completions --shell zsh > _fnm" \
-    atpull"%atclone" \
-    atload'eval "$(fnm env --use-on-cd --shell zsh)"' \
-    for Schniz/fnm
-
-# ============================================================================
-# CLI 工具（从 GitHub Releases 异步下载到 ~/.local/share/zinit/）
-# 优势：版本可控、不依赖 pacman、卸载干净
-# ============================================================================
-zinit wait lucid as"command" from"gh-r" for \
-    mv"fd* -> fd" pick"fd/fd"           sharkdp/fd \
-    mv"bat* -> bat" pick"bat/bat"       sharkdp/bat \
-    mv"eza* -> eza" pick"eza/eza"       eza-community/eza \
-    mv"ripgrep* -> rg" pick"rg/rg"      BurntSushi/ripgrep \
-    pick"sd"                             chmln/sd \
-    mv"delta* -> delta" pick"delta/delta" dandavison/delta \
-    mv"hyperfine* -> hyperfine" pick"hyperfine/hyperfine" sharkdp/hyperfine \
-    mv"dust* -> dust" pick"dust/dust"   bootandy/dust \
-    mv"procs* -> procs" pick"procs/procs" dalance/procs \
-    mv"btm* -> btm" pick"btm/btm"       ClementTsang/bottom
-
-# --- fzf 本体 ---
-zinit wait lucid as"program" from"gh-r" pick"fzf" for junegunn/fzf

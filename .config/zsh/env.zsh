@@ -7,7 +7,14 @@
 # 此文件只放：
 #   - zsh 特有的（HISTSIZE, SPROMPT...）
 #   - 需要 shell 逻辑（条件、命令替换）的变量
+#   - 兜底（environment.d 未生效时，如 SSH/tmux/非 systemd 会话）
 # =============================================================================
+
+# --- 兜底：EDITOR / LANG（environment.d 未加载时）---
+: "${EDITOR:=nvim}"
+: "${VISUAL:=$EDITOR}"
+: "${LANG:=en_US.UTF-8}"
+export EDITOR VISUAL LANG
 
 # --- History ---
 HISTSIZE=100000
@@ -16,6 +23,18 @@ SAVEHIST=100000
 export HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 # 确保目录存在
 [[ -d "${HISTFILE:h}" ]] || mkdir -p "${HISTFILE:h}"
+
+# --- 慢命令自动报告耗时（>5s）---
+REPORTTIME=5
+# 自定义 time 格式（配合 REPORTTIME 和手动 `time cmd`）
+TIMEFMT=$'real %*E  user %*U  sys %*S  cpu %P  maxmem %M KB'
+
+# --- 命名目录（cd ~code / ~cfg / ~dl；prompt 里也显示短名）---
+hash -d code="$HOME/Code" \
+        docs="$HOME/Documents" \
+        dl="$HOME/Downloads" \
+        cfg="$HOME/.config" \
+        zsh="$ZDOTDIR" 2>/dev/null
 
 # --- FZF 命令（systemd environment.d 兜底）---
 # FZF_DEFAULT_COMMAND / FZF_CTRL_T_COMMAND / FZF_ALT_C_COMMAND
@@ -54,17 +73,25 @@ fi
 # 历史搜索 (Ctrl+R)
 export FZF_CTRL_R_OPTS='--preview "echo {}" --preview-window down:3:wrap --bind "ctrl-/:toggle-preview"'
 
-# --- Atuin 禁用（如果未来装了避免按 Ctrl+R 冲突）---
-export ATUIN_NOBIND='true'
+# --- Atuin（init 在 integrations.zsh）---
 
 # --- zsh 命令纠错提示 ---
 export SPROMPT="Correct '%R' to '%r'? [nyae]: "
 
-# --- LS_COLORS（如果系统没自动生成 dircolors）---
-# 注意：你之前手写的 LS_COLORS 太简单，会破坏 fzf-tab list-colors
-# 改用 vivid（如果装了）或 dircolors 标准配色
-if command -v vivid &>/dev/null; then
-    export LS_COLORS="$(vivid generate molokai 2>/dev/null)"
-elif [[ -z "$LS_COLORS" ]] && command -v dircolors &>/dev/null; then
-    eval "$(dircolors -b 2>/dev/null)"
-fi
+# --- LS_COLORS ---
+# 优先 vivid（缓存 ~/.cache/vivid/lscolors，仅在 vivid 二进制变化时刷新），
+# 失败或不存在则回退 dircolors -b。
+__init_lscolors() {
+    local cache="${XDG_CACHE_HOME:-$HOME/.cache}/vivid/lscolors"
+    if (( $+commands[vivid] )); then
+        if [[ ! -s "$cache" ]] || [[ "$cache" -ot "$commands[vivid]" ]]; then
+            mkdir -p "${cache:h}"
+            vivid generate molokai > "$cache" 2>/dev/null || rm -f "$cache"
+        fi
+        [[ -s "$cache" ]] && { export LS_COLORS="$(<"$cache")"; return 0 }
+    fi
+    # 兜底：dircolors
+    (( $+commands[dircolors] )) && eval "$(dircolors -b 2>/dev/null)"
+}
+__init_lscolors
+unfunction __init_lscolors

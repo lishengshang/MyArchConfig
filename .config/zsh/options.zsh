@@ -33,7 +33,7 @@ setopt NOTIFY                   # 后台任务立刻通知
 setopt LONG_LIST_JOBS           # jobs 默认 -l
 unsetopt BG_NICE                # 后台任务不降优先级
 unsetopt HUP                    # 退出时不杀后台
-unsetopt CHECK_JOBS             # 退出时不警告后台任务
+setopt CHECK_JOBS               # 退出时警告后台任务（防误丢进程）
 
 # --- 交互体验 ---
 setopt INTERACTIVE_COMMENTS     # 交互式允许 # 注释
@@ -41,6 +41,11 @@ setopt RC_QUOTES                # '' 转义单引号
 setopt COMBINING_CHARS          # Unicode 组合字符正确显示
 unsetopt FLOW_CONTROL           # 禁用 Ctrl+S/Q（释放给应用用）
 unsetopt BEEP                   # 关闭蜂鸣
+
+# --- 管道 / 单词删除 ---
+setopt PIPE_FAIL                # 管道任一段失败则整体失败
+# 默认 WORDCHARS 含 '/', Ctrl+W 一次删整条路径；去掉 '/' 后逐段删除
+WORDCHARS="${WORDCHARS//[\/]}"
 
 # --- 补全相关 ---
 setopt ALWAYS_TO_END            # 补全到结尾后光标到结尾
@@ -52,6 +57,7 @@ unsetopt MENU_COMPLETE          # 不自动选第一个
 # --- 错误处理 ---
 setopt NO_CLOBBER               # > 不覆盖已存在文件（用 >| 强制）
                                 # 解除：unsetopt clobber 或 >| file
+setopt CORRECT                  # 命令名拼写纠错（触发 SPROMPT；不纠参数，那需要 CORRECT_ALL）
 
 # --- Shell hooks（必须 autoload） ---
 autoload -Uz add-zsh-hook
