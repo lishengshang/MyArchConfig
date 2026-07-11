@@ -56,11 +56,11 @@ zinit light olets/zsh-abbr
 # autosuggestions 键绑定：
 #   ^[  (Ctrl+Space)  接受整条建议
 #   ^[^M (Alt+Enter)  接受整条建议（备用，避开 emacs 的 ^Y yank）
-#   右箭头 (^[[C) 保持默认 forward-char，用于光标右移
+#   右箭头 (^[[C)     接受整条建议（forward-char）
 zinit wait lucid light-mode for \
     atinit"zicdreplay" \
         zdharma-continuum/fast-syntax-highlighting \
-    atload"_zsh_autosuggest_start; bindkey '^ ' autosuggest-accept; bindkey '^[^M' autosuggest-accept; ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(end-of-line vi-end-of-line vi-add-eol)" \
+    atload"_zsh_autosuggest_start; bindkey '^ ' autosuggest-accept; bindkey '^[^M' autosuggest-accept; ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(forward-char end-of-line vi-end-of-line vi-add-eol)" \
         zsh-users/zsh-autosuggestions \
     blockf atpull'zinit creinstall -q .' \
         zsh-users/zsh-completions
@@ -71,8 +71,10 @@ zinit wait lucid light-mode for \
 zinit ice wait lucid atload"bindkey '^[[A' history-substring-search-up; bindkey '^[[B' history-substring-search-down; bindkey '^P' history-substring-search-up; bindkey '^N' history-substring-search-down"
 zinit light zsh-users/zsh-history-substring-search
 
-# --- fzf-tab（Tab 补全 fzf 化；必须在 compinit 之后） ---
-zinit wait lucid for Aloxaf/fzf-tab
+# --- fzf-tab（Tab / Shift+Tab 补全 fzf 化；必须在 compinit 之后）---
+# atload: fzf-tab 异步加载后，显式绑定 Tab 和 Shift+Tab 到 fzf-tab-complete
+# 去掉了 fzf 的 completion.zsh（它会抢 Tab 绑到 fzf-completion，与 fzf-tab 冲突）
+zinit wait lucid atload'bindkey "^I" fzf-tab-complete; bindkey "^[[Z" fzf-tab-complete' for Aloxaf/fzf-tab
 
 # --- forgit（fzf + git 交互）---
 # silent: 静音 forgit 加载时的 stderr（它有个 FORGIT_INSTALL_DIR 未 export 的误报警告，不影响功能）

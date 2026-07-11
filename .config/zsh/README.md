@@ -94,12 +94,15 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | 按键              | 动作                       |
 | ----------------- | -------------------------- |
 | `Ctrl+A` / `Ctrl+E` | 行首 / 行尾（emacs 风格） |
-| `Ctrl+Right/Left` | 按词前进 / 后退             |
-| `Ctrl+W`          | 删除前一个词                |
-| `Ctrl+U`          | 删到行首                    |
-| `Ctrl+K`          | 删到行尾                    |
-| `Ctrl+Backspace`  | 删除前一个词                |
+| `Ctrl+Right/Left` | 按词前进 / 后退（多终端序列兜底） |
+| `Ctrl+W`          | 删除前一个词（emacs 默认）  |
+| `Ctrl+U`          | 删到行首（emacs 默认）      |
+| `Ctrl+K`          | 删到行尾（emacs 默认）      |
+| `Ctrl+Backspace`  | 删除前一个词（多终端序列兜底） |
 | `Delete`          | 删除后一个字符              |
+
+> `Ctrl+Right/Left` 和 `Ctrl+Backspace` 在不同终端模拟器下发的 escape sequence 不同，
+> bindings.zsh 中用 `_bind_keys` 尝试多个已知序列。若仍不生效，执行 `zkbd` 生成终端专属映射。
 
 ### 补全与历史
 | 按键            | 动作                                            |
