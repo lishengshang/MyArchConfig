@@ -52,4 +52,8 @@ alias ds='dirs -v'
 
 
 # dotfiles 裸仓库
-alias dot='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
+# 使用环境变量 GIT_DIR/GIT_WORK_TREE，让补全函数内部调用的 git 命令也能识别仓库
+dot() {
+    GIT_DIR="$HOME/dotfiles" GIT_WORK_TREE="$HOME" git "$@"
+}
+compdef dot=git
