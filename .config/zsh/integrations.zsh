@@ -1,9 +1,27 @@
 # =============================================================================
-# integrations.zsh — 第三方工具集成
+# integrations.zsh - 第三方工具集成
 # =============================================================================
 # 所有需要 `eval "$(tool init zsh)"` 的工具集中管理
 # 加载顺序：compinit 之后，p10k 之前
 # =============================================================================
+
+# --- 缓存工具 init 脚本的 helper ---
+# 用法: _cache_init <cache_file> <gen_cmd> [binary]
+#   cache_file: 缓存路径
+#   gen_cmd:    生成补全的命令字符串
+#   binary:     可选，检查二进制是否比缓存新
+_cache_init() {
+    local cache_file="$1" gen_cmd="$2" binary="${3:-}"
+    if [[ ! -s "$cache_file" ]] \
+       || [[ $(date -r "$cache_file" +%j 2>/dev/null) != $(date +%j) ]] \
+       || [[ -n "$binary" && "$cache_file" -ot "$commands[$binary]" ]]; then
+        mkdir -p "${cache_file:h}"
+        if ! eval "$gen_cmd" > "$cache_file" 2>/dev/null; then
+            rm -f "$cache_file"
+        fi
+    fi
+    [[ -s "$cache_file" ]] && source "$cache_file"
+}
 
 # --- Zoxide（智能 cd，--cmd cd 接管原生 cd）---
 if (( $+commands[zoxide] )); then
@@ -22,17 +40,10 @@ fi
 
 # --- uv shell 补全（按日缓存，避免每次启动 fork）---
 if (( $+commands[uv] )); then
-    typeset -g _uv_comp_cache="${XDG_CACHE_HOME:-$HOME/.cache}/uv/zsh-completion.zsh"
-    if [[ ! -s "$_uv_comp_cache" ]] \
-       || [[ $(date -r "$_uv_comp_cache" +%j 2>/dev/null) != $(date +%j) ]] \
-       || [[ "$_uv_comp_cache" -ot "$commands[uv]" ]]; then
-        mkdir -p "${_uv_comp_cache:h}"
-        if ! uv generate-shell-completion zsh > "$_uv_comp_cache" 2>/dev/null; then
-            rm -f "$_uv_comp_cache"
-        fi
-    fi
-    [[ -s "$_uv_comp_cache" ]] && source "$_uv_comp_cache"
-    unset _uv_comp_cache
+    _cache_init \
+        "${XDG_CACHE_HOME:-$HOME/.cache}/uv/zsh-completion.zsh" \
+        'uv generate-shell-completion zsh' \
+        uv
 fi
 
 # --- Atuin（神级历史搜索：接管 Ctrl+R）---
@@ -45,25 +56,14 @@ if (( $+commands[atuin] )); then
     (( ${+widgets[atuin-search]} )) && bindkey '^r' atuin-search
 fi
 
-# ============================================================================
-# carapace（多 shell 通用补全引擎）
-# ============================================================================
+# --- carapace（多 shell 通用补全引擎）---
 # 用户在 $ZDOTDIR/completions 下的手写补全已通过 fpath 优先于 carapace 桥接
 # （plugins.zsh 把 $ZDOTDIR/completions 放在 fpath 最前），不再需要手动 compdef。
-# ============================================================================
 if (( $+commands[carapace] )); then
     export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
-    typeset -g _carapace_cache="${XDG_CACHE_HOME:-$HOME/.cache}/carapace/zsh.ps1"
-    # 缓存条件：不存在 / 为空 / 不是今天的
-    if [[ ! -s "$_carapace_cache" ]] \
-       || [[ $(date -r "$_carapace_cache" +%j 2>/dev/null) != $(date +%j) ]]; then
-        mkdir -p "${_carapace_cache:h}"
-        if ! carapace _carapace zsh > "$_carapace_cache" 2>/dev/null; then
-            rm -f "$_carapace_cache"
-        fi
-    fi
-    [[ -s "$_carapace_cache" ]] && source "$_carapace_cache"
-    unset _carapace_cache
+    _cache_init \
+        "${XDG_CACHE_HOME:-$HOME/.cache}/carapace/zsh.ps1" \
+        'carapace _carapace zsh'
 fi
 
 # --- command-not-found handler（Arch pkgfile 集成）---
@@ -89,3 +89,6 @@ do
     fi
 done
 unset _conda_init
+
+# 清理 helper
+unset -f _cache_init

@@ -5,8 +5,8 @@
 #   - 同步：instant prompt 主题、abbr（在 abbreviations.zsh 之前）
 #   - 异步 (wait lucid)：补全、语法高亮、自动建议、fzf-tab、forgit
 #
-# compinit 由 fast-syntax-highlighting 的 atinit 钩子调用（zicompinit）。
-# completions.zsh 只放 zstyle，不再重复调用 compinit。
+# compinit 由 completions.zsh 同步调用；这里 fsh 的 atinit 只做 zicdreplay
+# （重放补全队列），不重复 compinit。
 #
 # 工具策略：fd/bat/eza/rg/sd/delta/hyperfine/dust/procs/btop/fzf 等
 # 一律来自 pacman（更新由系统统一管理），不再 zinit gh-r 下载。
@@ -56,11 +56,11 @@ zinit light olets/zsh-abbr
 # autosuggestions 键绑定：
 #   ^[  (Ctrl+Space)  接受整条建议
 #   ^[^M (Alt+Enter)  接受整条建议（备用，避开 emacs 的 ^Y yank）
-#   ^[[C (Right)      接受整条建议（右箭头）
+#   右箭头 (^[[C) 保持默认 forward-char，用于光标右移
 zinit wait lucid light-mode for \
     atinit"zicdreplay" \
         zdharma-continuum/fast-syntax-highlighting \
-    atload"_zsh_autosuggest_start; bindkey '^ ' autosuggest-accept; bindkey '^[^M' autosuggest-accept; bindkey '^[[C' autosuggest-accept" \
+    atload"_zsh_autosuggest_start; bindkey '^ ' autosuggest-accept; bindkey '^[^M' autosuggest-accept; ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(end-of-line vi-end-of-line vi-add-eol)" \
         zsh-users/zsh-autosuggestions \
     blockf atpull'zinit creinstall -q .' \
         zsh-users/zsh-completions
@@ -75,4 +75,5 @@ zinit light zsh-users/zsh-history-substring-search
 zinit wait lucid for Aloxaf/fzf-tab
 
 # --- forgit（fzf + git 交互）---
-zinit wait lucid for wfxr/forgit
+# silent: 静音 forgit 加载时的 stderr（它有个 FORGIT_INSTALL_DIR 未 export 的误报警告，不影响功能）
+zinit wait lucid silent for wfxr/forgit

@@ -61,4 +61,3 @@ setopt CORRECT                  # 命令名拼写纠错（触发 SPROMPT；不�
 
 # --- Shell hooks（必须 autoload） ---
 autoload -Uz add-zsh-hook
-autoload -Uz compinit

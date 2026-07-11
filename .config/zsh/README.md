@@ -115,7 +115,7 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | ----------------- | ---------------- |
 | `Ctrl+Space`      | 接受整条建议      |
 | `Alt+Enter`       | 接受整条建议（备用）|
-| `→` (Right)       | 接受整条建议      |
+| `->` (Right)      | 逐字接受建议（partial accept，zsh-autosuggestions 默认行为）|
 
 ### fzf
 | 按键        | 动作                                   |

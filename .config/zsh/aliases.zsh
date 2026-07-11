@@ -1,5 +1,5 @@
 # =============================================================================
-# aliases.zsh — 传统别名（abbr 之外的场景）
+# aliases.zsh - 传统别名（abbr 之外的场景）
 # =============================================================================
 # 大部分 alias 已迁移到 abbreviations.zsh（按空格展开为完整命令）。
 # 此文件保留以下场景的别名：
@@ -11,27 +11,23 @@
 # =============================================================================
 
 # --- 现代化透明替换（带存在性检查）---
-if (( $+commands[eza] )); then
-    alias ls='eza --icons --group-directories-first'
-fi
-if (( $+commands[bat] )); then
-    alias cat='bat --style=plain --paging=never'
-fi
-if (( $+commands[rg] )); then
-    alias grep='rg --smart-case'
-fi
-if (( $+commands[dust] )); then
-    alias du='dust'
-fi
-if (( $+commands[duf] )); then
-    alias df='duf'
-fi
-if (( $+commands[procs] )); then
-    alias ps='procs'
-fi
-if (( $+commands[btop] )); then
-    alias top='btop'
-fi
+# key=被替换命令  value=实际执行命令（第一个词用于存在性检查）
+() {
+    local cmd tool
+    typeset -A _repl=(
+        ls   'eza --icons --group-directories-first'
+        cat  'bat --style=plain --paging=never'
+        grep 'rg --smart-case'
+        du   'dust'
+        df   'duf'
+        ps   'procs'
+        top  'btop'
+    )
+    for cmd in ${(k)_repl}; do
+        tool="${_repl[$cmd]%% *}"
+        (( $+commands[$tool] )) && alias "$cmd=$_repl[$cmd]"
+    done
+}
 # cd 由 integrations.zsh 中 zoxide --cmd cd 接管
 # find 不替换：fd 语法与 find 不兼容，破坏脚本调用
 

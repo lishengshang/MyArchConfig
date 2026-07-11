@@ -249,7 +249,7 @@ binds {
     Mod+Shift+P hotkey-overlay-title="电源菜单 Powermenu" { spawn "~/.config/niri/scripts/powermenu"; }
 
     // 会话恢复
-    Mod+G hotkey-overlay-title="恢复上次会话 Restore last session" { spawn "~/.config/niri/scripts/nirinit-restore.sh"; }
+    Mod+Shift+G hotkey-overlay-title="恢复上次会话 Restore last session" { spawn "~/.config/niri/scripts/nirinit-restore.sh"; }
 
     // 音量 (允许锁屏使用)
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "swayosd-client --output-volume +1||wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.01+"; }

@@ -62,7 +62,7 @@ zstyle ':fzf-tab:*' switch-group ',' '.'
 
 # 行为增强
 zstyle ':fzf-tab:*' continuous-trigger '/'         # 在 fzf 内按 / 直接进入子目录
-zstyle ':fzf-tab:*' accept-line enter              # 选中后回车直接执行命令
+zstyle ':fzf-tab:*' accept-line space             # 选中后回车接受补全并加空格，不直接执行
 zstyle ':fzf-tab:*' show-group full                # 按 tag 分组（commands/branches/files...）
 zstyle ':fzf-tab:*' single-group color header      # 单组时显示彩色 header
 zstyle ':fzf-tab:*' prefix ''                      # 去掉候选前的 -- / - 前缀
