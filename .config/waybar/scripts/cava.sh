@@ -24,6 +24,15 @@ data_format = ascii
 ascii_max_range = $len
 EOF
 
+# 单例锁：waybar 在多个显示器上各起一个 bar 时会执行两次本脚本，
+# 用 flock 保证只有一个实例真正启动 cava，其余实例输出静态条后退出。
+# fd 200 在脚本退出时自动关闭，锁随之释放，无需手动清理。
+exec 200>/tmp/cava.sh.lock
+if ! flock -n 200; then
+    echo "$idle_output"
+    exit 0
+fi
+
 cleanup() {
     trap - EXIT INT TERM
     pkill -P $$ 2>/dev/null

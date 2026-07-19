@@ -1,0 +1,32 @@
+# ============================================================================
+# ~/.config/bash/bashrc        — XDG-compliant bash interactive rc
+# ============================================================================
+# 由 /etc/bash.bashrc 末尾的 trampoline 加载（系统级），
+# 因此 $HOME 下不再需要 ~/.bashrc / ~/.bash_profile / ~/.bash_logout。
+#
+# XDG 路径：
+#   配置  $XDG_CONFIG_HOME/bash/     (= ~/.config/bash/)
+#   状态  $XDG_STATE_HOME/bash/      (= ~/.local/state/bash/) — 历史在这
+#
+# 触发条件：交互式 bash（登录或非登录）
+# ============================================================================
+
+# 仅交互式 shell 继续往下走（被 trampoline source 时也应该保险一下）
+[[ $- != *i* ]] && return
+
+# --- aliases ---
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+
+# --- prompt ---
+PS1='[\u@\h \W]\$ '
+
+# --- 编辑器（environment.d 已经导过，这里仅保险） ---
+export EDITOR='nvim'
+
+# --- rustup / cargo env（与原 ~/.bashrc 等价） ---
+[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+
+# --- broot launcher ---
+[ -f "$HOME/.config/broot/launcher/bash/br" ] && \
+    . "$HOME/.config/broot/launcher/bash/br"

@@ -1,46 +1,94 @@
 # =============================================================================
-# Dotfiles bare repo .gitignore — 工作区是 $HOME，默认忽略一切
-# 只白名单你想版本控制的配置，用 dota <文件> 添加新配置
+# Dotfiles bare repo .gitignore - 工作区是 $HOME
+# =============================================================================
+# 策略:默认忽略一切，白名单你想版本控制的配置。
+# 添加新配置的两种方式:
+#   1. 手动编辑此文件，加 !path/to/file
+#   2. 用 dota 命令: dota .config/foo/bar （它会 dot add，但仍需在此白名单）
 # =============================================================================
 
 # 默认忽略所有文件
 /*
 
-# === 白名单：你想管理的配置 ===
-
-# .gitignore 本身
+# === 必备元文件 ===
 !.gitignore
-
-# 顶层配置
 !.zshenv
 !.p10k.zsh
 
-# .config 下的白名单（只放你真正想备份的）
+# === 让 git 进入 .config 目录，但默认忽略其下所有内容 ===
+!.config/
+.config/*
+
+# === dotfiles 自身管理目录（setup/bootstrap/文档/包列表）===
+!.config/dotfiles/
+
+# === shell ===
 !.config/zsh/
+!.config/fish/
+!.config/bash/
+!.config/environment.d/
+
+# === 窗口管理器 / 桌面 ===
 !.config/niri/
-!.config/nvim/
 !.config/waybar/
 !.config/mako/
-!.config/fish/
-!.config/kitty/
-!.config/mpv/
-!.config/yazi/
-!.config/fastfetch/
-!.config/fcitx5/
-!.config/fontconfig/
-!.config/ghostty/
+!.config/fuzzel/
 !.config/swaylock/
 !.config/swayosd/
 !.config/waypaper/
+
+# === 编辑器 / 终端 ===
+!.config/nvim/
+!.config/kitty/
+!.config/ghostty/
+
+# === 媒体 / 浏览 ===
+!.config/mpv/
+!.config/yazi/
+!.config/fastfetch/
 !.config/btop/
 !.config/cava/
 !.config/matugen/
-!.config/scripts/
-!.config/starship.toml
-!.config/fuzzel/
+
+# === 输入法 / 字体 ===
+!.config/fcitx5/
+!.config/fontconfig/
+
+# === 主题 / 外观 ===
 !.config/gtk-3.0/
 !.config/gtk-4.0/
+!.config/starship.toml
 
+# === 自定义脚本 ===
+!.config/scripts/
+
+# =============================================================================
+# 黑名单：在白名单目录内重新排除缓存 / 生成物 / 平台特定文件
+# 这些文件不应版本控制，换机器会自动重新生成
+# =============================================================================
+
+# --- mpv: 它本身是独立 git 仓库，有自己的 .git/.gitignore，不纳入 dotfiles ---
+# 重装时单独 clone mpv 仓库到 ~/.config/mpv/
+.config/mpv/
+
+# --- zsh 补全缓存（自动生成）---
+.config/zsh/.zcompdump
+.config/zsh/.zcompdump.*
+
+# --- fish 补全缓存（fisher / 工具自动生成）---
+.config/fish/completions/
+.config/fish/fish_history
+.config/fish/fish_variables
+
+# --- fcitx5 缓存 ---
+.config/fcitx5/conf/cached_layouts
+.config/fcitx5/cache/
+
+# --- 通用编辑器临时文件 ---
+*.swp
+*.swo
+*~
+.netrwhist
 
 # === 敏感文件（双重保险）===
 .env
@@ -49,3 +97,11 @@
 *.key
 *.secret
 credentials
+.ssh/
+.gnupg/
+
+# === 备份残留 ===
+*.bak
+*.bak.*
+*backup*
+.dotfiles-backup*

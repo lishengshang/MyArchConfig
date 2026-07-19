@@ -37,17 +37,6 @@ sysinfo() {
     printf "%-12s %s\n" "包:"      "$(pacman -Q 2>/dev/null | wc -l) (pacman)"
 }
 
-# --- 备份 dotfiles ---
-backup-dotfiles() {
-    local backup_dir="$HOME/dotfiles-backup-$(date +%Y%m%d_%H%M%S)"
-    mkdir -p -- "$backup_dir"
-    cp -- ~/.zshenv "$backup_dir/" 2>/dev/null
-    cp -r -- ~/.config/zsh "$backup_dir/"
-    cp -r -- ~/.config/fish "$backup_dir/" 2>/dev/null
-    cp -r -- ~/.config/environment.d "$backup_dir/" 2>/dev/null
-    echo "✓ 备份至: $backup_dir"
-}
-
 # --- yazi 包装：退出后 cd 到目标目录（与 fish 行为一致）---
 y() {
     local tmp cwd
@@ -84,9 +73,10 @@ extract() {
 
 # =============================================================================
 # 已删除的函数（解释保留以备查）：
-#   fo()               → 用 yazi (y) / fzf 直接 `nvim $(fzf)` 替代
-#   fkill()            → 用 `btop` 或 `procs --tree` 交互替代
-#   weather()          → 用 abbr `weather='curl -s wttr.in/Wuhan?F&lang=zh'`
-#   __git_auto_fetch() → P10K gitstatus + vcs_info 已实时反映 ahead/behind
-#   __git_watch_*      → 同上；inotify 在大 monorepo 会爆 watch 限额
+#   fo()               -> 用 yazi (y) / fzf 直接 `nvim $(fzf)` 替代
+#   fkill()            -> 用 `btop` 或 `procs --tree` 交互替代
+#   weather()          -> 用 abbr `weather='curl -s wttr.in/Wuhan?F&lang=zh'`
+#   __git_auto_fetch() -> P10K gitstatus + vcs_info 已实时反映 ahead/behind
+#   __git_watch_*      -> 同上；inotify 在大 monorepo 会爆 watch 限额
+#   backup-dotfiles()  -> dotfiles 已用 git 版本控制，用 `dot stash` / `dot tag` 替代
 # =============================================================================

@@ -1,13 +1,13 @@
 layout{
     focus-ring{
-        active-gradient from="#98ccf9cc" to="#d1bfe7cc" angle=135
+        active-gradient from="#ffb3aecc" to="#e2c28ccc" angle=135
         urgent-color "#ffb4ab"
 
         }
 }
 recent-windows {    
     highlight {
-        active-color "#363a3e"
+        active-color "#423736"
         urgent-color "#ffb4ab"
     }
 }

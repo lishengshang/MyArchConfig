@@ -16,7 +16,7 @@ _cache_init() {
        || [[ $(date -r "$cache_file" +%j 2>/dev/null) != $(date +%j) ]] \
        || [[ -n "$binary" && "$cache_file" -ot "$commands[$binary]" ]]; then
         mkdir -p "${cache_file:h}"
-        if ! eval "$gen_cmd" > "$cache_file" 2>/dev/null; then
+        if ! eval "$gen_cmd" >| "$cache_file" 2>/dev/null; then
             rm -f "$cache_file"
         fi
     fi

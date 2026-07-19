@@ -53,7 +53,24 @@ alias ds='dirs -v'
 
 # dotfiles 裸仓库
 # 使用环境变量 GIT_DIR/GIT_WORK_TREE，让补全函数内部调用的 git 命令也能识别仓库
+# GIT_DIR 在 ~/.cfg（隐藏路径，避免污染家目录）
 dot() {
-    GIT_DIR="$HOME/dotfiles" GIT_WORK_TREE="$HOME" git "$@"
+    GIT_DIR="$HOME/.cfg" GIT_WORK_TREE="$HOME" git "$@"
 }
 compdef dot=git
+
+# dota: dot add 的简写，专门用于把新配置纳入白名单
+# 用法: dota .config/foo/bar   （路径相对于 $HOME，可带前导 ./）
+dota() {
+    local p
+    for p in "$@"; do
+        # 去掉前导 ./ 让路径统一
+        p="${p#./}"
+        if [[ ! -e "$HOME/$p" ]]; then
+            echo "跳过（不存在）: $p" >&2
+            continue
+        fi
+        dot add "$p"
+    done
+}
+compdef dota=git

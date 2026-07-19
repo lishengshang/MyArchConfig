@@ -307,7 +307,8 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 - `weather` → `curl -s "wttr.in/Wuhan?F&lang=zh"`
 - `ds` → `dirs -v`
 - `1`..`9` → `cd +1`..`cd +9`（目录栈快速跳转）
-- `dot` → `git --git-dir=$HOME/dotfiles --work-tree=$HOME`（dotfiles 裸仓库）
+- `dot` -> `GIT_DIR=$HOME/.cfg GIT_WORK_TREE=$HOME git`（dotfiles 裸仓库）
+- `dota` -> `dot add` 简写（路径相对于 $HOME，可带前导 ./）
 
 ---
 
@@ -319,7 +320,6 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `groot`           | 跳到当前 git 仓库根目录（注意：不叫 `gr`，避免冲突） |
 | `port <端口号>`   | 检查端口占用（`sudo lsof`）                        |
 | `sysinfo`         | 打印系统信息（OS/内核/Shell/内存/磁盘/包数）       |
-| `backup-dotfiles` | 备份 `.zshenv`、`.config/zsh` 等到 `~/dotfiles-backup-*` |
 | `y [args...]`     | yazi 包装：退出后 cd 到目标目录                    |
 | `extract <file>`  | 通用解压（tar.gz/tar.xz/tar.zst/zip/7z/rar/...）   |
 
@@ -394,7 +394,8 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | 重新生成默认缩写集           | `abbr-seed`                                    |
 | 更新所有 Zinit 插件          | `zinit update --all`                           |
 | 重新生成 P10K 主题           | `p10k configure`                              |
-| 备份 dotfiles                | `backup-dotfiles`                              |
+| 备份 dotfiles 状态          | `dot stash` 或 `dot tag backup-$(date +%F)`   |
+| 更新 pkglist                | `bash ~/.config/dotfiles/update-pkglist.sh`   |
 | 清理 compinit 缓存           | 删除 `~/.cache/zsh/zcompdump*` 后 `exec zsh`   |
 
 ---
