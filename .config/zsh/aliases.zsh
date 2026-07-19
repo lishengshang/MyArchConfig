@@ -61,9 +61,13 @@ dot() {
 # 自定义补全: 在补全过程里临时 export GIT_DIR/GIT_WORK_TREE，
 # 这样 _git 补全函数内部调用 `git rev-parse` / `git ls-files` 时才能识别仓库，
 # 从而正确补全路径。否则补全为空。
+#
+# 关键: 必须把 service 也临时设成 git，否则 _git 主函数的 else 分支会
+# 调用 _$service（即 _dot），形成 _dot -> _git -> _dot 无限递归。
 _dot() {
     local -x GIT_DIR="$HOME/.cfg"
     local -x GIT_WORK_TREE="$HOME"
+    local service=git
     _git "$@"
 }
 compdef _dot dot
