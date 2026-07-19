@@ -110,45 +110,32 @@ dot push
 
 ### 自动备份（systemd user timer）
 
-每天凌晨 03:00 自动检测变更并 commit + push 到 GitHub。错过的时间（关机/休眠）开机后补跑。
+每 3 天凌晨 03:00 自动检测变更并 commit + push 到 GitHub。错过的时间（关机/休眠）开机后补跑。
 
-**查看 timer 状态:**
+完整指南（工作原理 / 查看状态 / 修改频率 / 故障排查 / 安全说明）见 **[autocommit.md](autocommit.md)**。
+
+常用命令速查:
+
 ```bash
-systemctl --user status dotfiles-autocommit.timer
+# 查看 timer 状态 + 下次触发时间
 systemctl --user list-timers dotfiles-autocommit.*
-```
 
-**查看自动提交日志:**
-```bash
+# 查看自动提交日志
 journalctl --user -u dotfiles-autocommit.service -n 50
-```
 
-**手动触发一次:**
-```bash
+# 手动触发一次
 systemctl --user start dotfiles-autocommit.service
-# 或者直接跑脚本
-bash ~/.config/dotfiles/auto-commit.sh
-```
 
-**暂停自动备份（临时）:**
-```bash
+# 暂停 / 恢复
 systemctl --user stop dotfiles-autocommit.timer
+systemctl --user start dotfiles-autocommit.timer
 ```
 
-**永久关闭:**
+**必做**: 开启 linger 让 timer 在未登录时也能跑（一次性命令）:
 ```bash
-systemctl --user disable --now dotfiles-autocommit.timer
+sudo loginctl enable-linger $USER
 ```
 
-**修改频率:** 编辑 `~/.config/systemd/user/dotfiles-autocommit.timer`，改 `OnCalendar=` 行，然后:
-```bash
-systemctl --user daemon-reload
-systemctl --user restart dotfiles-autocommit.timer
-```
-
-### 手动备份（重要改动前推荐）
-
-```bash
 ### 手动备份（重要改动前推荐）
 
 ```bash
