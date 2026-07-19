@@ -71,7 +71,7 @@ if [ -z "$WALLPAPER" ]; then
     fi
     
     # Fallback 降级方案：读取 waypaper 配置文件
-    if [ -z "$WALLPAPER" ] &&[ -f "$WAYPAPER_CONFIG" ]; then
+    if [ -z "$WALLPAPER" ] && [ -f "$WAYPAPER_CONFIG" ]; then
         WP_PATH=$(sed -n 's/^wallpaper[[:space:]]*=[[:space:]]*//p' "$WAYPAPER_CONFIG")
         WP_PATH="${WP_PATH/#\~/$HOME}"
         if [ -n "$WP_PATH" ] && [ -f "$WP_PATH" ]; then
@@ -106,7 +106,7 @@ else
 fi
 
 # 【修改】：加入了 FORCE_UPDATE=false 的判断。如果传入了 -f 参数，将无视壁纸是否相同，强制生成
-if [ "$FORCE_UPDATE" = false ] &&[ "$WALLPAPER" == "$LAST_PROCESSED_WALL" ] && [ "$FORCE_ZERO" = true ] &&[ "$NO_INDEX" = false ]; then
+if [ "$FORCE_UPDATE" = false ] && [ "$WALLPAPER" == "$LAST_PROCESSED_WALL" ] && [ "$FORCE_ZERO" = true ] && [ "$NO_INDEX" = false ]; then
     echo "Wallpaper unchanged for the focused monitor. Skipping Matugen update."
     exit 0
 fi
@@ -132,9 +132,9 @@ if [ "$NEED_CONVERT" = true ]; then
     # 如果缓存池里还没有这张图，才去调用转换工具
     if [ ! -f "$CACHED_IMAGE" ]; then
         if command -v magick &>/dev/null; then
-            magick "$WALLPAPER" -resize 500x500\> "$CACHED_IMAGE"
+            magick "$WALLPAPER" -resize 500x500> "$CACHED_IMAGE"
         elif command -v convert &>/dev/null; then
-            convert "$WALLPAPER" -resize 500x500\> "$CACHED_IMAGE"
+            convert "$WALLPAPER" -resize 500x500> "$CACHED_IMAGE"
         elif command -v ffmpeg &>/dev/null; then
             ffmpeg -y -i "$WALLPAPER" -vf "scale='min(500,iw)':-1" "$CACHED_IMAGE" &>/dev/null
         else
@@ -160,7 +160,7 @@ else
         SELECTED_INDEX=0
     else
         # 判断：如果探测缓存都存在，直接走“光速轮换”
-        if [ "$LAST_WALL" == "$WALLPAPER" ] && [ -f "$VALID_INDICES_FILE" ] &&[ -f "$CURRENT_INDEX_FILE" ]; then
+        if [ "$LAST_WALL" == "$WALLPAPER" ] && [ -f "$VALID_INDICES_FILE" ] && [ -f "$CURRENT_INDEX_FILE" ]; then
             
             read -r -a VALID_INDICES < "$VALID_INDICES_FILE"
             LAST_INDEX=$(cat "$CURRENT_INDEX_FILE")

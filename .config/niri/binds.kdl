@@ -229,7 +229,7 @@ binds {
     Mod+Alt+T hotkey-overlay-title="切换颜色策略 Change color strategy" { spawn "~/.config/scripts/matugen-select-type.sh"; }
 
     // 任务栏
-    Mod+F4 hotkey-overlay-title="开关任务栏 Toggle bar" { spawn-sh "pkill waybar && pkill cava || waybar"; }
+    Mod+F4 hotkey-overlay-title="开关任务栏 Toggle bar" { spawn-sh "pgrep -x waybar >/dev/null && { pkill waybar; pkill cava; } || waybar"; }
     Mod+Shift+F4 hotkey-overlay-title="隐藏任务栏 Hide bar" { spawn-sh "killall -SIGUSR1 waybar"; }
     Mod+F2 hotkey-overlay-title="重启任务栏 Restart waybar" { spawn-sh "pkill cava || true && pkill waybar || true && waybar -c $HOME/.config/waybar/config.jsonc -s $HOME/.config/waybar/style.css"; }
 

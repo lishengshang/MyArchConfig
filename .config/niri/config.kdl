@@ -172,17 +172,16 @@ spawn-at-startup "fcitx5"
 spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
 //spawn-at-startup "systemctl" "--user" "start" "linuxqq-clipsync"
 
-// 闲置时自动熄屏锁屏睡眠的脚本，说实话这东西毫无用处，super+alt+P可以熄屏休眠
-spawn-at-startup "~/.config/niri/scripts/swayidle.sh"
+// 闲置时自动熄屏锁屏睡眠：由 systemd user service 管理
+// 启用：systemctl --user enable --now swayidle.service
+// 回退方案：取消下一行注释，改用 niri 启动（注意 flock 会防止重复实例）
+//spawn-at-startup "~/.config/niri/scripts/swayidle.sh"
 
 // 大写锁定键的osd显示
 spawn-at-startup "swayosd-server"
 
 // 自动开启护眼模式,经纬度设置位置
 // spawn-at-startup "~/.local/bin/toggle-wlsunset"
-
-// 截图音效的守护进程
-// spawn-at-startup "~/.config/niri/scripts/screenshot-sound.sh"
 
 // niri-siderbar
 spawn-at-startup "~/.local/bin/niri-sidebar" "listen"

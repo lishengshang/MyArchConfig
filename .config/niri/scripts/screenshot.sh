@@ -3,12 +3,15 @@
 # 设定触发新逻辑的目标版本号
 TARGET_VERSION="25.08"
 
-# 获取当前 niri 版本
-CURRENT_VERSION=$(niri -V | awk '{print $2}')
+# 获取当前 niri 版本（兼容 "niri 26.04 (xxx)" / "v26.04" / "26.04.1" 等格式）
+CURRENT_VERSION=$(niri -V 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
 
-# 版本比较函数
+# 兜底：提取失败则走旧版本分支
+[[ -z "$CURRENT_VERSION" ]] && CURRENT_VERSION="0"
+
+# 版本比较：$1 >= $2 返回 0（true）
 version_ge() {
-    [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" != "$1" ] || [ "$1" = "$2" ]
+    [[ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]]
 }
 
 # 根据版本不同执行不同逻辑

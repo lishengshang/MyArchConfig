@@ -9,7 +9,7 @@
 WALLPAPER_BACKEND="awww" 
 
 # [AWWW 专用] 参数
-AWWW_ARGS="-n overview --transition-type fade --transition-duration 0.5"
+AWWW_ARGS=(-n overview --transition-type fade --transition-duration 0.5)
 
 # [Swaybg 专用] 填充模式 (fill, fit, center, tile)
 SWAYBG_MODE="fill"
@@ -254,9 +254,9 @@ apply_wallpapers() {
         for monitor in "${!CACHE_PATHS[@]}"; do
             img_path="${CACHE_PATHS[$monitor]}"
             if [ "$monitor" == "all" ]; then
-                awww img $AWWW_ARGS "$img_path" &
+                awww img "${AWWW_ARGS[@]}" "$img_path" &
             else
-                awww img -o "$monitor" $AWWW_ARGS "$img_path" &
+                awww img -o "$monitor" "${AWWW_ARGS[@]}" "$img_path" &
             fi
         done
         

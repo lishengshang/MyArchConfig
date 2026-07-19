@@ -43,7 +43,7 @@ wl-paste --watch bash -c "
             DIFF=\$((NOW - FILE_TIME))
 
             if [ \$DIFF -lt $TIMEOUT_SEC ]; then
-                #  조건을 满足：是图片 + 已上膛 + 没过期
+                # 条件满足：是图片 + 已上膛 + 没过期
                 pw-play \"$SOUND\" &
                 
                 # D. 销毁扳机 (防止连响)
