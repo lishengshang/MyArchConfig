@@ -108,7 +108,48 @@ dot push
 
 ## 备份 / 回滚
 
-### 打标签（轻量备份）
+### 自动备份（systemd user timer）
+
+每天凌晨 03:00 自动检测变更并 commit + push 到 GitHub。错过的时间（关机/休眠）开机后补跑。
+
+**查看 timer 状态:**
+```bash
+systemctl --user status dotfiles-autocommit.timer
+systemctl --user list-timers dotfiles-autocommit.*
+```
+
+**查看自动提交日志:**
+```bash
+journalctl --user -u dotfiles-autocommit.service -n 50
+```
+
+**手动触发一次:**
+```bash
+systemctl --user start dotfiles-autocommit.service
+# 或者直接跑脚本
+bash ~/.config/dotfiles/auto-commit.sh
+```
+
+**暂停自动备份（临时）:**
+```bash
+systemctl --user stop dotfiles-autocommit.timer
+```
+
+**永久关闭:**
+```bash
+systemctl --user disable --now dotfiles-autocommit.timer
+```
+
+**修改频率:** 编辑 `~/.config/systemd/user/dotfiles-autocommit.timer`，改 `OnCalendar=` 行，然后:
+```bash
+systemctl --user daemon-reload
+systemctl --user restart dotfiles-autocommit.timer
+```
+
+### 手动备份（重要改动前推荐）
+
+```bash
+### 手动备份（重要改动前推荐）
 
 ```bash
 # 大改动前打标签

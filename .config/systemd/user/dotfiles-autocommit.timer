@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily dotfiles auto-commit timer
+Documentation=file://%h/.config/dotfiles/HOW.md
+
+[Timer]
+# 每天 03:00 跑一次（凌晨机器空闲，不会打扰你工作）
+OnCalendar=*-*-* 03:00:00
+# 错过的时间（关机/休眠时）开机后补跑
+Persistent=true
+# 如果错过了多次触发，只跑一次（不堆积）
+Unit=dotfiles-autocommit.service
+
+[Install]
+WantedBy=timers.target

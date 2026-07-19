@@ -62,6 +62,14 @@
 # === 自定义脚本 ===
 !.config/scripts/
 
+# === systemd user units（自动备份 timer 等）===
+!.config/systemd/
+.config/systemd/*
+!.config/systemd/user/
+.config/systemd/user/*
+!.config/systemd/user/dotfiles-autocommit.service
+!.config/systemd/user/dotfiles-autocommit.timer
+
 # =============================================================================
 # 黑名单：在白名单目录内重新排除缓存 / 生成物 / 平台特定文件
 # 这些文件不应版本控制，换机器会自动重新生成

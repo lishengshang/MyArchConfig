@@ -1,0 +1,16 @@
+[Unit]
+Description=Auto commit + push dotfiles changes
+Documentation=file://%h/.config/dotfiles/HOW.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/dotfiles/auto-commit.sh
+# 失败不重启（避免 rebase 冲突时无限重试）
+Restart=no
+# 标准输出/错误都进 journal
+StandardOutput=journal
+StandardError=journal
+# 标识日志
+SyslogIdentifier=dotfiles-autocommit
