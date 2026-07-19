@@ -14,6 +14,7 @@
 !.gitignore
 !.zshenv
 !.p10k.zsh
+!README.md
 
 # === 让 git 进入 .config 目录，但默认忽略其下所有内容 ===
 !.config/
