@@ -57,7 +57,16 @@ alias ds='dirs -v'
 dot() {
     GIT_DIR="$HOME/.cfg" GIT_WORK_TREE="$HOME" git "$@"
 }
-compdef dot=git
+
+# 自定义补全: 在补全过程里临时 export GIT_DIR/GIT_WORK_TREE，
+# 这样 _git 补全函数内部调用 `git rev-parse` / `git ls-files` 时才能识别仓库，
+# 从而正确补全路径。否则补全为空。
+_dot() {
+    local -x GIT_DIR="$HOME/.cfg"
+    local -x GIT_WORK_TREE="$HOME"
+    _git "$@"
+}
+compdef _dot dot
 
 # dota: dot add 的简写，专门用于把新配置纳入白名单
 # 用法: dota .config/foo/bar   （路径相对于 $HOME，可带前导 ./）
@@ -73,4 +82,5 @@ dota() {
         dot add "$p"
     done
 }
-compdef dota=git
+# dota 用法主要是 `dota <path>`，复用 dot 的补全（路径补全）
+compdef _dot dota
