@@ -64,11 +64,23 @@ dot() {
 #
 # 关键: 必须把 service 也临时设成 git，否则 _git 主函数的 else 分支会
 # 调用 _$service（即 _dot），形成 _dot -> _git -> _dot 无限递归。
+#
+# 对 add/rm/mv 子命令，不走 _git-add 的「modified + untracked files」补全
+# （dotfiles 工作区干净时该列表为空，补全无意义），
+# 改用 _files 直接补全文件路径。
 _dot() {
     local -x GIT_DIR="$HOME/.cfg"
     local -x GIT_WORK_TREE="$HOME"
     local service=git
-    _git "$@"
+
+    # $words[2] 是子命令（add/rm/mv/commit/...）
+    # $words[CURRENT] 是当前正在补全的 word
+    # 路径补全场景: 子命令是 add/rm/mv，且当前 word 不以 - 开头（不是选项）
+    if [[ $words[2] == (add|rm|mv|restore) && $words[CURRENT] != -* ]]; then
+        _files
+    else
+        _git "$@"
+    fi
 }
 compdef _dot dot
 

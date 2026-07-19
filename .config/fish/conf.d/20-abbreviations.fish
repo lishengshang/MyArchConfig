@@ -44,14 +44,10 @@ abbr -a grbi git rebase -i
 abbr -a lg lazygit
 
 # --- Dotfiles 裸仓库 ---
-abbr -a dot 'git --git-dir=$HOME/dotfiles --work-tree=$HOME'
-abbr -a dots 'git --git-dir=$HOME/dotfiles --work-tree=$HOME status'
-abbr -a dotd 'git --git-dir=$HOME/dotfiles --work-tree=$HOME diff'
-abbr -a dotl 'git --git-dir=$HOME/dotfiles --work-tree=$HOME log --oneline --graph --decorate -15'
-abbr -a dota 'git --git-dir=$HOME/dotfiles --work-tree=$HOME add -f'
-abbr -a dotc 'git --git-dir=$HOME/dotfiles --work-tree=$HOME commit -m'
-abbr -a dotca 'git --git-dir=$HOME/dotfiles --work-tree=$HOME commit -am'
-abbr -a dotp 'git --git-dir=$HOME/dotfiles --work-tree=$HOME push'
+# dot/dota 是 functions（见 functions/dot.fish、functions/dota.fish），
+# 镜像 zsh 的 dot()/dota() 实现（GIT_DIR=$HOME/.cfg GIT_WORK_TREE=$HOME git）。
+# 补全见 completions/dot.fish、completions/dota.fish。
+# 子命令直接用 `dot <TAB>` 补全即可（继承 git 补全）。
 
 # --- Docker ---
 abbr -a d docker
