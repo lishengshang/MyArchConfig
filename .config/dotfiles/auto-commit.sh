@@ -83,8 +83,16 @@ fi
 
 # --- 4. pull --rebase（防止远程有新 commit） ---
 log "拉取远程更新..."
-if ! g pull --rebase origin main 2>&1 | grep -qE "Successfully|Current branch main is up to date|更新至|已是最新"; then
-    # 如果 rebase 失败，放弃这次自动 push，保留本地 commit
+# pull --rebase 成功的几种情况:
+#   - "Successfully rebased"     (有新 commit 需要 rebase)
+#   - "Already up to date"        (英文，最新)
+#   - "当前分支 ... 是最新的"      (中文，最新)
+#   - "Successfully fetched"     (有 fetch 但没变化)
+#   - "更新至" / "已是最新"
+pull_output=$(g pull --rebase origin main 2>&1) || true
+log "$pull_output"
+
+if echo "$pull_output" | grep -qiE "conflict|失败|error|fatal|couldn't|unable"; then
     log "⚠ pull --rebase 失败或有冲突，跳过 push（请手动处理: dot status / dot rebase --abort）"
     exit 1
 fi
