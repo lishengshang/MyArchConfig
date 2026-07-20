@@ -1,6 +1,9 @@
-# compinit 缓存（自动生成）
+# compinit dump（历史残留；新代码已移至 ~/.cache/zsh/zcompdump）
 .zcompdump
 .zcompdump.zwc
+
+# fpath 指纹（completions.zsh 自动维护，在 ~/.cache/zsh/fingerprint）
+# 此处忽略 $ZDOTDIR 下的历史残留（如有）
 
 # 本地未跟踪覆盖（不进 git）
 local.zsh

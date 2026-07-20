@@ -1,4 +1,7 @@
 "$schema" = 'https://starship.rs/config-schema.json'
+# 引用下文 matugen 生成的调色板名称
+palette = 'matugen_colors'
+
 format = """
 [](color_orange)\
 $os\
@@ -10,7 +13,6 @@ $git_branch\
 $git_status\
 [](fg:color_aqua bg:color_blue)\
 $c\
-$cpp\
 $rust\
 $golang\
 $nodejs\
@@ -19,30 +21,43 @@ $java\
 $kotlin\
 $haskell\
 $python\
+$ruby\
+$elm\
+$erlang\
+$elixir\
+$scala\
+$swift\
+$dotnet\       
+$dart\
+$lua\
+$nim\
+$zig\
+$julia\
+$crystal\
+$perl\
 [](fg:color_blue bg:color_bg3)\
 $docker_context\
 $conda\
 $pixi\
-[](fg:color_bg3 bg:color_bg1)\
-$time\
-[ ](fg:color_bg1)\
-$line_break$character"""
-palette = 'colors'
+$cmake\
+$helm\
+$terraform\
+$nix_shell\
+$aws\
+$gcloud\
+$azure\
+$vagrant\
+$kubernetes\
+$buf\
+[](fg:color_bg3)$fill[](color_bg1)$memory_usage$time[](color_bg1)
+$character"""
 
-[palettes.colors]
-mustard = '#af8700'
-color_orange = '#ffb694'
-color_fg0 = '#542105'
-color_fg1 = '#f1dfd8'
-color_purple = '#eee4a9'
-color_bg3 = '#e6bead'
-color_green = '#542105'
-color_bg1 = '#5d4033'
-color_blue = '#8e4d2e'
-color_red = '#ffb694'
-color_aqua = '#ffdbcc'
-color_yellow = '#d1c88f'
+right_format = """[](color_bg1)$cmd_duration[](color_bg1)"""
 
+
+# --------------------------------------------------
+# 操作系统模块
+# --------------------------------------------------
 [os]
 disabled = false
 style = "bg:color_orange fg:color_fg0"
@@ -71,17 +86,25 @@ Redhat = "󱄛"
 RedHatEnterprise = "󱄛"
 Pop = ""
 
+# --------------------------------------------------
+# 用户名模块
+# --------------------------------------------------
 [username]
 show_always = true
 style_user = "bg:color_orange fg:color_fg0"
 style_root = "bg:color_orange fg:color_fg0"
 format = '[ $user ]($style)'
 
+# --------------------------------------------------
+# 目录模块
+# --------------------------------------------------
 [directory]
 style = "fg:color_fg0 bg:color_yellow"
 format = "[ $path ]($style)"
 truncation_length = 3
 truncation_symbol = "…/"
+truncate_to_repo = true
+
 
 [directory.substitutions]
 "Documents" = "󰈙 "
@@ -90,6 +113,9 @@ truncation_symbol = "…/"
 "Pictures" = " "
 "Developer" = "󰲋 "
 
+# --------------------------------------------------
+# Git 模块
+# --------------------------------------------------
 [git_branch]
 symbol = ""
 style = "bg:color_aqua"
@@ -97,20 +123,29 @@ format = '[[ $symbol $branch ](fg:color_fg0 bg:color_aqua)]($style)'
 
 [git_status]
 style = "bg:color_aqua"
-format = '[[($all_status$ahead_behind )](fg:color_fg0 bg:color_aqua)]($style)'
+format = '[[ $all_status$ahead_behind ](fg:color_fg0 bg:color_aqua)]($style)'
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+conflicted = "=${count}"
+untracked = "?${count}"
+stashed = "\\$${count}"
+modified = " ${count}"
+staged = "[ ${count}](fg:color_blue)"
+renamed = "»${count}"
+deleted = "✘${count}"
 
+
+# --------------------------------------------------
+# 编程语言模块
+# --------------------------------------------------
 [nodejs]
-symbol = ""
-style = "bg:color_blue"
-format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
 
 [c]
 symbol = " "
-style = "bg:color_blue"
-format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
-
-[cpp]
-symbol = " "
 style = "bg:color_blue"
 format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
@@ -137,7 +172,7 @@ format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 [kotlin]
 symbol = ""
 style = "bg:color_blue"
-format = '[[ $symbol( $version) ](fg:color_fg1 bg:color_blue)]($style)'
+format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
 [haskell]
 symbol = ""
@@ -149,34 +184,179 @@ symbol = ""
 style = "bg:color_blue"
 format = '[[ $symbol( $version) ](fg:color_fg0 bg:color_blue)]($style)'
 
+[ruby]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[elm]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[erlang]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[elixir]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[scala]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[swift]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[dart]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[lua]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[nim]
+symbol = "👑 "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[zig]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[julia]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[crystal]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[perl]
+symbol = " "
+style = "bg:color_blue fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+# --------------------------------------------------
+# 工具与环境模块
+# --------------------------------------------------
 [docker_context]
 symbol = ""
 style = "bg:color_bg3"
-format = '[[ $symbol( $context) ](fg:#83a598 bg:color_bg3)]($style)'
+format = '[[ $symbol( $context) ](fg:color_fg0 bg:color_bg3)]($style)'
 
 [conda]
 style = "bg:color_bg3"
-format = '[[ $symbol( $environment) ](fg:#83a598 bg:color_bg3)]($style)'
+format = '[[ $symbol( $environment) ](fg:color_fg0 bg:color_bg3)]($style)'
 
 [pixi]
 style = "bg:color_bg3"
 format = '[[ $symbol( $version)( $environment) ](fg:color_fg0 bg:color_bg3)]($style)'
 
+[cmake]
+symbol = " "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[helm]
+symbol = "⎈ "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[terraform]
+symbol = "󱁢 "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[nix_shell]
+symbol = " "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol$state ]($style)"
+
+[aws]
+symbol = " "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol$profile ]($style)"
+
+[gcloud]
+symbol = " "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol$account ]($style)"
+
+[azure]
+symbol = " "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol$subscription ]($style)"
+
+[vagrant]
+symbol = "⍱ "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+[kubernetes]
+symbol = "☸ "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol$context ]($style)"
+
+[buf]
+symbol = " "
+style = "bg:color_bg3 fg:color_fg0"
+format = "[ $symbol($version) ]($style)"
+
+# --------------------------------------------------
+# 时间与提示符
+# --------------------------------------------------
 [time]
 disabled = false
 time_format = "%R"
 style = "bg:color_bg1"
 format = '[[  $time ](fg:color_fg1 bg:color_bg1)]($style)'
 
+[cmd_duration]
+min_time = 0
+format = "[ 󰄉 $duration ]($style)"
+style = "bg:color_bg1"
+show_milliseconds = true        # 显示毫秒
+
+
+# --------------------------------------------------
+# 内存占用
+# --------------------------------------------------
+[memory_usage]
+disabled = false
+threshold = 0          # 始终显示，不隐藏
+symbol = "󰍛 MEM "          # 内存图标（Nerd Font）
+#style = "bold dimmed white"
+style = "bg:color_bg1"
+format = "[ $symbol$ram_pct \\[$ram\\] ]($style)"
+#format = "[ $symbol$ram_pct ($ram) | $swap_pct ($swap) ]($style)"
+
 [line_break]
-disabled = false
 
-[character]
-disabled = false
-success_symbol = '[](bold fg:color_green)'
-error_symbol = '[](bold fg:color_red)'
-vimcmd_symbol = '[](bold fg:color_green)'
-vimcmd_replace_one_symbol = '[](bold fg:color_purple)'
-vimcmd_replace_symbol = '[](bold fg:color_purple)'
-vimcmd_visual_symbol = '[](bold fg:color_yellow)'
 
+[palettes.matugen_colors]
+color_orange = "#8dcff2"
+color_yellow = "#b5cad7"
+color_aqua   = "#c8c2ea"
+
+color_blue   = "#004d67"
+color_bg3    = "#1b2023"
+color_bg1    = "#262b2e"
+
+color_fg0    = "#003548"
+color_fg1    = "#dfe3e7"
+
+color_green  = "#c8c2ea"
+color_red    = "#ffb4ab"

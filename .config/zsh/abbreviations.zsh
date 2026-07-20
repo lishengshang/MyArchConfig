@@ -48,7 +48,7 @@ abbr-seed() {
         gsw   'git switch'
         gst   'git stash'
         gstp  'git stash pop'
-        # 注：不创建 gr=git restore，避免和 functions.zsh 的 groot() 冲突
+        gr    'git restore'
         grs   'git restore --staged'
         gm    'git merge'
         grb   'git rebase'
@@ -64,7 +64,7 @@ abbr-seed() {
         dex   'docker exec -it'
         dlog  'docker logs -f'
         dstop 'docker stop $(docker ps -aq) 2>/dev/null'
-        dclean='docker system prune -af'
+        dclean 'docker system prune -af'
 
         # --- 现代化列表 ---
         ll    'eza -l --icons --group-directories-first --git --time-style=long-iso'

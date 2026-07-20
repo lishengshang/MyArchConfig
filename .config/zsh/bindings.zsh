@@ -26,9 +26,13 @@ _bind_keys() {
 
 # --- 行编辑（终端相关键：多序列兜底）---
 _bind_keys  delete-char           '^[[3~'   '^[[3;5~'  # Delete
-_bind_keys  forward-word          '^[[1;5C' '^[[5C'    '^Oc'  # Ctrl+Right
-_bind_keys  backward-word         '^[[1;5D' '^[[5D'    '^Od'  # Ctrl+Left
+_bind_keys  forward-word          '^[[1;5C' '^[[5C'    '^Oc'  '^[[1;3C'  # Ctrl+Right (含 tmux)
+_bind_keys  backward-word         '^[[1;5D' '^[[5D'    '^Od'  '^[[1;3D'  # Ctrl+Left  (含 tmux)
 _bind_keys  backward-kill-word    '^H'      '^[[3;5~'  "^[^?" # Ctrl+Backspace（多终端兜底）
+
+# --- 插入上一命令的最后参数（zsh 内建 widget insert-last-word）---
+# Alt+. 或 Alt+_ 均可（兼容 readline 习惯）
+_bind_keys  insert-last-word      '^[.'     '^[_'               # Alt+. / Alt+_
 
 # --- 补全 ---
 # Tab 和 Shift+Tab 均由 fzf-tab 接管（见 plugins.zsh atload 钩子）

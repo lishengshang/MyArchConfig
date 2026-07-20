@@ -1,7 +1,7 @@
 # Zsh 配置说明
 
 本目录是 Zsh 的配置根目录（`$ZDOTDIR = ~/.config/zsh`），遵循 XDG Base Directory 规范。
-通过 Zinit 管理插件，Powerlevel10k 提供提示符，zsh-abbr 提供 fish 风格缩写，
+通过 Zinit 管理插件，Starship 提供提示符，zsh-abbr 提供 fish 风格缩写，
 fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 
 ---
@@ -10,21 +10,21 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 
 ```
 ~/.config/zsh/
-├── .zshrc                # 交互式主入口，按顺序 source 各模块
-├── .zshenv               # 非交互式环境变量（所有 zsh 实例都会加载）
-├── env.zsh               # 交互式专属环境变量（HISTSIZE、FZF、LS_COLORS...）
-├── options.zsh           # setopt / unsetopt 选项
-├── plugins.zsh           # Zinit + 全部插件加载
-├── completions.zsh       # compinit + 补全 zstyle + fzf-tab 样式
-├── abbreviations.zsh     # zsh-abbr 缩写 seed（首次启动自动生成）
-├── aliases.zsh           # 传统别名（透明替换 / 安全标志 / 颜色）
-├── functions.zsh         # Shell 函数（mkcd / groot / extract / y ...）
-├── bindings.zsh          # 键绑定
-├── integrations.zsh      # direnv / mise / carapace / zoxide / atuin / cnf
-├── p10k.zsh              # Powerlevel10k 主题配置
-├── local.zsh             # （可选）本地未跟踪覆盖，不进 git
-├── completions/          # 自定义补全脚本（_deno / _fnm / _hermes / _lazygit / _mise）
-└── .zcompdump            # compinit 缓存（自动生成）
+├── .zshrc                  # 交互式主入口，按顺序 source 各模块
+├── .zshenv                 # 非交互式环境变量（所有 zsh 实例都会加载）
+├── env.zsh                 # 交互式专属环境变量（HISTSIZE、FZF、LS_COLORS...）
+├── options.zsh             # setopt / unsetopt 选项
+├── plugins.zsh             # Zinit + 全部插件加载
+├── completions.zsh         # 补全子系统入口（fpath 归位 + 指纹校验 + compinit + 子模块）
+├── completion-styles.zsh   # compinit zstyle：菜单、匹配、颜色、分组
+├── completion-fzf-tab.zsh  # fzf-tab 样式与预览
+├── abbreviations.zsh       # zsh-abbr 缩写 seed（首次启动自动生成）
+├── aliases.zsh             # 传统别名（透明替换 / 安全标志 / 颜色）
+├── functions.zsh          # Shell 函数（mkcd / groot / y ...）
+├── bindings.zsh           # 键绑定
+├── integrations.zsh       # starship / direnv / mise / carapace / zoxide / atuin / cnf
+├── local.zsh              # （可选）本地未跟踪覆盖，不进 git
+└── completions/           # 手写补全脚本（fpath 优先位置）
 ```
 
 > 通用环境变量（XDG / EDITOR / LANG / PATH / FZF_DEFAULT_*）由
@@ -37,18 +37,17 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 
 `.zshrc` 严格按以下顺序加载，**不要随意调换**（存在依赖关系）：
 
-1. **p10k instant prompt** — 必须最先，零延迟提示符
-2. `env.zsh` — 历史记录、命名目录、FZF、LS_COLORS
-3. `options.zsh` — setopt 标志
-4. `plugins.zsh` — Zinit + 全部插件（其中 `zsh-abbr` 同步加载）
-5. `completions.zsh` — `compinit` + fzf-tab 样式
-6. `abbreviations.zsh` — zsh-abbr 缩写（依赖 abbr 命令存在）
-7. `aliases.zsh` — 传统别名
-8. `functions.zsh` — Shell 函数
-9. `bindings.zsh` — 键绑定
-10. `integrations.zsh` — direnv / mise / carapace / zoxide / atuin（必须在 compinit 之后）
-11. `p10k.zsh` — 主题配置
-12. `local.zsh` — 本地覆盖（如果存在）
+1. `env.zsh` - 历史记录、命名目录、FZF、LS_COLORS
+2. `options.zsh` - setopt 标志
+3. `plugins.zsh` - Zinit + 全部插件（其中 `zsh-abbr` 同步加载）
+4. `completions.zsh` - 补全子系统入口（顺序内部 source 子模块：
+   `compinit` -> `completion-styles.zsh` -> `completion-fzf-tab.zsh`）
+5. `abbreviations.zsh` - zsh-abbr 缩写（依赖 abbr 命令存在）
+6. `aliases.zsh` - 传统别名
+7. `functions.zsh` - Shell 函数
+8. `bindings.zsh` - 键绑定
+9. `integrations.zsh` - starship / direnv / mise / carapace / zoxide / atuin（starship 必须最后加载，覆盖 PROMPT）
+10. `local.zsh` - 本地覆盖（如果存在）
 
 ---
 
@@ -56,7 +55,6 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 
 | 插件                                | 加载方式 | 用途                              |
 | ----------------------------------- | -------- | --------------------------------- |
-| `romkatv/powerlevel10k`             | 同步     | 提示符主题（lean 风格 + instant prompt） |
 | `olets/zsh-abbr`                    | 同步     | fish 风格缩写                     |
 | `zdharma-continuum/fast-syntax-highlighting` | 异步 | 语法高亮                    |
 | `zsh-users/zsh-autosuggestions`     | 异步     | 命令自动建议（灰色提示）          |
@@ -67,6 +65,8 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `zinit-annex-as-monitor`            | -        | 监控插件更新                      |
 | `zinit-annex-patch-dl`              | -        | 补丁下载                          |
 
+**提示符**：由 `starship`（Rust，跨 shell）提供，配置在 `~/.config/starship.toml`。
+
 **工具策略**：`fd` / `bat` / `eza` / `rg` / `sd` / `delta` / `hyperfine` / `dust` / `procs` / `btop` / `fzf` 等一律来自 `pacman`，不再用 `zinit ice gh-r` 下载。
 
 ---
@@ -75,16 +75,16 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 
 | 工具        | 作用                                            |
 | ----------- | ----------------------------------------------- |
+| `starship`  | 提示符主题（跨 shell，Rust 实现，配置在 `~/.config/starship.toml`） |
 | `zoxide`    | 智能 cd，通过 `--cmd cd` 接管原生 `cd`          |
 | `mise`      | 统一版本管理器（Node/Python/Ruby/Go...）         |
 | `direnv`    | 项目级 `.envrc` 自动加载                        |
-| `uv`        | Python uv 的 shell 补全（按日缓存）             |
 | `atuin`     | 神级历史搜索，接管 `Ctrl+R`（不接管 ↑）         |
-| `carapace`  | 多 shell 通用补全引擎（桥接 zsh/fish/bash/inshellisense） |
+| `carapace`  | 多 shell 通用补全引擎（桥接 zsh/fish/bash/inshellisense，统一提供 opencode/uv/gh/deno 等工具补全） |
 | `pkgfile`   | command-not-found 时提示安装哪个包              |
 | `broot`     | 目录浏览（如果安装）                            |
 | `bun`       | bun 补全（如果存在 `~/.bun/_bun`）              |
-| `conda`     | Conda/Mamba（如果存在）                         |
+| `conda`     | Conda/Mamba（如果存在，mise 优先）              |
 
 ---
 
@@ -100,6 +100,7 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `Ctrl+K`          | 删到行尾（emacs 默认）      |
 | `Ctrl+Backspace`  | 删除前一个词（多终端序列兜底） |
 | `Delete`          | 删除后一个字符              |
+| `Alt+.` / `Alt+_` | 插入上一命令的最后参数（insert-last-word，兼容 readline） |
 
 > `Ctrl+Right/Left` 和 `Ctrl+Backspace` 在不同终端模拟器下发的 escape sequence 不同，
 > bindings.zsh 中用 `_bind_keys` 尝试多个已知序列。若仍不生效，执行 `zkbd` 生成终端专属映射。
@@ -190,7 +191,8 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `gsw`  | `git switch`                          |
 | `gst`  | `git stash`                           |
 | `gstp` | `git stash pop`                        |
-| `grs`  | `git restore --staged`                |
+| `gr`   | `git restore`                          |
+| `grs`  | `git restore --staged`                 |
 | `gm`   | `git merge`                           |
 | `grb`  | `git rebase`                          |
 | `grbi` | `git rebase -i`                       |
@@ -317,11 +319,9 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | 函数              | 用途                                              |
 | ----------------- | ------------------------------------------------- |
 | `mkcd <dir>`      | 创建目录并进入                                    |
-| `groot`           | 跳到当前 git 仓库根目录（注意：不叫 `gr`，避免冲突） |
+| `groot`           | 跳到当前 git 仓库根目录                          |
 | `port <端口号>`   | 检查端口占用（`sudo lsof`）                        |
-| `sysinfo`         | 打印系统信息（OS/内核/Shell/内存/磁盘/包数）       |
 | `y [args...]`     | yazi 包装：退出后 cd 到目标目录                    |
-| `extract <file>`  | 通用解压（tar.gz/tar.xz/tar.zst/zip/7z/rar/...）   |
 
 ---
 
@@ -345,41 +345,62 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 
 ---
 
-## 补全（completions.zsh）
+## 补全（completions.zsh 子系统）
 
-- `compinit` 一次 / 24 小时缓存（`~/.cache/zsh/zcompdump`），异步 `zcompile` 加速下次启动
+补全逻辑拆为 3 个文件，由 `completions.zsh` 入口编排：
+
+| 文件                      | 职责                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| `completions.zsh`         | 入口：fpath 归位、缓存目录、fpath 指纹校验、`zmodload zsh/complist`、compinit、source 子模块 |
+| `completion-styles.zsh`   | `compinit` zstyle：补全器链、菜单、匹配、颜色、分组、模糊纠错                    |
+| `completion-fzf-tab.zsh`  | fzf-tab 样式与按主题分组的预览                                                    |
+
+外部工具（opencode/uv/gh/deno/...）的补全由 carapace 桥接统一提供，无需为每个工具维护生成脚本。
+
+### compinit
+
+- 一次 / 24 小时缓存（`~/.cache/zsh/zcompdump`），命中跳过 insecure-dir 检查
+- 异步 `zcompile` dump 为 `.zwc` 字节码，下次启动 mmap 加载 ~5x 快
+- 缓存目录变量 `ZSH_COMP_CACHE_DIR`（dump + zstyle cache + 指纹 marker 共用）
+- **fpath 指纹校验**：`${ZSH_VERSION}|${(j/:/)fpath}` 写入 `~/.cache/zsh/fingerprint`，启动时比对，不一致则删除 dump 强制重建（应对 zsh 升级 / fpath 变化）
+
+### 补全行为（completion-styles.zsh）
+
+- `completer` 链：`_complete` → `_match` → `_approximate`（逐级回退）
 - `matcher-list`：大小写不敏感 + 子串匹配
-- `approximate`：允许 2 个字符的模糊补全
+- `approximate`：允许 2 字符模糊补全（数值化）
 - 分组显示 + 彩色标题（cyan / purple / red / yellow）
-- **fzf-tab**：Tab 补全全部 fzf 化，按 `/` 进入子目录，回车直接执行
-- 预览：
-  - `cd` / `z` → `eza` 树状预览
-  - `cat` / `nvim` → `bat` 内容预览
-  - `git add/diff/restore` → `git diff` 预览
-  - `git checkout` → `git log` 预览
-  - `kill` → `procs` 进程预览
-  - `systemctl` → `systemctl status` 预览
-  - `man` → man 页前 50 行预览
+- 进程补全：`kill` 时按 pid 着色
+
+### fzf-tab（completion-fzf-tab.zsh）
+
+Tab 补全全部 fzf 化：按 `/` 进入子目录，回车接受补全并加空格（不直接执行）。
+按主题分组的预览：
+
+| 主题             | 命令                                          | 预览                              |
+| ---------------- | --------------------------------------------- | --------------------------------- |
+| 目录             | `cd` / `__zoxide_z` / `ls`                    | `eza -1 --icons`                  |
+| 文件             | `cat` / `nvim`                                | `bat --style=numbers`             |
+| Git              | `git add/diff/restore/show/stash`             | `git diff`                        |
+|                  | `git checkout`                                | `git log --oneline --graph`       |
+|                  | `git log`                                    | `git log --oneline --graph`       |
+| 进程             | `kill`                                        | `procs --pid=` / `ps -p`          |
+| Systemd          | `systemctl-*`                                 | `SYSTEMD_COLORS=1 systemctl status` |
+| Man              | `man`                                         | `man $word | head -50`            |
+| 环境变量         | `export` / `unset` / `expand` 等               | `echo ${(P)word}`                 |
 
 ### 自定义补全脚本
-`completions/` 目录下：
-- `_deno` — Deno
-- `_fnm` — fnm
-- `_hermes` — Hermes
-- `_lazygit` — lazygit
-- `_mise` — mise
 
-（fpath 中 `completions/` 排在最前，可覆盖 carapace 桥接的同名补全）
+如需为某个命令添加手写补全，把 `_cmdname` 文件放入 `~/.config/zsh/completions/`，该目录在 fpath 中优先级最高，会覆盖 carapace 桥接的同名补全。compinit 会通过 fpath 自动加载。
 
 ---
 
-## Powerlevel10k 主题
+## Starship 提示符
 
-- 风格：**lean**（无背景填充，简洁）
-- 字体：nerdfont-v3 + powerline
-- 单行提示符，24h 时间，紧凑布局，多图标
-- `instant_prompt=verbose`：首次启动会显示加载日志
-- 重新生成配置：`p10k configure`
+- 跨 shell（zsh/fish/bash）通用，Rust 实现，配置在 `~/.config/starship.toml`
+- 暖色调 palette，单行提示符 + 时间戳
+- 在 `integrations.zsh` 末尾通过 `eval "$(starship init zsh)"` 加载，必须最后加载以覆盖 PROMPT
+- 配置修改后 `exec zsh` 即可生效
 
 ---
 
@@ -393,10 +414,11 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | 添加缩写                     | `abbr add foo=bar`                             |
 | 重新生成默认缩写集           | `abbr-seed`                                    |
 | 更新所有 Zinit 插件          | `zinit update --all`                           |
-| 重新生成 P10K 主题           | `p10k configure`                              |
+| 编辑提示符主题               | `$EDITOR ~/.config/starship.toml`              |
 | 备份 dotfiles 状态          | `dot stash` 或 `dot tag backup-$(date +%F)`   |
 | 更新 pkglist                | `bash ~/.config/dotfiles/update-pkglist.sh`   |
 | 清理 compinit 缓存           | 删除 `~/.cache/zsh/zcompdump*` 后 `exec zsh`   |
+| 添加手写补全                 | 把 `_cmdname` 放入 `~/.config/zsh/completions/`，重启 shell 自动加载 |
 
 ---
 

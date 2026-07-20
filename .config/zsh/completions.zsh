@@ -1,92 +1,61 @@
 # =============================================================================
-# completions.zsh — compinit + 补全样式
+# completions.zsh - 补全子系统入口
 # =============================================================================
-# compinit 在此同步调用一次（保证 compdef 在 integrations.zsh 之前可用）。
-# fast-syntax-highlighting 的 atinit 钩子只做 `zicdreplay`（重放队列），
-# 不再重复 compinit。
+# 职责：
+#   1. fpath 归位（确保 $ZDOTDIR/completions 最优先，留给手写补全用）
+#   2. 缓存目录 + completions/ 目录自检
+#   3. fpath 指纹校验（版本或 fpath 变化时强制重建 dump）
+#   4. 加载 zsh/complist
+#   5. 调用 compinit（24h 复用 dump + 异步 zcompile）
+#   6. source completion-styles.zsh   -- compinit 行为 zstyle
+#   7. source completion-fzf-tab.zsh -- fzf-tab 样式与预览
+#
+# 外部工具（opencode/uv/gh/deno/...）的补全由 carapace 桥接统一提供，
+# 不再为每个工具单独维护生成脚本。
+# 依赖：env.zsh（LS_COLORS 已就绪）。
 # =============================================================================
+
+# --- fpath 归位（强制 $ZDOTDIR/completions 最优先）---
+# plugins.zsh 加载 zinit 时可能调整过 fpath；这里重新归位确保用户补全覆盖
+# zinit 的 zsh-users/zsh-completions 与 carapace 桥接。
+fpath=(
+    "$ZDOTDIR/completions"
+    "$HOME/.local/share/zinit/completions"
+    /usr/share/zsh/site-functions
+    $fpath
+)
+typeset -U fpath                              # 去重，保留首次出现位置
+
+# --- 缓存目录 + completions 目录自检 ---
+typeset -g ZSH_COMP_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+[[ -d "$ZSH_COMP_CACHE_DIR" ]] || mkdir -p "$ZSH_COMP_CACHE_DIR"
+[[ -d "$ZDOTDIR/completions" ]] || mkdir -p "$ZDOTDIR/completions"
 
 zmodload zsh/complist
 
-# --- compinit（一天复用一次缓存）---
+# --- fpath 指纹：版本或 fpath 变化时强制重建 dump ---
+# compinit 内部已校验 ZSH_VERSION；这里额外校验 fpath 顺序（新增路径后自动失效）
+typeset -g _zcompdump="$ZSH_COMP_CACHE_DIR/zcompdump"
+typeset -g _comp_fp_file="$ZSH_COMP_CACHE_DIR/fingerprint"
+typeset -g _comp_fp_current="${ZSH_VERSION}|${(j/:/)fpath}"
+# ! -r 短路：文件不存在时不读 $(<file)，避免报错
+if [[ ! -r "$_comp_fp_file" || "$(<"$_comp_fp_file")" != "$_comp_fp_current" ]]; then
+    rm -f "$_zcompdump" "$_zcompdump.zwc"
+    print -r -- "$_comp_fp_current" >! "$_comp_fp_file"
+fi
+
+# --- compinit（24h 复用 dump；命中则跳过 insecure-dir 检查）---
 autoload -Uz compinit
-
-typeset -g ZSH_COMPCACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
-[[ -d "$ZSH_COMPCACHE" ]] || mkdir -p "$ZSH_COMPCACHE"
-typeset -g _zcompdump="$ZSH_COMPCACHE/zcompdump"
-
-# (#qN.mh-24) = 该文件 mtime 在 24h 之内（新缓存）；有则 -C 跳过安全检查
 if [[ -n ${_zcompdump}(#qN.mh-24) ]]; then
     compinit -C -d "$_zcompdump"
 else
     compinit -d "$_zcompdump"
-    # 异步把 dump 编译成 .zwc 字节码（mmap 友好，下次加载 ~5x 快）
+    # 异步把 dump 编译成 .zwc 字节码（mmap 友好，下次启动 ~5x 快）
     { [[ ! -f "$_zcompdump.zwc" || "$_zcompdump" -nt "$_zcompdump.zwc" ]] \
         && zcompile -R -- "$_zcompdump" } &!
 fi
-unset _zcompdump
+unset _zcompdump _comp_fp_file _comp_fp_current
 
-# --- 补全行为 ---
-zstyle ':completion:*' completer _complete _match _approximate
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z} r:|=*' 'l:|=* r:|=*'
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-zstyle ':completion:*' verbose yes
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*' use-cache yes
-zstyle ':completion:*' cache-path "$ZSH_COMPCACHE/zcompcache"
-zstyle ':completion:*' special-dirs true
-
-# _match 完成的项目用原始模式
-zstyle ':completion:*:match:*' original only
-# 模糊补全允许 2 个错误（固定值，比动态公式更稳）
-zstyle ':completion:*:approximate:*' max-errors 2 numeric
-
-# --- 分组显示格式 ---
-zstyle ':completion:*:descriptions' format '%F{cyan}── %d ──%f'
-zstyle ':completion:*:messages'     format '%F{purple} ── %d ──%f'
-zstyle ':completion:*:warnings'     format '%F{red}── 无匹配 ──%f'
-zstyle ':completion:*:corrections'  format '%F{yellow}── %d (errors: %e) ──%f'
-zstyle ':completion:*:default'      list-prompt '%S%M matches%s'
-
-# --- 进程补全 ---
-zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,comm -w -w"
-zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*( *[a-z])*=01;34=0=01'
-
-# ============================================================================
-# fzf-tab（异步加载后接管补全菜单）
-# ============================================================================
-
-zstyle ':fzf-tab:*' fzf-flags '--height=40%' '--layout=reverse' '--border=rounded' '--info=inline'
-zstyle ':fzf-tab:*' switch-group ',' '.'
-
-# 行为增强
-zstyle ':fzf-tab:*' continuous-trigger '/'         # 在 fzf 内按 / 直接进入子目录
-zstyle ':fzf-tab:*' accept-line space             # 选中后回车接受补全并加空格，不直接执行
-zstyle ':fzf-tab:*' show-group full                # 按 tag 分组（commands/branches/files...）
-zstyle ':fzf-tab:*' single-group color header      # 单组时显示彩色 header
-zstyle ':fzf-tab:*' prefix ''                      # 去掉候选前的 -- / - 前缀
-zstyle ':fzf-tab:*' fzf-bindings 'ctrl-space:toggle' # Ctrl+Space 多选切换
-
-# 通用 dir 预览
-zstyle ':fzf-tab:complete:cd:*'             fzf-preview 'eza -1 --color=always --icons --group-directories-first $realpath 2>/dev/null || ls $realpath'
-zstyle ':fzf-tab:complete:__zoxide_z:*'     fzf-preview 'eza -1 --color=always --icons --group-directories-first $realpath 2>/dev/null || ls $realpath'
-zstyle ':fzf-tab:complete:(\\|*/|)ls:*'     fzf-preview 'eza -1 --color=always --icons $realpath 2>/dev/null || ls $realpath'
-
-# 文件预览
-zstyle ':fzf-tab:complete:(\\|*/|)cat:*'    fzf-preview 'bat --color=always --style=numbers --line-range=:500 $realpath 2>/dev/null'
-zstyle ':fzf-tab:complete:nvim:*'           fzf-preview 'bat --color=always --style=numbers --line-range=:500 $realpath 2>/dev/null'
-
-# Git 预览
-zstyle ':fzf-tab:complete:git-(add|diff|restore|show|stash):*' fzf-preview 'git diff --color=always $word 2>/dev/null | head -100'
-zstyle ':fzf-tab:complete:git-checkout:*'   fzf-preview 'git log --color=always --oneline --graph $word 2>/dev/null | head -20'
-zstyle ':fzf-tab:complete:git-log:*'        fzf-preview 'git log --color=always --oneline --graph 2>/dev/null | head -50'
-
-# 进程 / systemd / man
-zstyle ':fzf-tab:complete:kill:*'           fzf-preview 'procs --pid=$word --color=always 2>/dev/null || ps -p $word -o cmd'
-zstyle ':fzf-tab:complete:systemctl-*:*'    fzf-preview 'SYSTEMD_COLORS=1 systemctl status $word'
-zstyle ':fzf-tab:complete:man:*'            fzf-preview 'man $word 2>/dev/null | head -50'
-
-# 环境变量
-zstyle ':fzf-tab:complete:(-command-|-parameter-|-brace-parameter-|export|unset|expand):*' \
-    fzf-preview 'echo ${(P)word}'
+# --- 补全行为样式 + fzf-tab 样式 ---
+source "$ZDOTDIR/completion-styles.zsh"
+source "$ZDOTDIR/completion-fzf-tab.zsh"

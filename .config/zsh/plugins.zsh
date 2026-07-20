@@ -1,8 +1,8 @@
 # =============================================================================
-# plugins.zsh — Zinit 插件管理
+# plugins.zsh - Zinit 插件管理
 # =============================================================================
 # 加载策略：
-#   - 同步：instant prompt 主题、abbr（在 abbreviations.zsh 之前）
+#   - 同步：abbr（在 abbreviations.zsh 之前）
 #   - 异步 (wait lucid)：补全、语法高亮、自动建议、fzf-tab、forgit
 #
 # compinit 由 completions.zsh 同步调用；这里 fsh 的 atinit 只做 zicdreplay
@@ -10,15 +10,8 @@
 #
 # 工具策略：fd/bat/eza/rg/sd/delta/hyperfine/dust/procs/btop/fzf 等
 # 一律来自 pacman（更新由系统统一管理），不再 zinit gh-r 下载。
+# 提示符由 starship 提供（见 integrations.zsh），不在此加载。
 # =============================================================================
-
-# --- fpath 设置（必须在 compinit 之前；用户补全放最前以覆盖 carapace 桥接）---
-fpath=(
-    "$ZDOTDIR/completions"
-    "$HOME/.local/share/zinit/completions"
-    /usr/share/zsh/site-functions
-    $fpath
-)
 
 # --- 安装 Zinit（自举）---
 ZINIT_HOME="$HOME/.local/share/zinit/zinit.git"
@@ -39,10 +32,6 @@ autoload -Uz _zinit
 zinit light-mode for \
     zdharma-continuum/zinit-annex-as-monitor \
     zdharma-continuum/zinit-annex-patch-dl
-
-# --- Powerlevel10k（同步，instant prompt 依赖）---
-zinit ice depth=1
-zinit light romkatv/powerlevel10k
 
 # --- zsh-abbr（同步：abbreviations.zsh 在 source 时需要 abbr 命令存在）---
 zinit light olets/zsh-abbr
