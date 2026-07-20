@@ -21,7 +21,8 @@ window#waybar {
 /* 鼠标悬浮信息提示 */
 tooltip {
     background: @secondary_container;
-    border: 0.17em solid @outline; /* 3px */
+    border: 0.17em solid @outline;
+    border-radius: 0.1em;  /* 约 10px */
     opacity: 1;
 }
 
@@ -147,6 +148,16 @@ window#waybar.empty #window {
     font-size: 1.15em; /* 22px */
 }
 
+#custom-actions:hover,
+#custom-wallpapers:hover,
+#custom-settings:hover,
+#custom-screenshot:hover,
+#custom-wfrec:not(.recording):hover,
+#custom-clipboard:hover {
+    background-color: @secondary;
+    color: @on_secondary;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
 
 #custom-wfrec.recording,
 #custom-wfrec,

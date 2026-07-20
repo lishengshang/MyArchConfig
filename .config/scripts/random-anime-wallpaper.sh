@@ -3,7 +3,6 @@
 # ================= 默认配置 =================
 # 源池: name|url  (顺序不重要,运行时随机打乱)
 SOURCES=(
-    "alcy|https://t.alcy.cc/pc/"
     "dmoe|https://www.dmoe.cc/random.php"
     "moejue|https://random.MoeJue.cn/randbg?type=pc"
     "paugram|https://api.paugram.com/wallpaper/?source=sina"
@@ -12,6 +11,9 @@ SOURCES=(
     "uapis|https://uapis.cn/api/v1/random/image?category=acg&type=pc"
     "touhou|https://img.paulzzh.com/touhou/random?size=pc"
 )
+
+# 保底源: 其他源全部失败后再尝试
+FALLBACK_SOURCE="alcy|https://t.alcy.cc/pc/"
 
 SAVE_DIR="$HOME/Pictures/Wallpapers/api-random-download"
 
@@ -73,9 +75,10 @@ validate_image() {
     return 0
 }
 
-# 从源池构造本次尝试顺序 (随机打乱,或把指定源放最前)
+# 从源池构造本次尝试顺序 (随机打乱,或把指定源放最前,保底源永远最后)
 # 输出 stdout: 每行一个 "name|url";返回 1 表示 FORCED_SOURCE 不存在
 build_source_order() {
+    local fallback_name="${FALLBACK_SOURCE%%|*}"
     if [ -n "$FORCED_SOURCE" ]; then
         local found=""
         for s in "${SOURCES[@]}"; do
@@ -90,8 +93,11 @@ build_source_order() {
             [ "$s" = "$found" ] && continue
             echo "$s"
         done | shuf
+        # 保底源放在最后
+        [ "$fallback_name" != "$FORCED_SOURCE" ] && echo "$FALLBACK_SOURCE"
     else
         printf '%s\n' "${SOURCES[@]}" | shuf
+        echo "$FALLBACK_SOURCE"
     fi
 }
 
@@ -109,7 +115,7 @@ if [ "$SILENT_MODE" = false ]; then
     (
         sleep 8
         while true; do
-            notify-send "Wallpaper" "Downloading is still in progress..." --expire-time=5000 --icon=drive-harddisk --replace-id=999
+            notify-send "壁纸" "壁纸下载仍在进行中..." --expire-time=5000 --icon=drive-harddisk --replace-id=999
             sleep 8
         done
     ) &
@@ -118,14 +124,14 @@ else
     NOTIFY_PID=""
 fi
 
-send_notify "Wallpaper" "Downloading..." "--expire-time=5000"
+send_notify "壁纸" "正在下载壁纸..." "--expire-time=5000"
 
 # 构造源尝试顺序
 SOURCE_ORDER=$(build_source_order)
 if [ $? -ne 0 ]; then
     echo "错误: 未知源 '$FORCED_SOURCE'" >&2
     echo "可用源: ${SOURCES[*]//|*/ }" >&2
-    send_notify "Wallpaper Error" "未知源: $FORCED_SOURCE" "--urgency=critical"
+    send_notify "壁纸错误" "未知图源: $FORCED_SOURCE" "--urgency=critical"
     exit 1
 fi
 ATTEMPT_COUNT=0
@@ -143,7 +149,7 @@ while IFS= read -r entry; do
     SRC_NAME="${entry%%|*}"
     SRC_URL="${entry#*|}"
 
-    send_notify "Wallpaper" "尝试 [$SRC_NAME] ($ATTEMPT_COUNT/$MAX_SOURCE_ATTEMPTS)..." "--expire-time=3000"
+    send_notify "壁纸" "正在尝试 [$SRC_NAME] ($ATTEMPT_COUNT/$MAX_SOURCE_ATTEMPTS)..." "--expire-time=3000"
 
     curl -L -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$SRC_URL"
     CURL_EXIT=$?
@@ -164,7 +170,7 @@ if [ -n "$NOTIFY_PID" ]; then
 fi
 
 if [ "$DOWNLOAD_OK" = false ]; then
-    send_notify "Wallpaper Error" "All sources failed after $MAX_SOURCE_ATTEMPTS attempts" "--urgency=critical"
+    send_notify "壁纸错误" "所有图源在 $MAX_SOURCE_ATTEMPTS 次尝试后均失败" "--urgency=critical"
     rm -f "$RAW_PATH"
     exit 1
 fi
@@ -172,7 +178,7 @@ fi
 # --- 2. 智能超分模块 ---
 
 FINAL_PATH="$RAW_PATH"
-MSG_EXTRA="from $USED_SOURCE_NAME"
+MSG_EXTRA="来自 $USED_SOURCE_NAME"
 
 if [ "$ENABLE_UPSCALE" = true ]; then
     IMG_WIDTH=0
@@ -181,25 +187,25 @@ if [ "$ENABLE_UPSCALE" = true ]; then
     fi
 
     if [ "$IMG_WIDTH" -gt 0 ] && [ "$IMG_WIDTH" -lt "$UPSCALE_THRESHOLD" ] && command -v waifu2x-ncnn-vulkan &> /dev/null; then
-        send_notify "Wallpaper" "Upscaling image..." "--expire-time=2000"
+        send_notify "壁纸" "正在超分放大图片..." "--expire-time=2000"
         UPSCALED_PATH="${RAW_PATH%.*}.png"
 
         if waifu2x-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" -n 1 -s 2; then
             FINAL_PATH="$UPSCALED_PATH"
-            MSG_EXTRA="$MSG_EXTRA (Upscaled 2x)"
+            MSG_EXTRA="$MSG_EXTRA (已超分 2x)"
             rm "$RAW_PATH"
         else
-            MSG_EXTRA="$MSG_EXTRA (Upscale Failed)"
+            MSG_EXTRA="$MSG_EXTRA (超分失败)"
         fi
     else
         if [ "$IMG_WIDTH" -ge "$UPSCALE_THRESHOLD" ]; then
-            MSG_EXTRA="$MSG_EXTRA (Original High-Res)"
+            MSG_EXTRA="$MSG_EXTRA (原图高分辨率)"
         else
-            MSG_EXTRA="$MSG_EXTRA (Original)"
+            MSG_EXTRA="$MSG_EXTRA (原图)"
         fi
     fi
 else
-    MSG_EXTRA="$MSG_EXTRA (Upscale Disabled)"
+    MSG_EXTRA="$MSG_EXTRA (超分已禁用)"
 fi
 
 # --- 3. 应用模块 ---
@@ -229,4 +235,4 @@ awww img "$FINAL_PATH" --transition-duration 2 --transition-type center --transi
     fi
 ) &
 
-send_notify "Wallpaper Updated" "Enjoy! $MSG_EXTRA"
+send_notify "壁纸已更新" "Enjoy! $MSG_EXTRA"

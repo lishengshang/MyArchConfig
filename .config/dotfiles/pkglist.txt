@@ -68,6 +68,7 @@ gvim
 gwenview
 haruna
 hyprlock
+hyprpicker
 icoextract
 imagemagick
 imv
@@ -145,6 +146,8 @@ ttf-noto-nerd
 tumbler
 udftools
 unzip
+usage
+uv
 vivid
 vlc-plugin-ffmpeg
 waybar

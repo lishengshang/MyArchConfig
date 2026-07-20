@@ -361,8 +361,8 @@
       "activated": "",
       "deactivated": ""
     },
-    // 这一项设置启动waybar的时候自动禁止熄屏
-    "start-activated": true,
+    // 启动时默认允许熄屏（闭眼）；点击眼睛才临时禁止熄屏
+    "start-activated": false,
     "tooltip-format-activated": "自动熄屏已禁止",
     "tooltip-format-deactivated": "自动熄屏已开启"
   },
