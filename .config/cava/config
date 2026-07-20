@@ -3,6 +3,8 @@
 
 
 [general]
+# 引入 matugen 生成的颜色主题
+include = ~/.config/cava/themes/matugen
 
 # Smoothing mode. Can be 'normal', 'scientific' or 'waves'. DEPRECATED as of 0.6.0
 ; mode = normal

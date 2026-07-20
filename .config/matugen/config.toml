@@ -1,15 +1,28 @@
-
 [config]
+reload_apps = true
+
+# 如果你需要壁纸联动，取消下面注释（以 swww 为例）
+# [config.wallpaper]
+# command = "swww"
+# arguments = ["img", "--transition-type", "center"]
+# set = true
+
+[templates.starship]
+input_path  = '~/.config/matugen/templates/starship-colors.toml'
+output_path = '~/.config/starship/colors.toml'
+# 注意：post_hook 属于 [templates.starship] 内部字段，不是独立表
+post_hook = "cat ~/.config/starship/base.toml ~/.config/starship/colors.toml > ~/.config/starship.toml"
 
 [templates.waybar]
 input_path = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/waybar/colors.css'
-post_hook='rm ~/.config/waybar-niri-Win11Like/colors.css && ln -s ~/.config/waybar/colors.css ~/.config/waybar-niri-Win11Like/colors.css'
+post_hook='mkdir -p ~/.config/waybar-niri-Win11Like && rm -f ~/.config/waybar-niri-Win11Like/colors.css && ln -s ~/.config/waybar/colors.css ~/.config/waybar-niri-Win11Like/colors.css'
 
-[templates.pywalfox]
-input_path = '~/.config/matugen/templates/pywalfox-colors.json'
-output_path = '~/.cache/wal/colors.json'
-post_hook = 'pywalfox update &'
+# pywalfox 未安装，先禁用
+# [templates.pywalfox]
+# input_path = '~/.config/matugen/templates/pywalfox-colors.json'
+# output_path = '~/.cache/wal/colors.json'
+# post_hook = 'pywalfox update &'
 
 [templates.fuzzel]
 input_path = '~/.config/matugen/templates/fuzzel.ini'
@@ -33,16 +46,12 @@ post_hook='makoctl reload &'
 [templates.btop]
 input_path = '~/.config/matugen/templates/btop.theme'
 output_path = '~/.config/btop/themes/matugen.theme'
-post_hook = 'killall -SIGUSR1 btop && killall -SIGUSR2 btop &'
+post_hook = 'killall -SIGUSR1 btop &'
 
 [templates.cava]
 input_path = '~/.config/matugen/templates/cava-colors.ini'
-output_path = '~/.config/cava/themes/your-theme'
+output_path = '~/.config/cava/themes/matugen'
 #post_hook = "pkill -USR1 cava"
-
-[templates.starship]
-input_path = '~/.config/matugen/templates/starship-colors.toml'
-output_path = '~/.config/starship.toml'
 
 [templates.yazi]
 input_path = '~/.config/matugen/templates/yazi-theme.toml'
@@ -68,10 +77,14 @@ output_path = '~/.config/gtk-4.0/colors.css'
 #output_path = '~/.config/swaync/colors.css'
 #post_hook = 'swaync-client -rs &'
 
-#[templates.ghostty]
-#input_path = '~/.config/matugen/templates/ghostty-colors.conf'
-#output_path = '~/.config/ghostty/themes/Matugen'
-#post_hook = 'pkill -SIGUSR2 ghostty'
+[templates.ghostty]
+input_path = '~/.config/matugen/templates/ghostty-colors.conf'
+output_path = '~/.config/ghostty/themes/Matugen'
+post_hook = 'pkill -SIGUSR2 ghostty'
+
+[templates.fish]
+input_path = '~/.config/matugen/templates/fish-pager.fish'
+output_path = '~/.config/fish/conf.d/35-pager-matugen.fish'
 
 #[templates.qt5ct]
 #input_path = '~/.config/matugen/templates/qtct-colors.conf'
@@ -107,11 +120,11 @@ post_hook = 'bash ~/.cache/matugen/recoloricons.sh &'
 [templates.swayosd]
 input_path = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/swayosd/colors.css'
-post_hook = 'pkill swayosd && swayosd-server &'
+post_hook = 'pkill swayosd-server || true; swayosd-server &'
 
-#[templates.swaylock-effects]
-#input_path = '~/.config/matugen/templates/swaylock-colors'
-#output_path = '~/.config/swaylock/config'
+[templates.swaylock-effects]
+input_path = '~/.config/matugen/templates/swaylock-colors'
+output_path = '~/.config/swaylock/config'
 
 [templates.fastfetch]
 input_path = '~/.config/matugen/templates/fastfetch-config.jsonc'
@@ -132,9 +145,10 @@ input_path = "~/.config/matugen/templates/vscode-inject.json"
 output_path = "~/.cache/matugen_vscode_inject.json"
 post_hook = "~/.config/matugen/scripts/inject_vscode.sh"
 
-[templates.obs]
-input_path = '~/.config/matugen/templates/obs-matugen.obt'
-output_path = '~/.config/obs-studio/themes/matugen.obt'
+# OBS 未安装，先禁用
+# [templates.obs]
+# input_path = '~/.config/matugen/templates/obs-matugen.obt'
+# output_path = '~/.config/obs-studio/themes/matugen.obt'
 
 #[templates.steam]
 #input_path = '~/.config/matugen/templates/steam.css'

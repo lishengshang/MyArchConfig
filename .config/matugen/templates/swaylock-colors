@@ -4,6 +4,7 @@ indicator
 indicator-radius=200
 indicator-thickness=15
 effect-blur=10x5
+font=Noto Sans CJK SC
 ring-color={{colors.primary_container.default.hex}}
 key-hl-color={{colors.primary.default.hex}}
 line-color={{colors.outline.default.hex}}
