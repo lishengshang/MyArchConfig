@@ -1,4 +1,7 @@
 function _f_download_image -a cache_dir -d "Download a random anime girl image to cache_dir"
+    if test -z "$cache_dir"
+        return 1
+    end
     set -l URL (_f_get_random_url)
     if string match -qr "^http" -- "$URL"
         set -l FILENAME "waifu_"(date +%s%N)"_"(random)".jpg"

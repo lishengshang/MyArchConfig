@@ -54,12 +54,7 @@ function apt -d "Smart Arch package manager wrapper"
             end
 
         case update upgrade
-            set -l pkg_mgr (command -s paru || command -s yay || echo "pacman")
-            if test "$pkg_mgr" = "pacman"
-                sudo pacman -Syu
-            else
-                $pkg_mgr -Syu
-            end
+            _apt_run -Syu
 
         case install
             if test (count $argv) -eq 0
@@ -74,12 +69,7 @@ function apt -d "Smart Arch package manager wrapper"
                 shorin pac
                 return 0
             end
-            set -l pkg_mgr (command -s paru || command -s yay || echo "pacman")
-            if test "$pkg_mgr" = "pacman"
-                sudo pacman -S $argv
-            else
-                $pkg_mgr -S $argv
-            end
+            _apt_run -S $argv
 
         case remove
             if test (count $argv) -eq 0
@@ -94,12 +84,7 @@ function apt -d "Smart Arch package manager wrapper"
                 shorin pacr
                 return 0
             end
-            set -l pkg_mgr (command -s paru || command -s yay || echo "pacman")
-            if test "$pkg_mgr" = "pacman"
-                sudo pacman -Rns $argv
-            else
-                $pkg_mgr -Rns $argv
-            end
+            _apt_run -Rns $argv
 
         case search
             if test (count $argv) -eq 0
@@ -110,8 +95,7 @@ function apt -d "Smart Arch package manager wrapper"
                 end
                 return 1
             end
-            set -l pkg_mgr (command -s paru || command -s yay || echo "pacman")
-            $pkg_mgr -Ss $argv
+            _apt_run -Ss $argv
 
         case show
             if test (count $argv) -eq 0
@@ -122,16 +106,10 @@ function apt -d "Smart Arch package manager wrapper"
                 end
                 return 1
             end
-            set -l pkg_mgr (command -s paru || command -s yay || echo "pacman")
-            $pkg_mgr -Si $argv
+            _apt_run -Si $argv
 
         case clean
-            set -l pkg_mgr (command -s paru || command -s yay || echo "pacman")
-            if test "$pkg_mgr" = "pacman"
-                sudo pacman -Sc
-            else
-                $pkg_mgr -Sc
-            end
+            _apt_run -Sc
 
         case orphans
             set -l orphans (pacman -Qtdq)

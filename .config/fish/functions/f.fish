@@ -33,53 +33,11 @@ function f -d "Random anime girl generator with Fastfetch"
     set -l LOCK_FILE "/tmp/fastfetch_waifu.lock"
     mkdir -p "$CACHE_DIR" "$USED_DIR"
 
-    # --- 核心函数 ---
-    function _f_check_network
-        curl -sI --connect-timeout 2 "http://captive.apple.com/hotspot-detect.html" >/dev/null 2>&1
-        return $status
-    end
-
-    function _f_get_random_url
-        set -l RAND (math (random) % 3 + 1)
-        switch $RAND
-            case 1
-                curl -s --connect-timeout 5 --max-time 15 "https://api.waifu.im/images?IncludedTags=waifu&IsNsfw=false" | jq -r '.images[0].url'
-            case 2
-                curl -s --connect-timeout 5 --max-time 15 "https://nekos.best/api/v2/waifu" | jq -r '.results[0].url'
-            case 3
-                curl -s --connect-timeout 5 --max-time 15 "https://api.waifu.pics/sfw/waifu" | jq -r '.url'
-        end
-    end
-
-    function _f_download_image -V CACHE_DIR
-        set -l URL (_f_get_random_url)
-        if string match -qr "^http" -- "$URL"
-            set -l FILENAME "waifu_"(date +%s%N)"_"(random)".jpg"
-            set -l TARGET_PATH "$CACHE_DIR/$FILENAME"
-            curl -s -L --connect-timeout 5 --max-time 15 -o "$TARGET_PATH" "$URL"
-            if test -s "$TARGET_PATH"
-                if command -v file >/dev/null 2>&1
-                    if not file --mime-type "$TARGET_PATH" | grep -q "image/"
-                        rm -f "$TARGET_PATH"
-                    end
-                end
-            else
-                rm -f "$TARGET_PATH"
-            end
-        end
-    end
-
+    # --- 后台补货任务 ---
+    # 子 shell 自动加载 functions/ 下的 _f_* 函数，无需字符串注入。
+    # 用 nohup + disown 让进程在 shell 退出后存活（fish 无 trap builtin）。
     function _f_background_job -V CACHE_DIR -V LOCK_FILE -V MIN_TRIGGER_LIMIT -V DOWNLOAD_BATCH_SIZE -V MAX_CACHE_LIMIT
-        set -l get_random_url_def (functions _f_get_random_url | string collect)
-        set -l download_image_def (functions _f_download_image | string collect)
-        set -l check_network_def (functions _f_check_network | string collect)
-
-        fish -c "
-            trap '' HUP
-            $get_random_url_def
-            $download_image_def
-            $check_network_def
-
+        nohup fish -c "
             flock -n 200 || exit 1
 
             if not _f_check_network
@@ -91,7 +49,7 @@ function f -d "Random anime girl generator with Fastfetch"
 
             if test \$CURRENT_COUNT -lt $MIN_TRIGGER_LIMIT
                 for i in (seq 1 $DOWNLOAD_BATCH_SIZE)
-                    _f_download_image
+                    _f_download_image \$CACHE_DIR
                     sleep 0.5
                 end
             end
@@ -101,7 +59,7 @@ function f -d "Random anime girl generator with Fastfetch"
                 set DELETE_START (math $MAX_CACHE_LIMIT + 1)
                 ls -tp \$CACHE_DIR/*.jpg 2>/dev/null | tail -n +\$DELETE_START | xargs -I {} rm -- '{}'
             end
-        " 200>"$LOCK_FILE" &
+        " 200>\"$LOCK_FILE\" >/dev/null 2>&1 &
         disown
     end
 
@@ -118,18 +76,18 @@ function f -d "Random anime girl generator with Fastfetch"
     if test "$NUM_FILES" -gt 0
         set -l RAND_INDEX (math (random) % $NUM_FILES + 1)
         set SELECTED_IMG "$FILES[$RAND_INDEX]"
-        _f_background_job >/dev/null 2>&1
+        _f_background_job
     else
         echo "库存不足，正在下载..."
         if _f_check_network
-            _f_download_image
+            _f_download_image $CACHE_DIR
         else
             echo "网络异常，无法下载"
         end
         set FILES $CACHE_DIR/*.jpg
         if test -f "$FILES[1]"
             set SELECTED_IMG "$FILES[1]"
-            _f_background_job >/dev/null 2>&1
+            _f_background_job
         end
     end
 

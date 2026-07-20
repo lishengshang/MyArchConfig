@@ -1,46 +1,99 @@
 # ============================================================================
-# 50-tools.fish — 工具初始化（交互式 shell 专属）
+# 50-tools.fish - 工具初始化（交互式 shell 专属）
 # ============================================================================
-# 所有需要 init 的工具集中在这里
-# command -q 检查避免工具不存在时报错
+# 所有需要 init 的工具集中在这里。用 _cached_init 缓存 init 脚本到
+# ~/.cache/fish/init/，工具二进制更新时自动重建，避免每次启动都 fork
+# 6 个子进程生成 init 脚本。
+#
+# 缓存命中判断：工具二进制的 mtime 比 cache 新就重建，否则用缓存。
+# 手动重建：rm -rf ~/.cache/fish/init/
+#
+# 三层补全架构（详见 functions/fish-update-completions.fish）：
+#   1. 工具自带补全（completions/*.fish, 最准）   ← fish-update-completions 生成
+#   2. carapace 兜底（2000+ 命令, on-demand）    ← 下面 carapace 段
+#   3. fish 默认（文件/路径补全）
+# 工具自带补全放在 completions/ 会自动覆盖 carapace（fish 后注册赢）。
+# 健康检查: fish-comp-doctor
 # ============================================================================
 
 if status is-interactive
-    # --- Starship 提示符 ---
-    if command -q starship
-        starship init fish | source
+    set -g _tool_init_cache_dir ~/.cache/fish/init
+    test -d $_tool_init_cache_dir; or mkdir -p $_tool_init_cache_dir
+
+    # 缓存工具 init 输出。命中时直接 source 缓存文件，未命中时重建。
+    # 参数：$argv[1]=缓存名  $argv[2..]=生成 init 的命令
+    function _cached_init -d "Cache tool init output to speed up startup"
+        set -l name $argv[1]
+        set -l cmd $argv[2..]
+        set -l bin (string split ' ' -- $cmd[1])[1]
+
+        # 工具未装：跳过
+        if not command -q $bin
+            return
+        end
+
+        set -l cache $_tool_init_cache_dir/$name.fish
+
+        # 缓存命中且工具未更新：直接 source
+        if test -f $cache
+            and test (command -v $bin) -nt $cache
+            source $cache
+            return
+        end
+
+        # 缓存未命中或工具已更新：重建
+        $cmd >$cache 2>/dev/null
+        if test -s $cache
+            source $cache
+        else
+            rm -f $cache
+        end
     end
+
+    # --- Starship 提示符 ---
+    _cached_init starship starship init fish
 
     # --- Zoxide 智能 cd（替代 cd） ---
-    if command -q zoxide
-        zoxide init fish --cmd cd | source
-    end
+    _cached_init zoxide zoxide init fish --cmd cd
 
     # --- uv shell 补全 ---
-    if command -q uv
-        uv generate-shell-completion fish 2>/dev/null | source
-    end
+    _cached_init uv uv generate-shell-completion fish
 
     # --- fnm Node.js 版本管理 ---
-    if command -q fnm
-        fnm env --use-on-cd --shell fish | source
-    end
+    _cached_init fnm fnm env --use-on-cd --shell fish
 
     # --- mise 统一版本管理器（Node/Python/Ruby/Go） ---
-    if command -q mise
-        mise activate fish | source
-    end
+    _cached_init mise mise activate fish
 
     # --- direnv 项目环境 ---
-    if command -q direnv
-        direnv hook fish | source
-    end
+    _cached_init direnv direnv hook fish
 
-    # --- carapace 通用补全引擎 ---
+    # --- carapace 通用补全引擎（兜底） ---
     # 安装: paru -S carapace-bin
-    # 作用: opencode/hermes/cargo/gh/kubectl 等一个补全搞定 zsh/fish/bash
+    # 作用: 为 2000+ 命令提供 on-demand 补全，覆盖未生成自带补全的工具
+    # 工具自带补全（completions/*.fish）会自动覆盖 carapace（后注册赢）
+    # 健康检查: fish-comp-doctor
     if command -q carapace
         set -gx CARAPACE_BRIDGES 'zsh,fish,bash,inshellisense'
-        carapace _carapace fish | source
+        _cached_init carapace carapace _carapace fish
     end
+
+    # --- 预加载自带补全（解决 carapace 占位问题） ---
+    # fish 4.x 懒加载 completions/ 依赖 `complete -c CMD` 钩子触发。
+    # carapace 的 `complete --no-files CMD -a '...'` 注册后会"占位"，
+    # 阻止 fish 加载 completions/CMD.fish（即使文件存在也不会 source）。
+    # 这里显式 source 自带补全文件，让它们赢过 carapace（后注册覆盖先注册）。
+    #
+    # 只预加载"工具自带补全比 carapace 更准"的关键命令，避免全量 source
+    # 拖慢启动。其他命令让 carapace 兜底即可。
+    for cmd in opencode gh uv niri starship bat procs delta fd lazygit \
+               git apt dot dota y zoxide eza rg
+        set -l f ~/.config/fish/completions/$cmd.fish
+        test -f $f; and source $f 2>/dev/null
+    end
+
+    # --- Atuin 神级历史搜索（接管 Ctrl+R） ---
+    # --disable-up-arrow：↑ 保留 fish 原生前缀搜索，atuin 只接管 Ctrl+R
+    # 与 zsh/integrations.zsh 策略一致
+    _cached_init atuin atuin init fish --disable-up-arrow
 end
