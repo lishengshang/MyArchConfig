@@ -8,9 +8,8 @@ binds {
     
     // 关闭窗口
     Mod+Q hotkey-overlay-title="关闭聚焦窗口 Close focus window" repeat=false { close-window; }
-    // Mod+Escape hotkey-overlay-title="关闭浮动窗口 Close floating window" { spawn-sh "~/.config/niri/scripts/esc-close-float.sh"; }
     Mod+MouseMiddle hotkey-overlay-title="关闭窗口 Close window" { close-window; }
-    Alt+F4 hotkey-overlay-title="强制杀死窗口 Force kill -9 window" repeat=false { spawn "~/.config/niri/scripts/niri-force-kill-window"; }
+    Mod+Alt+F4 hotkey-overlay-title="强制杀死窗口 Force kill -9 window" repeat=false { spawn "~/.config/niri/scripts/niri-force-kill-window"; }
 
     // 切换聚焦 (方向键)
     Mod+Left hotkey-overlay-title="聚焦左侧列 Focus left column" { focus-column-left; }
@@ -287,7 +286,6 @@ binds {
     Mod+M hotkey-overlay-title="收起窗口 Move to Sidebar" { spawn "niri-sidebar" "toggle-window"; }
     Mod+Alt+S hotkey-overlay-title="收起窗口 Move to Sidebar" { spawn "niri-sidebar" "toggle-window"; }
     Mod+Alt+M hotkey-overlay-title="展开/收起侧边栏 Toggle Sidebar" { spawn "niri-sidebar" "toggle-visibility"; }
-//    Mod+Alt+X hotkey-overlay-title="打开QQ Open QQ" { spawn "~/.config/niri/scripts/qq-launcher.sh"; }
     Mod+Alt+R hotkey-overlay-title="重置侧边栏 Reorder Sidebar" { spawn "niri-sidebar" "reorder"; }
 
     // 全屏
