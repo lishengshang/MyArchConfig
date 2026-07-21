@@ -16,27 +16,57 @@
 ~/
 ├── .cfg/                          # 裸仓库内部文件（GIT_DIR，不要手动改）
 ├── .gitignore                     # dotfiles 仓库的 gitignore（白名单策略）
-├── .zshenv                        # zsh 入口，设置 ZDOTDIR
-├── .p10k.zsh                      # Powerlevel10k 主题
+├── .zshenv                        # zsh 入口，把 ZDOTDIR 指向 ~/.config/zsh
+├── README.md -> .config/dotfiles/README.md   # 软链到本文档
 └── .config/
     ├── dotfiles/                  # ← 你正在看的目录，受版本控制
-    │   ├── README.md              # 主文档
+    │   ├── README.md              # 主文档（本文件）
     │   ├── HOW.md                 # 详细使用手册
     │   ├── setup.sh               # 新机器一键初始化
     │   ├── bootstrap.sh           # 装包脚本
     │   ├── update-pkglist.sh      # 重新生成包列表
+    │   ├── autocommit.md          # 自动提交方案设计文档
+    │   ├── auto-commit.sh         # 定时把工作区变动提交到 backup 分支
     │   ├── pkglist.txt            # pacman 原生包列表（自动生成）
     │   └── foreign-pkglist.txt     # AUR 包列表（自动生成）
-    ├── zsh/                       # zsh 配置（ZDOTDIR）
+    │
+    ├── zsh/                       # zsh 配置（ZDOTDIR，详见其 README.md）
     ├── fish/                      # fish 配置（备用 shell）
+    ├── bash/                      # bash 配置（兜底）
+    ├── environment.d/             # systemd 环境变量（XDG / EDITOR / PATH / FZF_*）
+    │
     ├── niri/                      # Niri 窗口管理器
+    ├── waybar/                    # 状态栏
+    ├── mako/                      # 通知
+    ├── fuzzel/                    # 应用启动器
+    ├── swaylock/                  # 锁屏
+    ├── swayosd/                   # 音量 / 亮度 OSD
+    ├── waypaper/                  # 壁纸
+    │
     ├── nvim/                      # Neovim (LazyVim)
-    ├── kitty/                    # Kitty 终端
-    ├── ghostty/                  # Ghostty 终端
-    ├── waybar/                   # 状态栏
-    ├── mako/                     # 通知
-    └── ...                       # 其他配置目录
+    ├── vim/                       # Vim
+    ├── kitty/                     # Kitty 终端
+    ├── ghostty/                   # Ghostty 终端
+    │
+    ├── yazi/                      # 文件管理器（TUI）
+    ├── fastfetch/                 # 系统信息
+    ├── btop/                      # 任务管理器
+    ├── cava/                      # 音频频谱可视化
+    ├── matugen/                   # Material You 主题生成
+    │
+    ├── fcitx5/                    # 中文输入法
+    ├── fontconfig/                # 字体配置
+    │
+    ├── gtk-3.0/                   # GTK3 主题
+    ├── gtk-4.0/                   # GTK4 主题
+    ├── starship.toml              # 跨 shell 提示符主题
+    │
+    ├── scripts/                   # 自定义脚本
+    └── systemd/user/              # dotfiles-autocommit.{service,timer}
 ```
+
+> `~/.config/mpv/` 是独立 git 仓库，有自己的 `.git` / `.gitignore`，不纳入 dotfiles，
+> 重装时单独 clone。详见 `.gitignore` 中的注释。
 
 ## 快速开始
 

@@ -94,12 +94,14 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | 按键              | 动作                       |
 | ----------------- | -------------------------- |
 | `Ctrl+A` / `Ctrl+E` | 行首 / 行尾（emacs 风格） |
-| `Ctrl+Right/Left` | 按词前进 / 后退（多终端序列兜底） |
-| `Ctrl+W`          | 删除前一个词（emacs 默认）  |
-| `Ctrl+U`          | 删到行首（emacs 默认）      |
-| `Ctrl+K`          | 删到行尾（emacs 默认）      |
-| `Ctrl+Backspace`  | 删除前一个词（多终端序列兜底） |
-| `Delete`          | 删除后一个字符              |
+| `Ctrl+B` / `Ctrl+F` | 后退 / 前进一个字符 |
+| `Alt+B` / `Alt+F` / `Ctrl+Left/Right` | 按词后退 / 前进（多终端序列兜底） |
+| `Backspace` (`^H` / `^?`) | 删除前一个字符 |
+| `Delete` (`^[[3~`) | 删除后一个字符 |
+| `Ctrl+D` | 删除字符或列出补全 |
+| `Ctrl+W` / `Ctrl+Backspace` / `Alt+Backspace` | 删除前一个词 |
+| `Ctrl+U` | 删除整行（kill-whole-line） |
+| `Ctrl+K` | 删除到行尾（emacs 默认） |
 | `Alt+.` / `Alt+_` | 插入上一命令的最后参数（insert-last-word，兼容 readline） |
 
 > `Ctrl+Right/Left` 和 `Ctrl+Backspace` 在不同终端模拟器下发的 escape sequence 不同，
@@ -134,6 +136,98 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `Ctrl+X Ctrl+E` | 在 `$EDITOR` 中编辑当前命令行 |
 | `Ctrl+L`        | 清屏                          |
 | `Alt+<` / `Alt+>` | 跳到历史首 / 末              |
+
+---
+
+## 完整 bindkey 列表
+
+下面是当前 shell 所有有效键绑定，已转成可读的 `Ctrl+E` / `Alt+E` 写法，并附上中文说明：
+
+| 按键 | 作用 |
+| --- | --- |
+| `Ctrl+Space` | 接受自动建议 |
+| `Ctrl+A` | 光标移到行首 |
+| `Ctrl+B` | 光标左移一个字符 |
+| `Ctrl+D` | 删除字符或列出补全 |
+| `Ctrl+E` | 光标移到行尾 |
+| `Ctrl+F` | 光标右移一个字符 |
+| `Ctrl+G` | 取消当前输入 |
+| `Backspace` | 删除前一个字符 |
+| `Tab` | fzf-tab 补全 |
+| `Enter` | 执行当前命令 |
+| `Ctrl+K` | 删除到行尾 |
+| `Ctrl+L` | 清屏 |
+| `Ctrl+N` | 按子串搜索下一条历史 |
+| `Ctrl+O` | 执行当前命令并取出下一条历史 |
+| `Ctrl+P` | 按子串搜索上一条历史 |
+| `Ctrl+Q` | 暂存当前行（push-line） |
+| `Ctrl+R` | Atuin 历史搜索 |
+| `Ctrl+S` | 向前增量搜索历史 |
+| `Ctrl+T` | fzf 文件选择 |
+| `Ctrl+U` | 删除整行 |
+| `Ctrl+V` | 引用插入 |
+| `Ctrl+W` | 删除前一个词 |
+| `Ctrl+X Ctrl+B` | 匹配括号 |
+| `Ctrl+X Ctrl+E` | 在编辑器中编辑命令行 |
+| `Ctrl+X Ctrl+F` | 查找下一个字符 |
+| `Ctrl+X Ctrl+J` | 合并行 |
+| `Ctrl+X Ctrl+K` | 删除缓冲区 |
+| `Ctrl+X Ctrl+N` | 推断下一条历史 |
+| `Ctrl+X Ctrl+O` | 覆盖模式 |
+| `Ctrl+X Ctrl+U` / `Ctrl+X u` | 撤销 |
+| `Ctrl+X Ctrl+V` | 进入 vi 命令模式 |
+| `Ctrl+X Ctrl+X` | 交换光标与标记 |
+| `Ctrl+X *` | 展开单词 |
+| `Ctrl+X .` | fzf-tab 调试 |
+| `Ctrl+X =` | 显示光标位置 |
+| `Ctrl+X G` / `Ctrl+X g` | 列出展开 |
+| `Ctrl+X r` | 向后增量搜索历史 |
+| `Ctrl+X s` | 向前增量搜索历史 |
+| `Ctrl+Y` | 粘贴 |
+| `Ctrl+_` | 撤销 |
+| `Ctrl+←` / `Ctrl+→` | 后退 / 前进一个词（多终端序列兜底） |
+| `Alt+←` / `Alt+→` | 后退 / 前进一个词 |
+| `Delete` | 删除后一个字符 |
+| `Ctrl+Delete` | 删除前一个词（多终端兜底） |
+| `Shift+Tab` | fzf-tab 反向补全 |
+| `Alt+Space` / `Alt+!` | 展开历史 |
+| `Alt+Backspace` | 删除前一个词 |
+| `Alt+Enter` | 接受自动建议 |
+| `Alt+"` | 引用选中区域 |
+| `Alt+$` / `Alt+S` | 拼写检查 |
+| `Alt+'` | 引用整行 |
+| `Alt+-` | 输入负参数 |
+| `Alt+.` / `Alt+_` | 插入上一命令的最后一个参数 |
+| `Alt+0` ~ `Alt+9` | 输入数字参数 |
+| `Alt+<` / `Alt+>` | 跳到历史开头 / 末尾 |
+| `Alt+?` | 查看命令路径 |
+| `Alt+A` / `Alt+a` | 接受并保留 |
+| `Alt+B` / `Alt+b` | 后退一个词 |
+| `Alt+Shift+C` | 单词首字母大写 |
+| `Alt+C` / `Alt+c` | fzf 目录选择 |
+| `Alt+D` / `Alt+d` | 删除后一个词 |
+| `Alt+F` / `Alt+f` | 前进一个词 |
+| `Alt+G` / `Alt+g` | 获取行 |
+| `Alt+H` / `Alt+h` | 查看命令帮助 |
+| `Alt+L` / `Alt+l` | 单词转小写 |
+| `Alt+N` / `Alt+n` | 向前搜索历史 |
+| `Alt+P` / `Alt+p` | 向后搜索历史 |
+| `Alt+Q` / `Alt+q` | 暂存当前行 |
+| `Alt+T` / `Alt+t` | 交换两个词 |
+| `Alt+U` / `Alt+u` | 单词转大写 |
+| `Alt+W` / `Alt+w` | 复制区域 |
+| `Alt+X` | 执行命名命令 |
+| `Alt+Y` / `Alt+y` | 轮换粘贴 |
+| `Alt+Z` / `Alt+z` | 执行上一个命名命令 |
+| <code>Alt+&#124;</code> | 跳到指定列 |
+| `Alt+Ctrl+D` | 列出补全候选项 |
+| `Alt+Ctrl+G` | 取消当前输入 |
+| `Alt+Ctrl+L` | 清屏 |
+| `Alt+Ctrl+_` | 复制前一个词 |
+| `↑` / `↓` / `←` / `→` | 移动光标；上下同时按子串搜索历史 |
+| `?` | Atuin AI `?` 快捷 |
+
+> 可打印字符（`a-z`、`0-9`、标点等）默认都是 `self-insert`，即正常输入文字；`\M-^@`-`\M-^?` 等 Meta 字符序列同理，未单独列出。
 
 ---
 

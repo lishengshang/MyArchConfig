@@ -96,24 +96,68 @@ pager 配色由 matugen 动态生成（见下文"配色"章节）。
 
 | 按键 | 功能 | 说明 |
 |---|---|---|
-| `Ctrl-R` | 历史命令搜索 | **被 atuin 接管**（SQLite + 模糊 + 跨机同步） |
+| `Ctrl-R` | 历史命令搜索 | **被 atuin 接管**（SQLite + 模糊 + 跨机同步），覆盖 fish 默认的 history-pager |
+| `Ctrl-T` | 模糊搜索文件并插入到命令行 | bat 预览，覆盖 fish 默认的 transpose-chars |
+| `Alt-C` | 模糊搜索目录并 cd | eza 预览，覆盖 fish 默认的 capitalize-word |
 | `Ctrl-Alt-F` | 文件搜索 | bat 预览 |
 | `Ctrl-Alt-L` | git log 搜索 | |
 | `Ctrl-Alt-S` | git status 搜索 | |
-| `Ctrl-Alt-P` | 进程搜索 | |
-| `Ctrl-V` | 变量搜索 | |
+| `Ctrl-V` | 变量搜索 | 覆盖 fish 默认的 fish_clipboard_paste |
 
-### 5. 其他常用绑定
+> ⚠️ **Ctrl-Alt-P 已让给 fcitx5**：fcitx5 的 `TogglePreedit`（切换预编辑显示模式：内联 ↔ 弹出窗口）在 Wayland 层就拦截了这个组合键，fish 收不到。
+> 进程搜索改用 `fkill` 命令（fzf 交互式杀进程，见下文"命令参考"）。
+
+### 5. 行编辑（fish 4.x 默认 emacs 风格）
 
 | 按键 | 功能 |
 |---|---|
-| `Ctrl-X,Ctrl-E` | 在 $EDITOR 中编辑当前命令行 |
-| `Ctrl-L` | 清屏 |
-| `Ctrl-C` | 中断当前命令 |
-| `Alt-←` / `Alt-→` | 按词移动光标 |
-| `Ctrl-←` / `Ctrl-→` | 按 token 移动光标 |
-| `Alt-E` / `Alt-V` | 用 $EDITOR 打开命令行 |
-| `Alt-S` | 在命令前加 `sudo` |
+| `Ctrl-A` / `Ctrl-E` | 行首 / 行尾 |
+| `Ctrl-B` / `Ctrl-F` | 后退 / 前进一个字符 |
+| `Ctrl-Left` / `Ctrl-Right` | 按 token 移动光标 |
+| `Home` / `End` | 行首 / 行尾 |
+| `Ctrl-Backspace` | 删除前一个 token |
+| `Ctrl-Delete` | 删除后一个 token |
+| `Backspace` / `Ctrl-H` | 删除前一个字符 |
+| `Ctrl-W` | 删除前一个路径段（按 `/` 切分） |
+| `Ctrl-U` | 删除光标到行首 |
+| `Ctrl-K` | 删除光标到行尾 |
+| `Ctrl-T` | 字符交换（被 fzf 覆盖为文件搜索） |
+| `Alt-Backspace` | 删除前一个词 |
+| `Alt-D` | 删除后一个词 |
+| `Alt-T` | 交换前后两个词 |
+| `Alt-U` | 大写化光标后词 |
+| `Alt-C` | 首字母大写（被 fzf 覆盖为 cd） |
+
+### 6. 历史、撤销与编辑器辅助（fish 4.x 默认）
+
+| 按键 | 功能 |
+|---|---|
+| `Ctrl-P` / `Ctrl-N` | 上一条 / 下一条历史（带前缀搜索） |
+| `Alt-Up` / `Alt-Down` | 历史 token 搜索（前 / 后） |
+| `Alt-.` | 插入上一条命令最后一个参数 |
+| `PageUp` / `PageDown` | 跳到历史首 / 末 |
+| `Alt-<` / `Alt->` | 跳到缓冲区首 / 末 |
+| `Ctrl-Y` / `Alt-Y` | yank / yank-pop（粘贴删除环） |
+| `Ctrl-/` / `Ctrl-Z` | 撤销 |
+| `Ctrl-Shift-Z` / `Alt-/` | 重做 |
+| `Ctrl-X Ctrl-E` 或 `Alt-E` / `Alt-V` | 在 `$EDITOR` 中编辑当前命令行（zz-bindings-override.fish 显式绑了前者，后者是 fish 内建） |
+| `Alt-S` | 在命令前加 `sudo`（fish 内建，循环尝试 `sudo` / `doas` / `please` / `run0`） |
+| `Alt-H` 或 `F1` | 打开当前命令的 man page |
+| `Alt-W` | 查看当前 token 的 man（whatis） |
+| `Alt-L` | 列出当前 token 对应的文件 / 目录 |
+| `Alt-O` | 用 pager 预览当前文件 |
+| `Alt-P` | 用 pager 分页当前命令输出 |
+| `Alt-#` | 注释 / 取消注释当前行 |
+| `Ctrl-L` | 清屏（带 scrollback 推送） |
+| `Ctrl-C` | 清空当前命令行 |
+| `Ctrl-D` | 删除后字符；空行时退出 shell |
+| `Ctrl-G` / `Esc` | 取消当前命令 |
+| `Ctrl-S` | pager 搜索模式切换（Tab 补全打开菜单后才生效） |
+| `?` | atuin AI 帮助 |
+
+> **关于"未生效"**：fish 4.x 的默认绑定**仅在交互模式**下由 `fish_default_key_bindings` 函数加载。
+> 用 `fish -c 'bind'` 看到的是精简列表（非交互模式不加载默认绑定）。
+> 要看完整绑定，需在交互 shell 内执行 `bind`，或 `fish -ic 'bind'`（注意 `-i` 是关键）。
 
 autopair 已启用：输入 `(` `[` `{` `"` `'` 自动配对，按 backspace 删除一对。
 
