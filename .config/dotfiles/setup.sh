@@ -8,6 +8,10 @@
 #   git clone --bare https://github.com/lishengshang/MyArchConfig.git ~/.cfg
 #   bash ~/.config/dotfiles/setup.sh
 #
+# 选项:
+#   --dry-run  只打印会做什么，不实际执行（不 clone / 不 checkout / 不改 git config）
+#   -h, --help 显示帮助
+#
 # 这个脚本做四件事:
 #   1. 把裸仓库 clone 到 ~/.cfg（如果还没 clone）
 #   2. 把工作区 checkout 到 $HOME（已存在的本地文件会先备份到 ~/.dotfiles-backup）
@@ -16,47 +20,87 @@
 # =============================================================================
 set -euo pipefail
 
+DRY_RUN=false
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=true ;;
+        -h|--help)
+            sed -n '2,28p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "未知参数: $arg" >&2
+            echo "用法: $0 [--dry-run]" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# dry-run 时不让 set -e 把脚本搞挂：把真正会失败的命令包进 run 函数
+if $DRY_RUN; then
+    run() { echo "[dry-run] $*"; }
+    # dry-run 下 git 命令可能因为没有仓库而失败，全部跳过
+    git_ro() { echo "[dry-run] git $*" ; }
+else
+    run() { echo "-> $*"; "$@"; }
+    git_ro() { git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" "$@"; }
+fi
+
 REMOTE="https://github.com/lishengshang/MyArchConfig.git"
 GIT_DIR="$HOME/.cfg"
 WORK_TREE="$HOME"
 
 # --- 1. clone 裸仓库（如果不存在）---
 if [[ ! -d "$GIT_DIR" ]]; then
-    echo "→ 克隆裸仓库到 $GIT_DIR ..."
-    git clone --bare "$REMOTE" "$GIT_DIR"
+    if $DRY_RUN; then
+        echo "[dry-run] git clone --bare $REMOTE $GIT_DIR"
+    else
+        run git clone --bare "$REMOTE" "$GIT_DIR"
+    fi
 else
     echo "✓ $GIT_DIR 已存在，跳过 clone"
 fi
 
 # --- 2. checkout 到 $HOME（冲突文件先备份）---
-backup_dir="$HOME/.dotfiles-backup-$(date +%Y%m%d_%H%M%S)"
-conflicted=()
-while IFS= read -r f; do
-    [[ -z "$f" ]] && continue
-    if [[ -e "$WORK_TREE/$f" && ! -L "$WORK_TREE/$f" ]]; then
-        # 检查是否已被 dotfiles 跟踪（内容是否一致）
-        if ! git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" diff --quiet -- "$f" 2>/dev/null; then
-            conflicted+=("$f")
+if $DRY_RUN; then
+    echo "[dry-run] 扫描仓库已跟踪文件，与 $WORK_TREE 下本地文件比对冲突"
+    echo "[dry-run] 若有冲突，会备份到 $WORK_TREE/.dotfiles-backup-<timestamp>/"
+    echo "[dry-run] git --git-dir=$GIT_DIR --work-tree=$WORK_TREE checkout -f"
+else
+    backup_dir="$WORK_TREE/.dotfiles-backup-$(date +%Y%m%d_%H%M%S)"
+    conflicted=()
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        if [[ -e "$WORK_TREE/$f" && ! -L "$WORK_TREE/$f" ]]; then
+            # 检查是否已被 dotfiles 跟踪（内容是否一致）
+            if ! git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" diff --quiet -- "$f" 2>/dev/null; then
+                conflicted+=("$f")
+            fi
         fi
-    fi
-done < <(git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" ls-tree -r --name-only HEAD 2>/dev/null)
+    done < <(git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" ls-tree -r --name-only HEAD 2>/dev/null)
 
-if (( ${#conflicted[@]} > 0 )); then
-    echo "→ 以下本地文件与仓库版本冲突，备份到 $backup_dir :"
-    printf '    %s\n' "${conflicted[@]}"
-    mkdir -p "$backup_dir"
-    for f in "${conflicted[@]}"; do
-        mkdir -p "$backup_dir/$(dirname "$f")"
-        mv -- "$WORK_TREE/$f" "$backup_dir/$f"
-    done
+    if (( ${#conflicted[@]} > 0 )); then
+        echo "-> 以下本地文件与仓库版本冲突，备份到 $backup_dir :"
+        printf '    %s\n' "${conflicted[@]}"
+        mkdir -p "$backup_dir"
+        for f in "${conflicted[@]}"; do
+            mkdir -p "$backup_dir/$(dirname "$f")"
+            mv -- "$WORK_TREE/$f" "$backup_dir/$f"
+        done
+    fi
+
+    echo "-> checkout 工作区到 $WORK_TREE ..."
+    git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" checkout -f
 fi
 
-echo "→ checkout 工作区到 $WORK_TREE ..."
-git --git-dir="$GIT_DIR" --work-tree="$WORK_TREE" checkout -f
-
 # --- 3. 设置仓库参数 ---
-git --git-dir="$GIT_DIR" config --local status.showUntrackedFiles no
-git --git-dir="$GIT_DIR" config --local core.excludesfile "$WORK_TREE/.gitignore"
+if $DRY_RUN; then
+    echo "[dry-run] git config --local status.showUntrackedFiles no"
+    echo "[dry-run] git config --local core.excludesfile $WORK_TREE/.gitignore"
+else
+    git --git-dir="$GIT_DIR" config --local status.showUntrackedFiles no
+    git --git-dir="$GIT_DIR" config --local core.excludesfile "$WORK_TREE/.gitignore"
+fi
 
 # --- 4. 提示下一步 ---
 cat <<'EOF'
