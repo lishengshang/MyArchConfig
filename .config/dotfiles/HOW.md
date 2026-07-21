@@ -28,6 +28,20 @@ dot log -5      # 看最近的提交
 - 如果本地已有同名文件且内容不同，会备份到 `~/.dotfiles-backup-*`
 - 设置 `status.showUntrackedFiles=no`，避免 status 列出整个家目录
 
+### 预演模式（先看会做什么）
+
+新机器上想先看一眼再执行，或老机器上想验证脚本行为：
+
+```bash
+# setup.sh 预演: 显示会 clone 哪里、checkout 哪些冲突、改哪些 git config
+bash ~/.config/dotfiles/setup.sh --dry-run
+
+# bootstrap.sh 预演: 显示会装哪些包（前 10 个预览），不实际安装
+bash ~/.config/dotfiles/bootstrap.sh --dry-run
+```
+
+`--dry-run` 不做任何写操作，可以放心跑。
+
 ### 替代流程（手动 clone）
 
 如果你想先看一眼再执行:
@@ -212,3 +226,52 @@ GIT_DIR=$HOME/.cfg GIT_WORK_TREE=$HOME git checkout -f
 dot pull --rebase
 dot push
 ```
+
+## 卸载 dotfiles
+
+想换工具、或清理 dotfiles 痕迹时用 `uninstall.sh`。
+
+### 做什么 / 不做什么
+
+| 动作 | 是否执行 |
+|---|---|
+| 停止并禁用 `dotfiles-autocommit.{timer,service}` | ✅ 会做 |
+| 删除裸仓库目录 `~/.cfg/` | ✅ 会做 |
+| 删除 `$HOME` 下被跟踪的配置文件 | ❌ 不做（保留你的配置） |
+| 删除 `~/.gitignore` | ❌ 不做（你可能想留着或手动清理） |
+| 删除 `~/.config/dotfiles/` 脚本目录 | ❌ 不做（让你能再读一遍确认） |
+| 删除 `~/.config/systemd/user/dotfiles-autocommit.*` | ❌ 不做（手动决定） |
+
+### 用法
+
+```bash
+# 预演（看会做什么，不执行）
+bash ~/.config/dotfiles/uninstall.sh --dry-run
+
+# 默认（交互确认）
+bash ~/.config/dotfiles/uninstall.sh
+# 输出:
+#   即将卸载 dotfiles 裸仓库:
+#     - 停止 systemd user timer (dotfiles-autocommit.*)
+#     - 删除 ~/.cfg/ (裸仓库内部文件，不影响你的配置)
+#   配置文件 (~/.zshenv, ~/.config/*) 不会被删除。
+#   继续？[y/N]
+
+# 跳过确认
+bash ~/.config/dotfiles/uninstall.sh --force
+
+# 帮助
+bash ~/.config/dotfiles/uninstall.sh --help
+```
+
+### 彻底清理（手动）
+
+卸载脚本保留的文件，想彻底清掉：
+
+```bash
+rm -rf ~/.gitignore ~/.zshenv ~/.config/dotfiles
+rm -f ~/.config/systemd/user/dotfiles-autocommit.{service,timer}
+systemctl --user daemon-reload
+```
+
+或保留配置只清 git 痕迹：卸载脚本已经做完（删了 `~/.cfg`），无需额外操作。
