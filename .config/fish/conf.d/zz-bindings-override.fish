@@ -22,4 +22,8 @@ if status is-interactive
     # Ctrl+X Ctrl+E 在 $EDITOR 中编辑当前命令行（emacs/bash 经典绑定）
     bind ctrl-x,ctrl-e edit_command_buffer
     bind -M insert ctrl-x,ctrl-e edit_command_buffer
+
+    # Ctrl+Alt+P 让给 fcitx5 TogglePreedit（切换预编辑显示模式）
+    # 解绑 fzf.fish 的 _fzf_search_processes，避免被输入法拦截后用户无响应
+    bind --erase --all ctrl-alt-p 2>/dev/null
 end
