@@ -17,33 +17,33 @@
 
 if status is-interactive
     # --- 进度条（顶部标题行）---
-    set -g fish_pager_color_progress '#d8c0ca'
+    set -g fish_pager_color_progress '#ffe0b4'
 
     # --- 第一组（command / builtin）---
-    set -g fish_pager_color_prefix '#d8c0ca'
-    set -g fish_pager_color_completion '#e7e1e1'
+    set -g fish_pager_color_prefix '#ffe0b4'
+    set -g fish_pager_color_completion '#e9e1da'
     set -g fish_pager_color_background ''
-    set -g fish_pager_color_description '#d0c3c7'
+    set -g fish_pager_color_description '#d1c5b6'
 
     # --- 第二组（option）---
-    set -g fish_pager_color_secondary_prefix '#dec0b5'
-    set -g fish_pager_color_secondary_completion '#e7e1e1'
+    set -g fish_pager_color_secondary_prefix '#deebb0'
+    set -g fish_pager_color_secondary_completion '#e9e1da'
     set -g fish_pager_color_secondary_background ''
-    set -g fish_pager_color_secondary_description '#d0c3c7'
+    set -g fish_pager_color_secondary_description '#d1c5b6'
 
     # --- 第三组（file / variable / alias）---
-    set -g fish_pager_color_tertiary_prefix '#d0c3c7'
-    set -g fish_pager_color_tertiary_completion '#e7e1e1'
+    set -g fish_pager_color_tertiary_prefix '#d8c4a7'
+    set -g fish_pager_color_tertiary_completion '#e9e1da'
     set -g fish_pager_color_tertiary_background ''
-    set -g fish_pager_color_tertiary_description '#d0c3c7'
+    set -g fish_pager_color_tertiary_description '#d1c5b6'
 
     # --- 选中行（高亮当前项，即"选框"）---
     # 用 primary（亮色）做背景，on_primary（深色）做前景，对比强烈、辨识度高
-    set -g fish_pager_color_selected_background '--background=#d8c0ca'
-    set -g fish_pager_color_selected_prefix '#3c2c33' --bold
-    set -g fish_pager_color_selected_completion '#3c2c33' --bold
-    set -g fish_pager_color_selected_description '#3c2c33'
+    set -g fish_pager_color_selected_background '--background=#ffe0b4'
+    set -g fish_pager_color_selected_prefix '#432c00' --bold
+    set -g fish_pager_color_selected_completion '#432c00' --bold
+    set -g fish_pager_color_selected_description '#432c00'
 
     # --- 搜索匹配高亮（pager 内按 / 搜索时）---
-    set -g fish_pager_color_search_match '--background=#d0c3c7' --bold
+    set -g fish_pager_color_search_match '--background=#d8c4a7' --bold
 end
