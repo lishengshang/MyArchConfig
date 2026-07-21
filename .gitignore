@@ -13,7 +13,6 @@
 # === 必备元文件 ===
 !.gitignore
 !.zshenv
-!.p10k.zsh
 !README.md
 
 # === 让 git 进入 .config 目录，但默认忽略其下所有内容 ===
@@ -40,11 +39,13 @@
 
 # === 编辑器 / 终端 ===
 !.config/nvim/
+!.config/vim/
 !.config/kitty/
 !.config/ghostty/
 
 # === 媒体 / 浏览 ===
-!.config/mpv/
+# mpv 不在白名单：它是独立 git 仓库，有自己的 .git/.gitignore，
+# 重装时单独 clone mpv 仓库到 ~/.config/mpv/（见下方黑名单）
 !.config/yazi/
 !.config/fastfetch/
 !.config/btop/

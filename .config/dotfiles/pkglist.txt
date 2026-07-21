@@ -105,7 +105,6 @@ ninja
 niri
 nm-connection-editor
 noto-fonts-cjk
-noto-fonts-extra
 ntfs-3g
 nvidia-open-dkms
 nvidia-settings
@@ -142,7 +141,6 @@ swayosd
 timeshift
 ttf-jetbrains-mono-nerd
 ttf-lxgw-wenkai-mono
-ttf-noto-nerd
 tumbler
 udftools
 unzip
