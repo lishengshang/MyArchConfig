@@ -15,8 +15,8 @@ MAIN_HILIGHT="{{colors.secondary.default.hex}}"
 INVERSE_MAIN_COLOR="{{colors.tertiary_fixed_dim.default.hex}}"
 INVERSE_MAIN_HIGHLT="{{colors.tertiary.default.hex}}"
 INVERSE_MAIN_SHADOW="{{colors.tertiary_container.default.hex}}" 
-PAPER_COLOR="#fafafa" 
-PAPER_FOLE_COLOR="#deddda"
+PAPER_COLOR="{{colors.surface_bright.default.hex}}"
+PAPER_FOLD_COLOR="{{colors.surface_container.default.hex}}"
 # ------------------------------------------------------------------------------
 # [1] 文件夹 (folder*.svg / user-home.svg ...)
 # ------------------------------------------------------------------------------
@@ -41,17 +41,17 @@ COLOR_TRASH_PAPER="{{colors.on_tertiary_container.default.hex}}"    # 废纸团�
 # 对应 Adwaita 原版光影逻辑：
 COLOR_SCRIPT_BODY=$MAIN_SHADOW                  # 主体 (原 #3584e4 - 基准蓝)
 COLOR_SCRIPT_HIGHLIGHT=$MAIN_HILIGHT       # 高光 (原 #99c1f1 - 亮蓝)
-COLOR_SCRIPT_MID="#f0f0f0"         # 侧面/次亮 (原 #62a0ea)
+COLOR_SCRIPT_MID="{{colors.secondary_fixed.default.hex}}"         # 侧面/次亮 (原 #62a0ea)
 COLOR_SCRIPT_SHADOW=$MAIN_SHADOW      # 阴影 (原 #1c71d8)
-COLOR_SCRIPT_GEAR=$MAIN_DARKER_SHADOW    # 齿轮/最深色 
-COLOR_SCRIPT_PALE="ffffff"           # 极亮部 (原 #d7e8fc)
+COLOR_SCRIPT_GEAR=$MAIN_DARKER_SHADOW    # 齿轮/最深色
+COLOR_SCRIPT_PALE="{{colors.surface_bright.default.hex}}"           # 极亮部 (原 #d7e8fc)
 
 # ------------------------------------------------------------------------------
 # [4] 网页地球仪 (text-html.svg)
 # ------------------------------------------------------------------------------
 # [新增] 极高光/反光 (原 #b3d3f9, #d7e8fc) 
 # 建议：使用 secondary_fixed (通常比 dim 更亮) 或 surface_bright
-COLOR_HTML_PALE="#f0f0f0"
+COLOR_HTML_PALE="{{colors.secondary_fixed.default.hex}}"
 COLOR_HTML_HIGHLIGHT=$MAIN_HILIGHT              # 中间向左上一级左上反光 (原 #99c1f1)
 COLOR_HTML_BODY=$MAIN_SHADOW                     # 球体中间 (原 #62a0ea)
 COLOR_HTML_MID=$MAIN_SHADOW # 球体中间向右下一级 (原 #3584e4)
@@ -59,7 +59,7 @@ COLOR_HTML_SHADOW=$MAIN_DARKER_SHADOW     # 右下 (原 #1c71d8)
 COLOR_HTML_DEEP="{{colors.surface_container.default.hex}}"  # 最右下 (原 #1a5fb4)
 # [新增] 纸张背景 (原 #f6f5f4, #deddda) - 
 COLOR_DOC_PAPER=$PAPER_COLOR                     
-COLOR_DOC_FOLD=$PAPER_FOLE_COLOR                      
+COLOR_DOC_FOLD=$PAPER_FOLD_COLOR                      
 
 # ------------------------------------------------------------------------------
 # [5] 插件图标 (application-x-addon.svg)
@@ -80,7 +80,7 @@ COLOR_FONT_BASE=$MAIN_DARKER_SHADOW          # 底座/阴影 (原 #1a5fb4)
 # [7] Office 文档 (x-office-document.svg)
 # ------------------------------------------------------------------------------
 COLOR_DOC_PAPER=$PAPER_COLOR                                         # 纸张白
-COLOR_DOC_FOLD=$PAPER_FOLE_COLOR                                            # 折角灰
+COLOR_DOC_FOLD=$PAPER_FOLD_COLOR                                            # 折角灰
 # 绿色渐变 -> 映射为 Tertiary (强调色)
 COLOR_DOC_GRAD_ACCENT_START=$INVERSE_MAIN_COLOR       # 原 #50db81
 COLOR_DOC_GRAD_ACCENT_END=$INVERSE_MAIN_COLOR   # 原 #8ff0a4

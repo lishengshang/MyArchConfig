@@ -159,16 +159,16 @@ footer = { fg = "{{colors.on_secondary.default.hex}}", bg = "{{colors.secondary.
 
 rules = [
     # Images
-    { mime = "image/*", fg = "#94e2d5" },
+    { mime = "image/*", fg = "{{colors.tertiary.default.hex}}" },
 
     # Media
-    { mime = "{audio,video}/*", fg = "#f9e2af" },
+    { mime = "{audio,video}/*", fg = "{{colors.primary.default.hex}}" },
 
     # Archives
-    { mime = "application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", fg = "#f5c2e7" },
+    { mime = "application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", fg = "{{colors.secondary.default.hex}}" },
 
     # Documents
-    { mime = "application/{pdf,doc,rtf}", fg = "#a6e3a1" },
+    { mime = "application/{pdf,doc,rtf}", fg = "{{colors.tertiary_fixed_dim.default.hex}}" },
 
     # Special files
     { url = "*", is = "orphan", bg = "{{colors.error_container.default.hex}}" },

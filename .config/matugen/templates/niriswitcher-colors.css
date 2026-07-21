@@ -6,7 +6,7 @@
   /* 右上角显示器标签文字的颜色 */
   --alternate-label-color: {{colors.on_secondary_container.default.rgba | set_alpha: 1.0}};
   /* 不知道是啥 */
-  --dim-label-color: rgb(142, 142, 147);
+  --dim-label-color: {{colors.on_surface_variant.default.rgba | set_alpha: 0.8}};
   /* 边框 */
   --border-color: {{colors.outline.default.rgba | set_alpha: 1.0}};
   /* 选中窗口的背景高亮和右上角显示器标签背景的颜色 */
@@ -16,7 +16,7 @@
   /* 左边显示的当前工作区的指示器的颜色 */
   --indicator-focus-color: {{colors.primary.default.rgba | set_alpha: 0.95}};
   /* 非当前工作区指示器的颜色 */
-  --indicator-color: rgba(58, 58, 60, .95);
+  --indicator-color: {{colors.outline.default.rgba | set_alpha: 0.95}};
 }
 
 
@@ -24,7 +24,7 @@
     background-color: transparent;
 }
 
-#niriswitcher {on_surface
+#niriswitcher {
   background-color: transparent;
   padding: 40px;
 }
@@ -165,6 +165,4 @@
     border-radius: 10%;
     background-color: var(--highlight-color);
 }
-
-@import "/home/shorin/.config/niriswitcher/colors.css";
 

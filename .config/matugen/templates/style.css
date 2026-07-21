@@ -1,13 +1,13 @@
 :root {
-  --bg-color: {{colors.tertiary.default.rgb}};
-  --label-color: {{colors.tertiary.default.rgb}};
-  --alternate-label-color: {{colors.tertiary.default.rgb}};
-  --dim-label-color: {{colors.tertiary.default.rgb}};
-  --border-color: rgba(72, 72, 74, .95);
-  --highlight-color: rgba(99,99,102,0.95);
-  --urgency-color: {{colors.tertiary.default.rgb}};
-  --indicator-focus-color: rgba(10, 132, 255, 0.95);
-  --indicator-color: rgba(58, 58, 60, .95);
+  --bg-color: {{colors.tertiary.default.rgba | set_alpha: 0.95}};
+  --label-color: {{colors.on_tertiary.default.rgba | set_alpha: 1.0}};
+  --alternate-label-color: {{colors.on_tertiary.default.rgba | set_alpha: 1.0}};
+  --dim-label-color: {{colors.on_surface_variant.default.rgba | set_alpha: 0.8}};
+  --border-color: {{colors.outline.default.rgba | set_alpha: 0.95}};
+  --highlight-color: {{colors.surface_bright.default.rgba | set_alpha: 0.95}};
+  --urgency-color: {{colors.error.default.rgba | set_alpha: 1.0}};
+  --indicator-focus-color: {{colors.primary.default.rgba | set_alpha: 0.95}};
+  --indicator-color: {{colors.outline.default.rgba | set_alpha: 0.95}};
 }
 #niriswitcher.background {
     background-color: transparent;

@@ -33,10 +33,10 @@ input_path = '~/.config/matugen/templates/kitty-colors.conf'
 output_path ='~/.config/kitty/themes/matugen.conf'
 post_hook = "kitty +kitten themes --reload-in=all matugen &"
 
-[templates.fcitx5]
-input_path = '~/.config/matugen/templates/fcitx5-theme.conf'
-output_path = '~/.local/share/fcitx5/themes/Matugen/theme.conf'
-post_hook= 'fcitx5 -r & disown '
+# [templates.fcitx5]
+# input_path = '~/.config/matugen/templates/fcitx5-theme.conf'
+# output_path = '~/.local/share/fcitx5/themes/Matugen/theme.conf'
+# post_hook= 'fcitx5 -r & disown '
 
 [templates.mako]
 input_path = '~/.config/matugen/templates/mako-colors.conf'
@@ -135,10 +135,11 @@ input_path = '~/.config/matugen/templates/neovim/template.lua'
 output_path = '~/.config/nvim/generated.lua'
 post_hook = 'pkill -SIGUSR1 nvim'
 
-[templates.hyprlock]
-input_path = '~/.config/matugen/templates/hyprland-colors.conf'
-output_path = '~/.cache/matugen/hypr/colors.conf'
-pre_hook = 'mkdir -p ~/.cache/matugen/hypr/'
+# [templates.hyprlock]
+# 当前未使用 Hyprland，生成到缓存也没有主配置引用，先禁用
+# input_path = '~/.config/matugen/templates/hyprland-colors.conf'
+# output_path = '~/.cache/matugen/hypr/colors.conf'
+# pre_hook = 'mkdir -p ~/.cache/matugen/hypr/'
 
 [templates.vscode_injection]
 input_path = "~/.config/matugen/templates/vscode-inject.json"
