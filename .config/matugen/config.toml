@@ -79,8 +79,9 @@ output_path = '~/.config/gtk-4.0/colors.css'
 
 [templates.ghostty]
 input_path = '~/.config/matugen/templates/ghostty-colors.conf'
-output_path = '~/.config/ghostty/themes/Matugen'
-post_hook = 'pkill -SIGUSR2 ghostty'
+output_path ='~/.config/ghostty/themes/Matugen'
+# 由 Ghostty 自己 watch 主题文件变化来重载，避免 SIGUSR2 与文件监视双重触发
+# post_hook = 'pkill -SIGUSR2 ghostty'
 
 [templates.fish]
 input_path = '~/.config/matugen/templates/fish-pager.fish'
