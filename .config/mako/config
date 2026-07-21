@@ -13,3 +13,6 @@ font=adwaita sans regular 11
 history=1
 max-visible=20
 max-history=100
+
+# 右键通知：复制正文到 Wayland 剪贴板
+on-button-right=exec ~/.config/mako/copy-notification.sh
