@@ -22,9 +22,10 @@ zstyle ':fzf-tab:*' single-group color header           # 单组时显示彩色 
 zstyle ':fzf-tab:*' prefix ''                           # 去掉候选前的 -- / - 前缀
 zstyle ':fzf-tab:*' fzf-bindings 'ctrl-space:toggle'    # Ctrl+Space 多选切换
 # fzf 初始查询：用用户已输入的字作为 prefill（git a<Tab> 时 fzf 查询框预填 "a"）。
-# 默认 (prefix input first) 里的 prefix 会和 carapace 冲突（把描述公共前缀当查询），
-# 所以只保留 input。参见 https://github.com/Aloxaf/fzf-tab/issues/32
-zstyle ':fzf-tab:*' query-string input
+# 默认 (prefix input first) 里的 input 会把整段已输入路径塞进查询框，
+# 导致 `cat ~/.config/scripts<Tab>` 无法搜索目录内文件；改用 prefix，
+# 只取候选的公共前缀（如 `git a<Tab>` 的公共前缀仍是 `a`）。
+zstyle ':fzf-tab:*' query-string prefix
 
 # ============================================================================
 # 预览：按主题分组

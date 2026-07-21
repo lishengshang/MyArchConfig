@@ -28,7 +28,8 @@ _bind_keys() {
 _bind_keys  delete-char           '^[[3~'   '^[[3;5~'  # Delete
 _bind_keys  forward-word          '^[[1;5C' '^[[5C'    '^Oc'  '^[[1;3C'  # Ctrl+Right (含 tmux)
 _bind_keys  backward-word         '^[[1;5D' '^[[5D'    '^Od'  '^[[1;3D'  # Ctrl+Left  (含 tmux)
-_bind_keys  backward-kill-word    '^H'      '^[[3;5~'  "^[^?" # Ctrl+Backspace（多终端兜底）
+_bind_keys  backward-kill-word    '^[[3;5~'  "^[^?"          # Ctrl+Backspace（多终端兜底）
+bindkey '^H' backward-delete-char                                      # Backspace 删除前一个字符
 
 # --- 插入上一命令的最后参数（zsh 内建 widget insert-last-word）---
 # Alt+. 或 Alt+_ 均可（兼容 readline 习惯）
