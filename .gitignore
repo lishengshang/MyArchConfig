@@ -15,6 +15,13 @@
 !.zshenv
 !README.md
 
+# === GitHub Actions CI ===
+!.github/
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/lint.yml
+
 # === 让 git 进入 .config 目录，但默认忽略其下所有内容 ===
 !.config/
 .config/*

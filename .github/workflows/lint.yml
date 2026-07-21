@@ -1,0 +1,50 @@
+# =============================================================================
+# lint.yml - dotfiles 脚本的静态检查
+# =============================================================================
+# 检查范围:
+#   - bash -n:    所有 .sh 脚本的语法检查
+#   - shellcheck: 所有 .sh 脚本（warning 级别起报）
+#
+# 不做的事:
+#   - 不真的跑 setup.sh / bootstrap.sh（需要在 archlinux 容器里测，后续再加）
+#   - 不检查 zsh / fish 配置文件（语言不同，且动态加载难测）
+# =============================================================================
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  static-checks:
+    name: shellcheck + bash -n
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run bash -n and shellcheck on all .sh
+        run: |
+          fail=0
+          # 扫描 .config/dotfiles/ 下所有 .sh（限制范围避免误扫第三方）
+          while IFS= read -r f; do
+            echo "::group::$f"
+            if bash -n "$f"; then
+              echo "  bash -n ok"
+            else
+              echo "  bash -n FAIL"
+              fail=1
+            fi
+            if shellcheck -S warning "$f"; then
+              echo "  shellcheck ok"
+            else
+              echo "  shellcheck FAIL"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done < <(find .config/dotfiles -type f -name '*.sh' | sort)
+          exit "$fail"
