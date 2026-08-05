@@ -66,7 +66,7 @@
 # === 主题 / 外观 ===
 !.config/gtk-3.0/
 !.config/gtk-4.0/
-!.config/starship.toml
+!.config/starship/
 
 # === 自定义脚本 ===
 !.config/scripts/
@@ -122,3 +122,33 @@ credentials
 *.bak.*
 *backup*
 .dotfiles-backup*
+
+# =============================================================================
+# matugen 派生产物（由 ~/.config/matugen/config.toml 全量覆盖写入）
+# =============================================================================
+# 这些是生成产物，换机器后 setup.sh 会跑一次 matugen-update.sh 自动重生成。
+# 想改这些文件的内容，改 ~/.config/matugen/templates/* 里的【模板】，不是改产物——
+# 产物每次 matugen 跑都会被覆盖，手改的内容会丢。
+# starship.toml 不在此列表：它由 post_hook(base.toml + colors.toml) 拼接生成，
+# 白名单只放了 .config/starship/ 目录，starship.toml 本身被 .config/* 默认忽略。
+.config/btop/themes/matugen.theme
+.config/cava/themes/matugen
+.config/fastfetch/config.jsonc
+.config/fish/conf.d/35-pager-matugen.fish
+.config/fuzzel/colors.ini
+.config/ghostty/themes/Matugen
+.config/gtk-3.0/colors.css
+.config/gtk-4.0/colors.css
+.config/kitty/themes/matugen.conf
+.config/kitty/current-theme.conf
+.config/mako/colors.conf
+.config/niri/colors.kdl
+.config/nvim/generated.lua
+.config/starship/colors.toml
+.config/swaylock/config
+.config/swayosd/colors.css
+.config/waybar/colors.css
+.config/yazi/theme.toml
+
+# --- waypaper: 记录当前壁纸路径，换壁纸就变，机器特定 ---
+.config/waypaper/config.ini
