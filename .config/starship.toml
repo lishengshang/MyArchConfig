@@ -347,16 +347,16 @@ format = "[ $symbol$ram_pct \\[$ram\\] ]($style)"
 
 
 [palettes.matugen_colors]
-color_orange = "#ffe0b4"
-color_yellow = "#d8c4a7"
-color_aqua   = "#deebb0"
+color_orange = "#b7d9ff"
+color_yellow = "#b8c8dc"
+color_aqua   = "#f5c6fe"
 
-color_blue   = "#e9c388"
-color_bg3    = "#221f1b"
-color_bg1    = "#2d2925"
+color_blue   = "#93beeb"
+color_bg3    = "#1e2023"
+color_bg1    = "#282a2d"
 
-color_fg0    = "#432c00"
-color_fg1    = "#e9e1da"
+color_fg0    = "#003354"
+color_fg1    = "#e2e2e6"
 
-color_green  = "#deebb0"
+color_green  = "#f5c6fe"
 color_red    = "#ffb4ab"

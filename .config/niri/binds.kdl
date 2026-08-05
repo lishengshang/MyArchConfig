@@ -213,9 +213,9 @@ binds {
     // ============================================================
 
     // 全屏截图
-    Mod+Alt+A { screenshot; }
+    // Mod+Alt+A { screenshot; }
     // 区域截图（带选区界面）
-    // Mod+Alt+A { spawn "~/.config/niri/scripts/screenshot.sh"; }
+    Mod+Alt+A { spawn "~/.config/niri/scripts/screenshot.sh"; }
 
 
     // 壁纸
