@@ -93,7 +93,7 @@ bash ~/.config/dotfiles/bootstrap.sh
 exec zsh
 ```
 
-详见 [HOW.md](HOW.md)。
+详见 [HOW.md](.config/dotfiles/HOW.md)。
 
 ### 日常使用
 
