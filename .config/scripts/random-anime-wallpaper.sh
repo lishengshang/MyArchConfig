@@ -212,6 +212,16 @@ fi
 
 awww img "$FINAL_PATH" --transition-duration 2 --transition-type center --transition-fps 60
 
+# 同步 waypaper 状态: 本脚本绕过 waypaper 直接调用 awww, 需手动更新 waypaper 的
+# 当前壁纸记录, 否则 waypaper GUI 显示的"当前壁纸"会过期, matugen-update.sh /
+# niri_set_overview_blur_dark_bg.sh 的 fallback 分支也会读到错误的壁纸路径.
+WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
+if [ -f "$WAYPAPER_CONFIG" ]; then
+    # 把绝对路径转成 ~ 形式, 与 waypaper 配置风格保持一致
+    WALLPAPER_TILDE="${FINAL_PATH/#$HOME/\~}"
+    sed -i "s|^wallpaper[[:space:]]*=.*|wallpaper = $WALLPAPER_TILDE|" "$WAYPAPER_CONFIG"
+fi
+
 # --- 4. 钩子与清理 ---
 
 (
@@ -225,7 +235,8 @@ awww img "$FINAL_PATH" --transition-duration 2 --transition-type center --transi
     # 用 find -printf + NUL 分隔处理文件名特殊字符;${line#* } 跳过 mtime 字段
     if [ "$ENABLE_CLEANUP" = true ]; then
         DELETE_START=$((KEEP_COUNT + 1))
-        find "$SAVE_DIR" -maxdepth 1 -type f -printf '%T@ %p\0' \
+        # 只清理脚本下载的 wall_* 文件, 豁免手动放入的精选图 (如 01-alcy-pc_*.webp)
+        find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -printf '%T@ %p\0' \
             | sort -z -k1,1 -rn \
             | tail -z -n +$DELETE_START \
             | while IFS= read -r -d '' line; do

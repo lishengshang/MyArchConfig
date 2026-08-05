@@ -47,7 +47,7 @@ zinit light olets/zsh-abbr
 #   ^[^M (Alt+Enter)  接受整条建议（备用，避开 emacs 的 ^Y yank）
 #   右箭头 (^[[C)     接受整条建议（forward-char）
 zinit wait lucid light-mode for \
-    atinit"zicdreplay" \
+    atinit"zicdreplay" atload"FAST_HIGHLIGHT_STYLES[unknown-token]='fg=#f7768e'" \
         zdharma-continuum/fast-syntax-highlighting \
     atload"_zsh_autosuggest_start; bindkey '^ ' autosuggest-accept; bindkey '^[^M' autosuggest-accept; ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(forward-char end-of-line vi-end-of-line vi-add-eol)" \
         zsh-users/zsh-autosuggestions \

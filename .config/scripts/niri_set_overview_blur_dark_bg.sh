@@ -87,6 +87,14 @@ if [ -z "$1" ]; then
     if [ ${#MONITOR_WALLPAPERS[@]} -eq 0 ] && [ -f "$WAYPAPER_CONFIG" ]; then
         tmp_img=$(grep "^wallpaper =" "$WAYPAPER_CONFIG" | cut -d '=' -f2 | xargs)
         tmp_img="${tmp_img/#\~/$HOME}"
+        if [ -n "$tmp_img" ] && [ ! -f "$tmp_img" ]; then
+            # wallpaper 字段指向的文件已不存在, 取 folder 里最新的一张图兜底
+            tmp_folder=$(grep "^folder =" "$WAYPAPER_CONFIG" | cut -d '=' -f2 | xargs)
+            tmp_folder="${tmp_folder/#\~/$HOME}"
+            if [ -d "$tmp_folder" ]; then
+                tmp_img=$(find "$tmp_folder" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.jpeg' -o -iname '*.webp' \) -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -n1 | cut -f2-)
+            fi
+        fi
         if [ -n "$tmp_img" ]; then
             MONITOR_WALLPAPERS["all"]="$tmp_img"
         fi

@@ -141,11 +141,12 @@ spawn-at-startup "~/.config/niri/scripts/auto-update-cache.sh"
 spawn-at-startup "nm-applet"
 
 // 桌面壁纸的守护进程
-spawn-at-startup "awww-daemon"
+// --no-cache: 启动时不恢复上次壁纸, 避免与下方 waypaper --random 叠加产生"先旧后新"的闪烁
+spawn-at-startup "awww-daemon" "--no-cache"
 // 总览界面背景壁纸的守护进程
 spawn-at-startup "awww-daemon" "-n" "overview"
-// 随机更换一张壁纸
-spawn-sh-at-startup "sleep 1 &&  waypaper --random"
+// 随机更换一张壁纸: 轮询等待 awww 就绪后立即执行, 缩短开机时无壁纸的窗口
+spawn-sh-at-startup "for i in $(seq 1 30); do awww query >/dev/null 2>&1 && break; sleep 0.1; done; waypaper --random"
 // 恢复壁纸
 //spawn-at-startup "waypaper" "--restore"
 

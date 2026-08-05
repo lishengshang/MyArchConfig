@@ -12,11 +12,12 @@
 #   --dry-run  只打印会做什么，不实际执行（不 clone / 不 checkout / 不改 git config）
 #   -h, --help 显示帮助
 #
-# 这个脚本做四件事:
+# 这个脚本做五件事:
 #   1. 把裸仓库 clone 到 ~/.cfg（如果还没 clone）
 #   2. 把工作区 checkout 到 $HOME（已存在的本地文件会先备份到 ~/.dotfiles-backup）
 #   3. 设置 status.showUntrackedFiles=no，避免 status 列出整个家目录
-#   4. 提示用户接下来运行 bootstrap.sh
+#   4. 重生成 matugen 主题产物（colors.* 文件不进 git，换机器需重新生成）
+#   5. 提示用户接下来运行 bootstrap.sh
 # =============================================================================
 set -euo pipefail
 
@@ -102,7 +103,29 @@ else
     git --git-dir="$GIT_DIR" config --local core.excludesfile "$WORK_TREE/.gitignore"
 fi
 
-# --- 4. 提示下一步 ---
+# --- 4. 重生成 matugen 主题产物 ---
+# matugen 的 colors.* 产物是生成物，不进 git（见 .gitignore 黑名单）。
+# 新机器 checkout 后这些文件不存在，需要跑一次 matugen-update.sh 重新生成。
+# 前提: 本地已有一张壁纸。失败不致命——会打印提示让用户手动跑。
+MATUGEN_UPDATE="$WORK_TREE/.config/scripts/matugen-update.sh"
+if $DRY_RUN; then
+    echo "[dry-run] bash $MATUGEN_UPDATE -f   (生成所有 colors 产物)"
+else
+    if [[ -f "$MATUGEN_UPDATE" ]] && command -v matugen &>/dev/null; then
+        echo "-> 重生成 matugen 主题产物..."
+        if bash "$MATUGEN_UPDATE" -f </dev/null 2>&1 | tail -20; then
+            echo "✓ matugen 主题已重生成"
+        else
+            echo "⚠ matugen 自动生成失败（可能本地还没有壁纸）"
+            echo "  放一张壁纸后手动跑: bash $MATUGEN_UPDATE -f /path/to/wallpaper.jpg"
+        fi
+    else
+        echo "⚠ 未检测到 matugen 或 matugen-update.sh，跳过主题生成"
+        echo "  安装 matugen 后手动跑: bash $MATUGEN_UPDATE -f"
+    fi
+fi
+
+# --- 5. 提示下一步 ---
 cat <<'EOF'
 
 ✓ dotfiles 已初始化完成。
@@ -116,6 +139,9 @@ cat <<'EOF'
 
     3. 检查状态:
         dot status
+
+    4. 如果 matugen 主题色没生成（上一步自动生成失败）:
+        放一张壁纸后跑: bash ~/.config/scripts/matugen-update.sh -f /path/to/wallpaper.jpg
 
 如果上一步有冲突文件被备份，可以在 ~/.dotfiles-backup-* 里找到。
 EOF

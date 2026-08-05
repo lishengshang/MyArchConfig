@@ -76,6 +76,16 @@ if [ -z "$WALLPAPER" ]; then
         WP_PATH="${WP_PATH/#\~/$HOME}"
         if [ -n "$WP_PATH" ] && [ -f "$WP_PATH" ]; then
             WALLPAPER="$WP_PATH"
+        elif [ -n "$WP_PATH" ]; then
+            # wallpaper 字段指向的文件已不存在 (可能被清理), 取 folder 里最新的一张图兜底
+            WP_FOLDER=$(sed -n 's/^folder[[:space:]]*=[[:space:]]*//p' "$WAYPAPER_CONFIG")
+            WP_FOLDER="${WP_FOLDER/#\~/$HOME}"
+            if [ -d "$WP_FOLDER" ]; then
+                FALLBACK_IMG=$(find "$WP_FOLDER" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.jpeg' -o -iname '*.webp' \) -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -n1 | cut -f2-)
+                if [ -n "$FALLBACK_IMG" ] && [ -f "$FALLBACK_IMG" ]; then
+                    WALLPAPER="$FALLBACK_IMG"
+                fi
+            fi
         fi
     fi
 fi
