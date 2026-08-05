@@ -3,6 +3,8 @@
 # 功能：Waybar 更新检测后台守护脚本
 # 特性：定期检查 Pacman 和 AUR 更新，生成 JSON 和 txt 供前端极速读取。
 # 修复：引入动态信号屏蔽与 FORCE_UPDATE 标志，完美解决高频触发导致的并发地狱。
+# 增强：监听 pacman 本地数据库 mtime，包变更后下一轮（≤SLEEP_INTERVAL）自动刷新；
+#       配合 pacman hook（PostTransaction 发 SIGUSR1）可实现即时刷新。
 # ==============================================================================
 
 set -euo pipefail
@@ -13,6 +15,8 @@ CACHE_FILE="$CACHE_DIR/updates.json"
 LOCK_FILE="/tmp/waybar-updates.lock"
 MAX_LINES=50
 CHECK_INTERVAL=3600
+SLEEP_INTERVAL=60
+PACMAN_DB="/var/lib/pacman/local"
 
 # 确保缓存目录存在
 mkdir -p "$CACHE_DIR"
@@ -103,8 +107,13 @@ run_check() {
         current_time=$(date +%s)
         file_time=$(stat -c %Y "$CACHE_FILE")
         age=$((current_time - file_time))
-        
-        if [[ $age -lt $((CHECK_INTERVAL - 10)) ]]; then
+
+        # 检查 pacman 本地数据库是否在缓存之后发生变动（包安装/升级/删除）
+        local pacman_db_time=0
+        [[ -d "$PACMAN_DB" ]] && pacman_db_time=$(stat -c %Y "$PACMAN_DB" 2>/dev/null || echo 0)
+
+        # 缓存未过期 且 数据库无变化 → 直接输出缓存
+        if [[ $age -lt $((CHECK_INTERVAL - 10)) ]] && [[ $pacman_db_time -le $file_time ]]; then
             cat "$CACHE_FILE"
             return
         fi
@@ -140,8 +149,8 @@ run_check() {
 # === 主循环 ===
 while true; do
     run_check
-    sleep "$CHECK_INTERVAL" &
-    
+    sleep "$SLEEP_INTERVAL" &
+
     # 即使 sleep 被信号强行打断，|| true 也能保住脚本的命
     wait $! || true
 done
