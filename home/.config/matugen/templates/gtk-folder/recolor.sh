@@ -235,7 +235,7 @@ TARGET_DIR="$HOME/.local/share/icons/$TARGET_THEME"
 
 # 1. 准备目录
 mkdir -p "$TARGET_DIR"
-cp -rf --reflink=auto --no-preserve=mode,ownership "$TEMPLATE_DIR/"* "$TARGET_DIR/"
+cp -rfL --reflink=auto --no-preserve=mode,ownership "$TEMPLATE_DIR/"* "$TARGET_DIR/"
 sed -i "s/Name=.*/Name=$TARGET_THEME/" "$TARGET_DIR/index.theme"
 
 # 2. 处理 PNG (统一使用文件夹颜色)
