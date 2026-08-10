@@ -10,12 +10,12 @@
 #   40-fzf.fish           FZF 配置
 #   50-tools.fish         工具初始化(starship/zoxide/atuin 等, 带缓存)
 #   60-cnf.fish           command-not-found 处理
-#   zz-bindings-override.fish  最终键绑定覆盖(atuin ctrl-r / ctrl-x,ctrl-e)
 #
 # 插件 conf.d(字母序在数字后): autopair / done / fzf / sponge
-# zz- 前缀确保在所有插件之后加载
 #
-# 键绑定:       ~/.config/fish/conf.d/zz-bindings-override.fish
+# 键绑定:       ~/.config/fish/functions/fish_user_key_bindings.fish
+#               (fish 官方覆盖点: 第一个 prompt 时执行, 在 conf.d 之后,
+#                可覆盖插件绑定 — 见 __fish_config_interactive.fish)
 # 自定义命令补全: ~/.config/fish/completions/
 # 自定义函数:     ~/.config/fish/functions/
 # ============================================================================

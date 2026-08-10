@@ -21,17 +21,32 @@ Arch Linux 上的 fish 4.8.1 配置。设计原则：**conf.d 模块化 + 工具
 │   ├── 40-fzf.fish                   FZF 主题 + 预览
 │   ├── 50-tools.fish                 工具初始化（starship/zoxide/atuin/carapace...）
 │   ├── 60-cnf.fish                   command-not-found 处理（pkgfile）
-│   ├── zz-bindings-override.fish     最终键绑定覆盖（最后加载）
 │   ├── autopair.fish                 ← Fisher 插件
 │   ├── done.fish                     ← Fisher 插件
 │   ├── fzf.fish                      ← Fisher 插件
 │   └── sponge.fish                   ← Fisher 插件
-├── completions/                      工具自带补全（40+ 文件，fish-update-completions 生成）
+├── completions/                      工具自带补全（51 个文件，fish-update-completions 生成，已入库）
 ├── functions/                        自定义函数 + 插件函数
+│   └── fish_user_key_bindings.fish   键绑定（fish 官方覆盖点，见下文）
 └── themes/                           （空，配色由 matugen 动态注入）
 ```
 
-**加载顺序**：`config.fish` -> `conf.d/` 按文件名字母序 -> 数字优先 `35-` -> `35-pager-matugen.fish` 覆盖 `35-pager.fish` -> `zz-` 最后加载确保覆盖插件。
+**加载顺序**：`conf.d/` 按文件名字母序（数字优先）在 `config.fish` 之前加载（fish 4.x 官方行为，
+见 `share/config.fish` 末尾的 conf.d source）→ `functions/` 按需自动加载 →
+第一个 prompt 显示时执行 `fish_user_key_bindings`（`__fish_config_interactive` 调用，
+在 conf.d 之后，用于覆盖插件绑定）。
+
+**键绑定覆盖机制**（2026-08 重构，替代原 `zz-bindings-override.fish`）：
+
+```
+conf.d/ 加载（fzf.fish 注册 ctrl-alt-*、atuin 注册 ctrl-r）
+    ↓
+第一个 prompt → __fish_config_interactive
+    ↓
+__fish_reload_key_bindings
+    ├─ $fish_key_bindings（默认绑定）
+    └─ fish_user_key_bindings（自定义覆盖，最后执行）
+```
 
 ---
 
@@ -94,18 +109,19 @@ pager 配色由 matugen 动态生成（见下文"配色"章节）。
 
 ### 4. fzf 全屏搜索（Ctrl 系列绑定）
 
+fzf.fish v11 默认键位（`fzf_configure_bindings` 注册，default + insert 双模式）：
+
 | 按键 | 功能 | 说明 |
 |---|---|---|
-| `Ctrl-R` | 历史命令搜索 | **被 atuin 接管**（SQLite + 模糊 + 跨机同步），覆盖 fish 默认的 history-pager |
-| `Ctrl-T` | 模糊搜索文件并插入到命令行 | bat 预览，覆盖 fish 默认的 transpose-chars |
-| `Alt-C` | 模糊搜索目录并 cd | eza 预览，覆盖 fish 默认的 capitalize-word |
-| `Ctrl-Alt-F` | 文件搜索 | bat 预览 |
+| `Ctrl-R` | 历史命令搜索 | **被 atuin 接管**（SQLite + 模糊 + 跨机同步），覆盖 fish 默认的 history-pager，见 `functions/fish_user_key_bindings.fish` |
+| `Ctrl-Alt-F` | 目录/文件搜索 | bat 预览 |
 | `Ctrl-Alt-L` | git log 搜索 | |
 | `Ctrl-Alt-S` | git status 搜索 | |
+| `Ctrl-Alt-P` | 进程搜索 | 注意：fcitx5 的 `TogglePreedit` 可能拦截此键 |
 | `Ctrl-V` | 变量搜索 | 覆盖 fish 默认的 fish_clipboard_paste |
 
-> ⚠️ **Ctrl-Alt-P 已让给 fcitx5**：fcitx5 的 `TogglePreedit`（切换预编辑显示模式：内联 ↔ 弹出窗口）在 Wayland 层就拦截了这个组合键，fish 收不到。
-> 进程搜索改用 `fkill` 命令（fzf 交互式杀进程，见下文"命令参考"）。
+> ⚠️ **Ctrl-Alt-P 与 fcitx5 冲突**：fcitx5 的 `TogglePreedit`（切换预编辑显示模式：内联 ↔ 弹出窗口）在 Wayland 层可能拦截这个组合键。
+> 若无效，进程搜索改用 `fkill` 命令（fzf 交互式杀进程，见下文"命令参考"）。
 
 ### 5. 行编辑（fish 4.x 默认 emacs 风格）
 
@@ -121,12 +137,12 @@ pager 配色由 matugen 动态生成（见下文"配色"章节）。
 | `Ctrl-W` | 删除前一个路径段（按 `/` 切分） |
 | `Ctrl-U` | 删除光标到行首 |
 | `Ctrl-K` | 删除光标到行尾 |
-| `Ctrl-T` | 字符交换（被 fzf 覆盖为文件搜索） |
+| `Ctrl-T` | 字符交换（fish 默认；fzf.fish 未占用此键） |
 | `Alt-Backspace` | 删除前一个词 |
 | `Alt-D` | 删除后一个词 |
 | `Alt-T` | 交换前后两个词 |
 | `Alt-U` | 大写化光标后词 |
-| `Alt-C` | 首字母大写（被 fzf 覆盖为 cd） |
+| `Alt-C` | 首字母大写（fish 默认；fzf.fish 未占用此键） |
 
 ### 6. 历史、撤销与编辑器辅助（fish 4.x 默认）
 
@@ -140,7 +156,7 @@ pager 配色由 matugen 动态生成（见下文"配色"章节）。
 | `Ctrl-Y` / `Alt-Y` | yank / yank-pop（粘贴删除环） |
 | `Ctrl-/` / `Ctrl-Z` | 撤销 |
 | `Ctrl-Shift-Z` / `Alt-/` | 重做 |
-| `Ctrl-X Ctrl-E` 或 `Alt-E` / `Alt-V` | 在 `$EDITOR` 中编辑当前命令行（zz-bindings-override.fish 显式绑了前者，后者是 fish 内建） |
+| `Ctrl-X Ctrl-E` 或 `Alt-E` / `Alt-V` | 在 `$EDITOR` 中编辑当前命令行（`functions/fish_user_key_bindings.fish` 显式绑了前者，后者是 fish 内建） |
 | `Alt-S` | 在命令前加 `sudo`（fish 内建，循环尝试 `sudo` / `doas` / `please` / `run0`） |
 | `Alt-H` 或 `F1` | 打开当前命令的 man page |
 | `Alt-W` | 查看当前 token 的 man（whatis） |
@@ -225,19 +241,26 @@ matugen image /path/to/wallpaper.jpg
 
 fish pager 配色会和其他工具（starship / kitty / ghostty / fuzzel / niri / yazi / nvim / mako / btop 等）一起重新生成。
 
-pager 颜色映射设计：
+pager / 命令行颜色映射设计（`~/.config/matugen/templates/fish-pager.fish`）：
 
 | 元素 | Material You token | 含义 |
 |---|---|---|
 | 选中行背景 | `primary` | 亮色，对比强烈 |
 | 选中行前景 | `on_primary` + `--bold` | 专为 primary 背景设计的文字色 |
-| 命令前缀 | `primary` | 第一组 |
-| 选项前缀 | `tertiary` | 第二组 |
-| 文件前缀 | `secondary` | 第三组 |
+| 补全前缀（命令） | `primary` | 每组补全的命令部分 |
+| 斑马纹前缀 | `tertiary` | **偶数行的前缀**（fish 的 secondary_* 是隔行条纹，不是"选项列"！） |
 | 补全文字 | `on_surface` | 主前景色 |
 | 描述文字 | `on_surface_variant` | 次要文字色 |
-| 搜索匹配 | `secondary` 背景 + `--bold` | 区别于选中行 |
+| 命令语法色 | `primary`（command/builtin/function） | 命令行高亮 |
+| 选项语法色 | `tertiary`（option/operator/escape） | 命令行高亮 |
+| 引用/字符串 | `secondary` | 命令行高亮 |
+| 自动建议 | `outline` | 灰色幽灵文本 |
+| 错误 | `error` | 红色 |
 
+> ⚠️ **fish 4.8 只有 13 个 pager 颜色变量**（highlight.rs 源码确认）：基础组 5 个 +
+> `secondary_*` 4 个（**隔行斑马纹**，`row % 2 != 0` 触发）+ `selected_*` 4 个。
+> **不存在 `tertiary_*` 变量**，设置会被静默忽略；pager 搜索高亮用
+> `fish_color_search_match`（不存在 `fish_pager_color_search_match`）。
 > 历史遗留：`35-pager.fish` 已清空为仅注释，实际配色由 `35-pager-matugen.fish` 接管。
 
 ---
@@ -436,6 +459,16 @@ sudo pkgfile --update       # 更新数据库
 
 3. **carapace 与自带补全冲突**：carapace 注册后会"占位"。已在 `50-tools.fish` 对关键命令预 source 自带补全解决，新工具可能需要手动 `fish-update-completions <cmd>`。
 
+4. **mise 补全依赖 usage ≥ 4.0**：mise 生成的 usage spec 用了 `effect=` 新语法，
+   Arch 仓库的 usage 3.5.5 解析失败（`unsupported cmd prop effect`）。
+   已通过 `~/.local/bin/usage` → mise 内置 usage 5.1.0 的 symlink 解决。
+   若重装 usage 系统包后补全报错，检查：`~/.local/bin/usage --version` 应为 5.x。
+
+5. **键绑定覆盖**：fish 4.x 在第一个 prompt 时通过 `fish_user_key_bindings` 应用自定义绑定
+   （`__fish_config_interactive.fish:100-101`），它在 conf.d 之后执行，因此能覆盖插件绑定。
+   注意：**不要用 `bind --erase --all <key>`** —— 实测该语法会擦除所有自定义绑定
+   （而非只擦指定键），曾导致 fzf.fish / atuin 的全部绑定失效。
+
 ---
 
 ## 文件清单速查
@@ -448,7 +481,7 @@ sudo pkgfile --update       # 更新数据库
 | `conf.d/25-aliases.fish` | 加别名 |
 | `conf.d/40-fzf.fish` | fzf 主题/预览 |
 | `conf.d/50-tools.fish` | 加新工具初始化 |
-| `conf.d/zz-bindings-override.fish` | 加键绑定 |
+| `functions/fish_user_key_bindings.fish` | 加键绑定（fish 官方覆盖点，conf.d 之后执行） |
 
 ### 自动生成勿手改
 
