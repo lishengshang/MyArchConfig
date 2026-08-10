@@ -1,16 +1,39 @@
-# Blacklist strategy: ignore noisy / sensitive / generated files
-.omo/
+# =============================================================================
+# ~/dotfiles/.gitignore - 黑名单策略
+# =============================================================================
+# 与旧方案（bare repo + /* 白名单）不同，新方案用普通 git 仓库，
+# 默认跟踪所有文件，用黑名单排除不该入库的东西。
+# =============================================================================
+
+# --- 编辑器临时文件 ---
 *.swp
 *.swo
 *~
-.netrwhist
+
+# --- Neovim/Vim 临时文件 ---
 *.bak
 *backup*
+
+# --- dotfiles 迁移备份 ---
 .dotfiles-backup*
+
+# --- 敏感文件 ---
 .env
+.env.*
 *.key
 *.pem
+*.secret
 credentials
+
+# --- 敏感目录（即使出现在 home/ 下也不跟踪）---
 .ssh/
 .gnupg/
-.config/systemd/user/*.wants/
+
+# --- 缓存 / 自动生成物 ---
+.netrwhist
+
+# --- systemd wants 目录（自动生成，不跟踪）---
+*.wants/
+
+# --- opencode / agent 工作目录 ---
+.omo/

@@ -51,52 +51,35 @@ alias ds='dirs -v'
 () { local i; for i in {1..9}; do alias "$i"="cd +$i"; done }
 
 
-# dotfiles 裸仓库
-# 使用环境变量 GIT_DIR/GIT_WORK_TREE，让补全函数内部调用的 git 命令也能识别仓库
-# GIT_DIR 在 ~/.cfg（隐藏路径，避免污染家目录）
+# =============================================================================
+# dotfiles 管理函数（GNU Stow + 普通 git 方案）
+# =============================================================================
+# 迁移说明:
+#   旧方案用 bare repo（GIT_DIR=$HOME/.cfg GIT_WORK_TREE=$HOME），
+#   dot() 通过环境变量让 git 识别仓库。
+#   新方案改为 ~/dotfiles 普通 git 仓库 + GNU Stow 部署软链，
+#   dot() 直接用 `git -C ~/dotfiles`，无需环境变量，补全也天然正常。
+#
+#   旧 _dot() 补全函数不再需要（普通 git 补全自动生效），
+#   但保留 dota() 简写函数方便日常使用。
+# =============================================================================
+
+# dot: 在 ~/dotfiles 仓库里执行 git 命令
+# 用法: dot status / dot diff / dot add ... / dot commit -m "..." / dot push
 dot() {
-    GIT_DIR="$HOME/.cfg" GIT_WORK_TREE="$HOME" git "$@"
+    git -C "$HOME/dotfiles" "$@"
 }
 
-# 自定义补全: 在补全过程里临时 export GIT_DIR/GIT_WORK_TREE，
-# 这样 _git 补全函数内部调用 `git rev-parse` / `git ls-files` 时才能识别仓库，
-# 从而正确补全路径。否则补全为空。
-#
-# 关键: 必须把 service 也临时设成 git，否则 _git 主函数的 else 分支会
-# 调用 _$service（即 _dot），形成 _dot -> _git -> _dot 无限递归。
-#
-# 对 add/rm/mv 子命令，不走 _git-add 的「modified + untracked files」补全
-# （dotfiles 工作区干净时该列表为空，补全无意义），
-# 改用 _files 直接补全文件路径。
-_dot() {
-    local -x GIT_DIR="$HOME/.cfg"
-    local -x GIT_WORK_TREE="$HOME"
-    local service=git
-
-    # $words[2] 是子命令（add/rm/mv/commit/...）
-    # $words[CURRENT] 是当前正在补全的 word
-    # 路径补全场景: 子命令是 add/rm/mv，且当前 word 不以 - 开头（不是选项）
-    if [[ $words[2] == (add|rm|mv|restore) && $words[CURRENT] != -* ]]; then
-        _files
-    else
-        _git "$@"
-    fi
-}
-compdef _dot dot
-
-# dota: dot add 的简写，专门用于把新配置纳入白名单
-# 用法: dota .config/foo/bar   （路径相对于 $HOME，可带前导 ./）
+# dota: dot add -f 的简写，专门用于把新配置强制纳入跟踪
+# 用法: dota home/.config/foo/bar   （路径相对于 ~/dotfiles 仓库根）
 dota() {
-    local p
-    for p in "$@"; do
-        # 去掉前导 ./ 让路径统一
-        p="${p#./}"
-        if [[ ! -e "$HOME/$p" ]]; then
-            echo "跳过（不存在）: $p" >&2
-            continue
-        fi
-        dot add "$p"
-    done
+    dot add -f "$@"
 }
-# dota 用法主要是 `dota <path>`，复用 dot 的补全（路径补全）
-compdef _dot dota
+
+# --- 便捷别名 ---
+alias dots='dot status'
+alias dotd='dot diff'
+alias dotds='dot diff --staged'
+alias dotl='dot log --oneline -10'
+alias dotc='dot commit -m'
+alias dotp='dot push'
