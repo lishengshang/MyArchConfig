@@ -26,7 +26,9 @@ for pkg in "${!VARIANTS[@]}"; do
 
         tmp=$(mktemp)
         if jq -s '.[0] * .[1]' "$VSCODE_SETTINGS" "$GENERATED_COLORS" > "$tmp"; then
-            mv "$tmp" "$VSCODE_SETTINGS"
+            # Write through the path (not mv) so a stow symlink survives
+            cat "$tmp" > "$VSCODE_SETTINGS"
+            rm -f "$tmp"
             echo "✅ VS Code colors updated for $pkg ($config_dir)."
             injected=$((injected + 1))
         else
