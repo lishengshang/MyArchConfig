@@ -23,3 +23,15 @@ test -z "$LANG";    and set -gx LANG zh_CN.UTF-8
 
 # MANPAGER 含特殊字符, environment.d 不太好写, 放这里兜底
 test -z "$MANPAGER"; and set -gx MANPAGER 'nvim +Man!'
+
+# 本地敏感环境变量（API keys 等，不纳入 dotfiles 版本控制）
+# opencode.jsonc 通过 {env:VOLCENGINE_API_KEY} 引用这里的变量
+# fish 的 source 不支持 KEY=VALUE 语法，这里逐行解析（单行注释/空行自动跳过）
+if test -r "$HOME/.config/opencode/.env"
+    while read -l line
+        set -l kv (string split -m 1 '=' -- "$line")
+        if test (count $kv) -eq 2
+            set -gx $kv[1] $kv[2]
+        end
+    end < "$HOME/.config/opencode/.env"
+end

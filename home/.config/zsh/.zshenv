@@ -15,3 +15,12 @@ case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
     *) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
+
+# 本地敏感环境变量（API keys 等，不纳入 dotfiles 版本控制）
+# opencode.jsonc 通过 {env:VOLCENGINE_API_KEY} 引用这里的变量
+# set -a 开启 allexport，确保变量导出到子进程（opencode 需要）
+if [[ -r "$HOME/.config/opencode/.env" ]]; then
+    set -a
+    source "$HOME/.config/opencode/.env"
+    set +a
+fi
