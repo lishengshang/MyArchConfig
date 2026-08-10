@@ -338,14 +338,14 @@ fishreload        # 等于 exec fish，重启 shell
 ### dotfiles 同步
 
 ```fish
-dot status                   # 查看哪些配置文件变了
-dot add .config/foo/bar      # 跟踪新文件（需先在 ~/.gitignore 白名单加 !path）
-dota .config/foo/bar         # dota 是 dot add 的简写，路径相对 $HOME
+dot status                       # 查看哪些配置文件变了
+dota home/.config/foo/bar        # dota 是 dot add -f 的简写，路径相对于 ~/dotfiles 仓库根
 dot commit -m "msg"
 dot push
 ```
 
-`~/.gitignore` 策略：默认忽略一切，白名单显式 `!path/to/file` 跟踪。
+仓库为普通 git 仓库（`~/dotfiles`），`home/` 包经 GNU Stow 部署到 `$HOME`，
+跟踪路径统一带 `home/` 前缀。`.gitignore`（位于 `~/dotfiles/.gitignore`）用黑名单策略排除敏感/缓存文件。
 
 ---
 
