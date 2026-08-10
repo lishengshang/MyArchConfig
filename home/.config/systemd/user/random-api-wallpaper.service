@@ -1,0 +1,6 @@
+[Unit]
+Description=Random API wallpaper switcher
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/niri/scripts/random-api-wallpaper.sh

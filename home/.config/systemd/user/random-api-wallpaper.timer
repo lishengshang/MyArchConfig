@@ -1,0 +1,10 @@
+[Unit]
+Description=Switch API wallpaper every 8 minutes
+
+[Timer]
+OnBootSec=8min
+OnUnitActiveSec=8min
+Unit=random-api-wallpaper.service
+
+[Install]
+WantedBy=timers.target

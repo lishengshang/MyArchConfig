@@ -1,0 +1,29 @@
+[Unit]
+Description=swayidle idle daemon (lock / screen-off / suspend)
+Documentation=man:swayidle(1)
+# 跟随 graphical-session 生命周期：会话结束自动停止
+PartOf=graphical-session.target
+After=graphical-session.target
+# 防止崩溃循环：5 分钟内最多重启 5 次（新版 systemd 要求放在 [Unit] 节）
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+# Type=exec: systemd 检测进程启动成功（而非 fork），更适合长期守护进程
+Type=exec
+# 脚本内已 exec swayidle 替换 shell，所以 systemd 直接监督 swayidle 进程
+ExecStart=%h/.config/niri/scripts/swayidle.sh
+# swayidle 崩溃时自动重启
+Restart=on-failure
+RestartSec=3
+# 优雅停止：发 SIGTERM，给 5 秒清理时间
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=5
+# 日志进 journald，可用 journalctl --user -u swayidle 查看
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=swayidle
+
+[Install]
+WantedBy=graphical-session.target
