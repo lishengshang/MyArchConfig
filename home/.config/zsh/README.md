@@ -403,8 +403,8 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 - `weather` → `curl -s "wttr.in/Wuhan?F&lang=zh"`
 - `ds` → `dirs -v`
 - `1`..`9` → `cd +1`..`cd +9`（目录栈快速跳转）
-- `dot` -> `GIT_DIR=$HOME/.cfg GIT_WORK_TREE=$HOME git`（dotfiles 裸仓库）
-- `dota` -> `dot add` 简写（路径相对于 $HOME，可带前导 ./）
+- `dot` -> `git -C ~/dotfiles`（dotfiles 仓库）
+- `dota` -> `dot add -f` 简写（路径相对于 ~/dotfiles 仓库根）
 
 ---
 
@@ -510,7 +510,7 @@ Tab 补全全部 fzf 化：按 `/` 进入子目录，回车接受补全并加空
 | 更新所有 Zinit 插件          | `zinit update --all`                           |
 | 编辑提示符主题               | `$EDITOR ~/.config/starship.toml`              |
 | 备份 dotfiles 状态          | `dot stash` 或 `dot tag backup-$(date +%F)`   |
-| 更新 pkglist                | `bash ~/.config/dotfiles/update-pkglist.sh`   |
+| 更新 pkglist                | `bash ~/dotfiles/update-pkglist.sh`           |
 | 清理 compinit 缓存           | 删除 `~/.cache/zsh/zcompdump*` 后 `exec zsh`   |
 | 添加手写补全                 | 把 `_cmdname` 放入 `~/.config/zsh/completions/`，重启 shell 自动加载 |
 
