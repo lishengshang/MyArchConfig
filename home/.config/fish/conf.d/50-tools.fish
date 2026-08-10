@@ -86,8 +86,10 @@ if status is-interactive
     #
     # 只预加载"工具自带补全比 carapace 更准"的关键命令，避免全量 source
     # 拖慢启动。其他命令让 carapace 兜底即可。
+    # mise 必须预加载: carapace 的 mise spec 有 bug (unsupported cmd prop
+    # effect), 补全返回空, 只有自带补全 completions/mise.fish 可用
     for cmd in opencode gh uv niri starship bat procs delta fd lazygit \
-               git apt dot dota y zoxide eza rg
+               git apt dot dota y zoxide eza rg mise
         set -l f ~/.config/fish/completions/$cmd.fish
         test -f $f; and source $f 2>/dev/null
     end
