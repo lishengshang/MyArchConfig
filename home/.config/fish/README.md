@@ -194,7 +194,7 @@ autopair 已启用：输入 `(` `[` `{` `"` `'` 自动配对，按 backspace 删
 
 | 命令 | 功能 | 示例 |
 |---|---|---|
-| `dot` | 管理 dotfiles 裸仓库（GIT_DIR=~/.cfg, GIT_WORK_TREE=~） | `dot status` / `dot diff` / `dot push` |
+| `dot` | 在 ~/dotfiles 仓库里执行 git 命令（普通 git 仓库，GNU Stow 部署） | `dot status` / `dot diff` / `dot push` |
 | `dota` | `dot add` 简写（路径相对 $HOME） | `dota .config/fish/foo.fish` |
 | `gitignore` | 从 toptal.com 拉取 .gitignore 模板 | `gitignore python,node` / `gitignore list` |
 
