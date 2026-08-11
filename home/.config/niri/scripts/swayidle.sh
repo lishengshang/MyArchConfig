@@ -2,7 +2,7 @@
 #
 # swayidle 守护进程包装器
 #
-# 实现：5 分钟锁屏 / 10 分钟熄屏 / 20 分钟休眠
+# 实现：8 分钟锁屏 / 15 分钟熄屏 / 25 分钟休眠
 # 任何途径的休眠都会先锁屏（before-sleep 兜底），唤醒后自动点亮屏幕。
 #
 # 设计要点：
@@ -12,6 +12,10 @@
 #                    （信号直达、systemd Restart 生效、stderr 进 journald）
 #   - before-sleep / after-resume：覆盖所有休眠/唤醒路径
 #   - 每个 timeout 都挂 resume：唤醒流程统一
+#   - 锁屏统一走 scripts/lock-screen.sh（hyprlock）：
+#       * 手动/自动锁屏同一个 hyprlock，不再使用 swaylock
+#       * pgrep 防双实例：已锁定则跳过（niri 也只允许一个锁屏客户端）
+#       * 熄屏前兜底锁屏：修复"解锁后长时间空闲，屏幕熄了但没锁定"的问题
 #
 # 推荐启动方式（任选其一）：
 #   1) systemd user service（推荐，见 ~/.config/systemd/user/swayidle.service）
@@ -24,9 +28,13 @@ set -euo pipefail
 
 # ─── 配置 ────────────────────────────────────────────────────────────────────
 # 单位：秒。修改这里即可调整时长。
-LOCK_TIMEOUT=300        # 5 分钟：锁屏
-SCREEN_TIMEOUT=600      # 10 分钟：熄屏
-SUSPEND_TIMEOUT=1200    # 20 分钟：休眠
+LOCK_TIMEOUT=480        # 8 分钟：锁屏
+SCREEN_TIMEOUT=900      # 15 分钟：熄屏（未锁定则先锁屏）
+SUSPEND_TIMEOUT=1500    # 25 分钟：休眠
+
+# 统一锁屏入口（已锁定则跳过，后台启动立即返回）。
+# 注意：swayidle 用 sh -c 执行命令字符串，这里的 $HOME 会在运行时由 sh 展开。
+LOCK_CMD='$HOME/.config/niri/scripts/lock-screen.sh'
 
 # ─── 日志辅助 ────────────────────────────────────────────────────────────────
 log()  { printf '[swayidle] %s\n' "$*" >&2; }
@@ -39,7 +47,7 @@ fail() { printf '[swayidle] ERROR: %s\n' "$*" >&2; exit 1; }
 [[ -n "${WAYLAND_DISPLAY:-}" ]] || fail "WAYLAND_DISPLAY 未设置，可能不在 Wayland 会话中"
 
 # 依赖命令存在性检查
-for cmd in swayidle swaylock niri systemctl; do
+for cmd in swayidle hyprlock niri systemctl; do
     command -v "$cmd" >/dev/null 2>&1 || fail "缺少依赖命令: $cmd"
 done
 
@@ -57,29 +65,27 @@ fi
 # ─── 启动 swayidle ────────────────────────────────────────────────────────────
 # 关键参数：
 #   -w   wait 模式，等待 Wayland 连接建立；且让 before-sleep 的 inhibition
-#        锁时序正确（确保 swaylock 锁屏后才放行系统休眠）。
-#
-# swaylock -f：daemonize 模式，锁屏完成后立即返回，让 swayidle 继续处理后续
-#              timeout / resume。若不加 -f，swaylock 会阻塞直到解锁，
-#              swayidle 的 -w 会一直等下去，后续规则全部失效。
+#        锁时序正确（确保锁屏后才放行系统休眠）。
 #
 # 钩子覆盖矩阵：
-#   ┌──────────────┬─────────────────────────────┬────────────────────────────┐
-#   │ 触发          │ 执行动作                     │ resume (用户恢复输入)      │
-#   ├──────────────┼─────────────────────────────┼────────────────────────────┤
-#   │ 5 分钟空闲    │ swaylock -f                  │ power-on-monitors         │
-#   │ 10 分钟空闲   │ power-off-monitors           │ power-on-monitors         │
-#   │ 20 分钟空闲    │ systemctl suspend           │ power-on-monitors         │
-#   │ 任意休眠      │ swaylock -f (before-sleep)   │ power-on-monitors         │
-#   │                │                              │   (after-resume)          │
-#   └──────────────┴─────────────────────────────┴────────────────────────────┘
+#   ┌──────────────┬──────────────────────────────────┬────────────────────────────┐
+#   │ 触发          │ 执行动作                          │ resume (用户恢复输入)      │
+#   ├──────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ 8 分钟空闲    │ lock-screen.sh（hyprlock 锁屏）    │ power-on-monitors         │
+#   │ 15 分钟空闲   │ lock-screen.sh 兜底 + 熄屏         │ power-on-monitors         │
+#   │ 25 分钟空闲   │ systemctl suspend                │ power-on-monitors         │
+#   │ 任意休眠      │ lock-screen.sh（before-sleep 兜底）│ power-on-monitors         │
+#   │                │                                  │   (after-resume)          │
+#   └──────────────┴──────────────────────────────────┴────────────────────────────┘
+#   说明：15 分钟熄屏时若 8 分钟锁屏仍生效（正常路径），lock-screen.sh 会因
+#   pgrep 已检测到 hyprlock 而直接跳过，不会叠加锁屏实例。
 
 exec swayidle -w \
-    timeout "$LOCK_TIMEOUT"     'swaylock -f' \
+    timeout "$LOCK_TIMEOUT"     "$LOCK_CMD" \
         resume                   'niri msg action power-on-monitors' \
-    timeout "$SCREEN_TIMEOUT"   'niri msg action power-off-monitors' \
+    timeout "$SCREEN_TIMEOUT"   "$LOCK_CMD; niri msg action power-off-monitors" \
         resume                   'niri msg action power-on-monitors' \
     timeout "$SUSPEND_TIMEOUT"  'systemctl suspend' \
         resume                   'niri msg action power-on-monitors' \
-    before-sleep                'swaylock -f' \
+    before-sleep                "$LOCK_CMD" \
     after-resume                'niri msg action power-on-monitors'

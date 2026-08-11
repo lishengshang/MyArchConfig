@@ -22,16 +22,9 @@ fi
 
 OPTIONS="${OPT_LOCK}\n${OPT_SCREEN_OFF}\n${OPT_QUIT}\n${OPT_SUSPEND}\n${OPT_HIBERNATE}\n${OPT_REBOOT}\n${OPT_POWEROFF}"
 
-# 锁屏函数
+# 锁屏（统一入口：hyprlock，已锁定则跳过；脚本立即返回，不阻塞后续动作）
 do_lock() {
-    if command -v hyprlock &>/dev/null; then
-        hyprlock -c ~/.config/niri/hyprlock.conf &>/dev/null &
-    elif command -v swaylock &>/dev/null; then
-        swaylock -f
-    else
-        echo "Error: No screen locker found (hyprlock/swaylock)." >&2
-        exit 1
-    fi
+    "$HOME/.config/niri/scripts/lock-screen.sh"
 }
 
 CHOICE=$(echo -e "$OPTIONS" | fuzzel --dmenu --width 14 --lines 7)

@@ -230,7 +230,7 @@
   "custom/lockscreen": {
     "tooltip-format": "左键：锁屏",
     "format": "",
-    "on-click": "hyprlock -c ~/.config/niri/hyprlock.conf || swaylock",
+    "on-click": "~/.config/niri/scripts/lock-screen.sh",
     "on-scroll-up": "true",
     "on-scroll-down": "true"
   },
