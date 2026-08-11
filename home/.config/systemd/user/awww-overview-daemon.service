@@ -1,0 +1,14 @@
+[Unit]
+Description=awww daemon for niri overview background (blur layer, namespace: overview)
+# 必须在图形会话就绪后启动; WAYLAND_DISPLAY 由 session 导入 user manager
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/awww-daemon -n overview
+# daemon 启动时若合成器未就绪会连接失败退出, Restart 自愈;
+# 崩溃/被杀后也会自动拉起 (之前依赖 niri_set_overview_blur_dark_bg.sh 的检查重启)
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

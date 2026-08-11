@@ -85,11 +85,11 @@ if [ -z "$1" ]; then
 
     # 策略 2: 如果上述没拿到(或未使用 awww)，尝试读取 waypaper 配置
     if [ ${#MONITOR_WALLPAPERS[@]} -eq 0 ] && [ -f "$WAYPAPER_CONFIG" ]; then
-        tmp_img=$(grep "^wallpaper =" "$WAYPAPER_CONFIG" | cut -d '=' -f2 | xargs)
+        tmp_img=$(sed -n 's/^wallpaper[[:space:]]*=[[:space:]]*//p' "$WAYPAPER_CONFIG" | head -n1 | xargs)
         tmp_img="${tmp_img/#\~/$HOME}"
         if [ -n "$tmp_img" ] && [ ! -f "$tmp_img" ]; then
             # wallpaper 字段指向的文件已不存在, 取 folder 里最新的一张图兜底
-            tmp_folder=$(grep "^folder =" "$WAYPAPER_CONFIG" | cut -d '=' -f2 | xargs)
+            tmp_folder=$(sed -n 's/^folder[[:space:]]*=[[:space:]]*//p' "$WAYPAPER_CONFIG" | head -n1 | xargs)
             tmp_folder="${tmp_folder/#\~/$HOME}"
             if [ -d "$tmp_folder" ]; then
                 tmp_img=$(find "$tmp_folder" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.jpeg' -o -iname '*.webp' \) -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -n1 | cut -f2-)
@@ -130,12 +130,9 @@ mkdir -p "$REAL_CACHE_DIR"
 
 SYMLINK_PATH="$WALL_DIR/$LINK_NAME"
 
-if [ ! -L "$SYMLINK_PATH" ] || [ "$(readlink -f "$SYMLINK_PATH")" != "$REAL_CACHE_DIR" ]; then
-    if [ -d "$SYMLINK_PATH" ] && [ ! -L "$SYMLINK_PATH" ]; then
-        : 
-    else
-        ln -sfn "$REAL_CACHE_DIR" "$SYMLINK_PATH"
-    fi
+# 仅当路径不存在或已是符号链接时才重建; 若用户手动放了真实目录则不动它
+if [ ! -d "$SYMLINK_PATH" ] || [ -L "$SYMLINK_PATH" ]; then
+    ln -sfn "$REAL_CACHE_DIR" "$SYMLINK_PATH"
 fi
 
 SAFE_OPACITY="${IMG_COLORIZE_STRENGTH%\%}"
@@ -163,14 +160,24 @@ for monitor in "${!MONITOR_WALLPAPERS[@]}"; do
     
     # 若无缓存，生成当前壁纸
     if [ ! -f "$FINAL_IMG_PATH" ]; then
+        # 原子写入: waypaper post_command 与本脚本可能并发为同一壁纸生成缓存,
+        # 直接写同一路径会互相覆盖导致缓存损坏 (awww img 解码失败)
+        TMP_OUT_PATH="$FINAL_IMG_PATH.tmp.$$"
         if [[ -n "$IMG_FILL_COLOR" && -n "$IMG_COLORIZE_STRENGTH" ]]; then
-            magick "${img_path}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$FINAL_IMG_PATH"
+            magick "${img_path}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$TMP_OUT_PATH"
         else
-            magick "${img_path}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$FINAL_IMG_PATH"
+            magick "${img_path}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$TMP_OUT_PATH"
         fi
         
-        if [ $? -ne 0 ]; then
+        if [ $? -eq 0 ] && [ -f "$TMP_OUT_PATH" ]; then
+            mv -f "$TMP_OUT_PATH" "$FINAL_IMG_PATH"
+        else
+            rm -f "$TMP_OUT_PATH"
             notify-send "Blur Error" "ImageMagick 生成失败: $FILENAME"
+            # 失败则不登记该缓存, 避免 apply_wallpapers 应用不存在的文件
+            unset "CACHE_PATHS[$monitor]"
+            unset "ACTIVE_CACHE_FILES[$FINAL_IMG_PATH]"
+            continue
         fi
     else
         # 刷新访问时间
@@ -199,7 +206,8 @@ run_maintenance_in_background() {
             active_wallpapers["$basename"]=1
         done < <(find -L "$WALL_DIR" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.gif' \) -print0)
 
-        local orphan_list=$(mktemp)
+        local orphan_list
+        orphan_list=$(mktemp)
         local orphan_count=0
         
         # 寻找孤儿缓存文件
@@ -220,9 +228,14 @@ run_maintenance_in_background() {
         # 删减孤儿文件
         if [[ "$orphan_count" -gt "$ORPHAN_CACHE_LIMIT" ]]; then
             local delete_count=$((orphan_count - ORPHAN_CACHE_LIMIT))
-            xargs -a "$orphan_list" ls -1tu | tail -n "$delete_count" | while read -r dead_file; do
-                rm -f "$dead_file"
-            done
+            # 一次性按访问时间升序取最旧的 delete_count 个 (NUL 分隔防特殊字符),
+            # 避免 xargs 分批导致每批都删 delete_count 个
+            find "$REAL_CACHE_DIR" -maxdepth 1 -name "${PARAM_PREFIX}*" -printf '%A@\t%p\0' \
+                | sort -z -k1,1 -n \
+                | head -z -n "$delete_count" \
+                | while IFS= read -r -d '' line; do
+                    rm -f -- "${line#*$'\t'}"
+                done
         fi
         rm -f "$orphan_list"
 
@@ -237,10 +250,12 @@ run_maintenance_in_background() {
             fi
 
             if [[ -n "$IMG_FILL_COLOR" && -n "$IMG_COLORIZE_STRENGTH" ]]; then
-                magick "${img}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$tgt"
+                magick "${img}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$tgt.tmp.$$"
             else
-                magick "${img}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$tgt"
+                magick "${img}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$tgt.tmp.$$"
             fi
+            # 原子落盘: 与前台生成并发时防止写坏缓存文件
+            mv -f "$tgt.tmp.$$" "$tgt" 2>/dev/null || rm -f "$tgt.tmp.$$"
         done < <(find -L "$WALL_DIR" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.gif' \) -print0)
     ) & 
 }
@@ -253,24 +268,54 @@ apply_wallpapers() {
     if [ "$WALLPAPER_BACKEND" == "awww" ]; then
         local daemon_name="awww-daemon"
         
-        if ! niri msg layers | grep -q "${daemon_name}overview"; then
-            $daemon_name -n overview &
-            sleep 0.5
+        # layers 输出中名称可能带空格 (awww-daemon overview), 故用 [[:space:]]* 容忍;
+        # 再以 pgrep 兜底, 防止 layers 名称不含 overview 时重复拉起 daemon
+        if ! { niri msg layers | grep -qiE "${daemon_name}[[:space:]]*overview"; } && ! pgrep -f "$daemon_name -n overview\$" &>/dev/null; then
+            # 清理残留 socket: daemon 崩溃/退出可能留下 socket 文件,
+            # 新实例启动时会误判"已有实例"而 panic (曾导致 overview 层永久缺失)。
+            # 注意: WAYLAND_DISPLAY 已是 "wayland-1" 形式, 路径不能再加 "wayland-" 前缀
+            OVERVIEW_SOCKET="$XDG_RUNTIME_DIR/${WAYLAND_DISPLAY}-awww-daemon.overview.sock"
+
+            # 关键: 本脚本可能从 oneshot systemd service (random-api-wallpaper.service)
+            # 内部运行。直接在 service 的 cgroup 里拉起 daemon, service 结束时会被
+            # KillMode=control-group 一并 SIGTERM (daemon 打印 "Removed socket + Goodbye!"),
+            # 导致 overview 模糊背景只在切换壁纸的瞬间存在几秒, 其余时间缺失。
+            # daemon 由独立 user service (awww-overview-daemon.service) 托管,
+            # systemctl start 幂等: 已运行则为 no-op, 不会重复拉起/panic。
+            # flock 串行化: waypaper 的 post_command 与本脚本可能并发调用,
+            # 防止两个实例同时做 "检查+启动+清理 socket" 造成竞态。
+            local start_lock="$XDG_RUNTIME_DIR/awww-overview-daemon.start.lock"
+            exec 9>"$start_lock"
+            flock 9
+            if ! { niri msg layers | grep -qiE "${daemon_name}[[:space:]]*overview"; } && ! pgrep -f "$daemon_name -n overview\$" &>/dev/null; then
+                [ -S "$OVERVIEW_SOCKET" ] && rm -f "$OVERVIEW_SOCKET"
+                systemctl --user start awww-overview-daemon.service
+            fi
+            flock -u 9
+            exec 9>&-
+            # 等待 daemon 的 socket 就绪再发图: service 冷启动有数百毫秒延迟,
+            # 直接 awww img 会抢跑在 socket 创建之前 (报 "Socket file not found")
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+                [ -S "$OVERVIEW_SOCKET" ] && break
+                sleep 0.2
+            done
         fi
         
         # 遍历所有被指定的缓存进行设置
+        # 同步执行 (不带 &): 确保图片送达 daemon 后脚本才退出;
+        # service 结束时 cgroup 残留进程会被清理, 异步 CLI 可能被杀在半路
         for monitor in "${!CACHE_PATHS[@]}"; do
             img_path="${CACHE_PATHS[$monitor]}"
             if [ "$monitor" == "all" ]; then
-                awww img "${AWWW_ARGS[@]}" "$img_path" &
+                awww img "${AWWW_ARGS[@]}" "$img_path"
             else
-                awww img -o "$monitor" "${AWWW_ARGS[@]}" "$img_path" &
+                awww img -o "$monitor" "${AWWW_ARGS[@]}" "$img_path"
             fi
         done
         
     elif [ "$WALLPAPER_BACKEND" == "swaybg" ]; then
-        if niri msg layers | grep -qE "(awww-daemonoverview)"; then
-            pkill -f "awww-daemon -n overview" || true
+        if { niri msg layers | grep -qiE "awww-daemon[[:space:]]*overview"; } || pgrep -f "awww-daemon -n overview\$" &>/dev/null; then
+            pkill -f "awww-daemon -n overview\$" || true
         fi
         
         # 构造多显示器的 swaybg 参数 (比如: swaybg -o DP-1 -i img1 -o DP-2 -i img2 ...)
@@ -283,6 +328,8 @@ apply_wallpapers() {
             swaybg_args+=("-i" "$img_path" "-m" "$SWAYBG_MODE")
         done
         
+        # 先清理旧 swaybg 实例, 避免多次触发后多个进程互相竞争
+        pkill -x swaybg 2>/dev/null || true
         swaybg "${swaybg_args[@]}" &
     fi
 }
