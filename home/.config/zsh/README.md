@@ -73,11 +73,15 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 
 ## 第三方工具集成（integrations.zsh）
 
+**init 缓存策略**（与 fish 的 `_cached_init` 对等）：所有 `tool init zsh` 的输出
+缓存到 `~/.cache/zsh/init/<name>.zsh`，工具二进制更新（mtime 变化）时自动重建，
+避免每次启动 fork 子进程。手动重建：`rm -rf ~/.cache/zsh/init/`。
+
 | 工具        | 作用                                            |
 | ----------- | ----------------------------------------------- |
 | `starship`  | 提示符主题（跨 shell，Rust 实现，配置在 `~/.config/starship.toml`） |
 | `zoxide`    | 智能 cd，通过 `--cmd cd` 接管原生 `cd`          |
-| `mise`      | 统一版本管理器（Node/Python/Ruby/Go...）         |
+| `mise`      | 统一版本管理器（Node/Python/Ruby/Go...）；shims 模式（`activate --shims`，零启动 hook 开销；如需 .mise.toml 项目级 env 自动重载，改用 `activate zsh`） |
 | `direnv`    | 项目级 `.envrc` 自动加载                        |
 | `atuin`     | 神级历史搜索，接管 `Ctrl+R`（不接管 ↑）         |
 | `carapace`  | 多 shell 通用补全引擎（桥接 zsh/fish/bash/inshellisense，统一提供 opencode/uv/gh/deno 等工具补全） |
@@ -122,6 +126,9 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `Ctrl+Space`      | 接受整条建议      |
 | `Alt+Enter`       | 接受整条建议（备用）|
 | `->` (Right)      | 逐字接受建议（partial accept，zsh-autosuggestions 默认行为）|
+
+> 缩写展开：输入缩写后按**空格**展开（`abbr-expand-and-insert`），按**回车**展开并执行
+> （`abbr-expand-and-accept`）。`Ctrl+Space` 优先接受自动建议（非空格插入）。
 
 ### fzf
 | 按键        | 动作                                   |
