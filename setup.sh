@@ -114,6 +114,22 @@ else
     fi
 fi
 
+# --- 4.5 启用 systemd user units（自动提交 / 自动壁纸 / overview 模糊 daemon） ---
+# 需要 user manager 已就绪（图形会话登录后）；SSH/无会话环境会失败，打印提示即可。
+if $DRY_RUN; then
+    echo "[dry-run] systemctl --user enable --now dotfiles-autocommit.timer random-api-wallpaper.timer awww-overview-daemon.service"
+else
+    echo "-> 启用 systemd user units ..."
+    for unit in dotfiles-autocommit.timer random-api-wallpaper.timer awww-overview-daemon.service; do
+        if systemctl --user enable --now "$unit" 2>/dev/null; then
+            echo "✓ 已启用 $unit"
+        else
+            echo "⚠ 启用 $unit 失败（user manager 未就绪？）——登录图形会话后手动执行:"
+            echo "  systemctl --user enable --now $unit"
+        fi
+    done
+fi
+
 # --- 5. 提示下一步 ---
 cat <<'EOF'
 
@@ -126,8 +142,10 @@ cat <<'EOF'
     2. 重新加载 shell:
         exec zsh   # 或 exec fish
 
-    3. 启用自动提交 timer:
+    3. 启用 systemd user units（自动提交 / 自动壁纸 / overview 模糊背景）:
         systemctl --user enable --now dotfiles-autocommit.timer
+        systemctl --user enable --now random-api-wallpaper.timer
+        systemctl --user enable --now awww-overview-daemon.service
 
     4. 开启 linger（让 timer 在未登录时也能跑，一次性命令）:
         sudo loginctl enable-linger $USER

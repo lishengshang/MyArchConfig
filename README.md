@@ -94,8 +94,10 @@ bash ~/dotfiles/bootstrap.sh
 # 3. 重新加载 shell
 exec zsh
 
-# 4. 启用自动提交 timer
+# 4. 启用 systemd user units（自动提交 / 自动壁纸 / overview 模糊背景）
 systemctl --user enable --now dotfiles-autocommit.timer
+systemctl --user enable --now random-api-wallpaper.timer
+systemctl --user enable --now awww-overview-daemon.service
 
 # 5. 开启 linger（让 timer 在未登录时也能跑）
 sudo loginctl enable-linger $USER
