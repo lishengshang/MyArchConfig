@@ -31,7 +31,7 @@ output_path = '~/.config/fuzzel/colors.ini'
 [templates.kitty]
 input_path = '~/.config/matugen/templates/kitty-colors.conf'
 output_path ='~/.config/kitty/themes/matugen.conf'
-post_hook = "kitty +kitten themes --reload-in=all matugen &"
+post_hook = "kitty +kitten themes --reload-in=all matugen &>/dev/null &"
 
 # [templates.fcitx5]
 # input_path = '~/.config/matugen/templates/fcitx5-theme.conf'
@@ -41,12 +41,12 @@ post_hook = "kitty +kitten themes --reload-in=all matugen &"
 [templates.mako]
 input_path = '~/.config/matugen/templates/mako-colors.conf'
 output_path = '~/.config/mako/colors.conf'
-post_hook='makoctl reload &'
+post_hook='makoctl reload &>/dev/null &'
 
 [templates.btop]
 input_path = '~/.config/matugen/templates/btop.theme'
 output_path = '~/.config/btop/themes/matugen.theme'
-post_hook = 'killall -SIGUSR1 btop &'
+post_hook = 'killall -SIGUSR1 btop &>/dev/null &'
 
 [templates.cava]
 input_path = '~/.config/matugen/templates/cava-colors.ini'
@@ -116,12 +116,12 @@ output_path = '~/.config/niri/colors.kdl'
 [templates.gtk-folder]
 input_path = '~/.config/matugen/templates/gtk-folder/recolor.sh'
 output_path = '~/.cache/matugen/recoloricons.sh'
-post_hook = 'bash ~/.cache/matugen/recoloricons.sh &'
+post_hook = 'bash ~/.cache/matugen/recoloricons.sh &>/dev/null &'
 
 [templates.swayosd]
 input_path = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/swayosd/colors.css'
-post_hook = 'pkill swayosd-server || true; swayosd-server &'
+post_hook = 'pkill swayosd-server || true; swayosd-server &>/dev/null &'
 
 [templates.swaylock-effects]
 input_path = '~/.config/matugen/templates/swaylock-colors'
@@ -134,13 +134,13 @@ output_path = '~/.config/fastfetch/config.jsonc'
 [templates.neovim]
 input_path = '~/.config/matugen/templates/neovim/template.lua'
 output_path = '~/.config/nvim/generated.lua'
-post_hook = 'pkill -SIGUSR1 nvim'
+post_hook = 'pkill -SIGUSR1 nvim || true'
 
-# [templates.hyprlock]
-# 当前未使用 Hyprland，生成到缓存也没有主配置引用，先禁用
-# input_path = '~/.config/matugen/templates/hyprland-colors.conf'
-# output_path = '~/.cache/matugen/hypr/colors.conf'
-# pre_hook = 'mkdir -p ~/.cache/matugen/hypr/'
+[templates.hyprlock]
+# 供 niri 下的 hyprlock 使用（hyprlock.conf source 该文件）
+input_path = '~/.config/matugen/templates/hyprland-colors.conf'
+output_path = '~/.cache/matugen/hypr/colors.conf'
+pre_hook = 'mkdir -p ~/.cache/matugen/hypr/'
 
 [templates.vscode_injection]
 input_path = "~/.config/matugen/templates/vscode-inject.json"

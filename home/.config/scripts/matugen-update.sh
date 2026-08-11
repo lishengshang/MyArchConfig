@@ -50,6 +50,23 @@ UPDATE_CACHE_DIR="$HOME/.cache/matugen-update"
 mkdir -p "$UPDATE_CACHE_DIR"
 LAST_PROCESSED_WALL_FILE="$UPDATE_CACHE_DIR/last_wallpaper_path"
 
+# 单实例锁：timer/waybar/手动调用可能并发，防止竞态写缓存（空缓存曾导致崩溃）。
+# 用 mkdir+PID 自愈锁而非 flock: flock 的 fd 可能被外部进程继承(实测 swayosd-server
+# 曾因此永久占用锁, 导致所有后续更新被跳过); PID 锁在持有者崩溃/被杀后可自动接管。
+LOCK_DIR="$UPDATE_CACHE_DIR/update.lock"
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    LOCK_PID=$(cat "$LOCK_DIR/pid" 2>/dev/null)
+    if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
+        echo "matugen-update 已有实例在运行，退出" >&2
+        exit 0
+    fi
+    # 持有者已死: 清理残留锁并接管 (旧的 flock 文件残留也会在此被替换)
+    rm -rf "$LOCK_DIR" 2>/dev/null
+    mkdir "$LOCK_DIR" 2>/dev/null || { echo "matugen-update 锁竞争，退出" >&2; exit 0; }
+fi
+echo "$$" > "$LOCK_DIR/pid"
+trap 'rm -rf "$LOCK_DIR"' EXIT
+
 WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
 
 mkdir -p "$SHRUNK_CACHE_DIR"
@@ -98,12 +115,14 @@ ln -sf "$WALLPAPER" "$HOME/.cache/.current_wallpaper"
 
 
 # --- 4. 读取策略与模式，并判断是否需要跳过重复生成 ---
-if [ -f "$TYPE_FILE" ]; then STRATEGY=$(cat "$TYPE_FILE"); else STRATEGY="scheme-tonal-spot"; fi
-if [ -f "$MODE_FILE" ]; then MODE=$(cat "$MODE_FILE"); else MODE="dark"; fi
+# 手动编辑状态文件可能带尾随空格/换行, 读取时统一 trim, 避免 matugen 参数错误
+trim() { sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+if [ -f "$TYPE_FILE" ]; then STRATEGY=$(trim < "$TYPE_FILE"); else STRATEGY="scheme-tonal-spot"; fi
+if [ -f "$MODE_FILE" ]; then MODE=$(trim < "$MODE_FILE"); else MODE="dark"; fi
 
 FORCE_ZERO=true
 if [ -f "$INDEX_MODE_FILE" ]; then
-    if [ "$(cat "$INDEX_MODE_FILE")" == "random" ]; then
+    if [ "$(trim < "$INDEX_MODE_FILE")" == "random" ]; then
         FORCE_ZERO=false
     fi
 fi
@@ -139,17 +158,31 @@ fi
 
 if [ "$NEED_CONVERT" = true ]; then
     TARGET_IMAGE="$CACHED_IMAGE"
-    # 如果缓存池里还没有这张图，才去调用转换工具
-    if [ ! -f "$CACHED_IMAGE" ]; then
+    # 缓存不存在或已损坏(如旧版脚本失败时留下的错误文本)时重新转换
+    CACHE_VALID=false
+    if [ -f "$CACHED_IMAGE" ]; then
+        CACHE_MIME=$(file -b --mime-type "$CACHED_IMAGE" 2>/dev/null)
+        [[ "$CACHE_MIME" == image/* ]] && CACHE_VALID=true
+    fi
+    if [ "$CACHE_VALID" = false ]; then
+        # '500x500>' 必须整体加引号: 否则 shell 把 > 当重定向, 500x500 被当成输入文件, 命令必失败
         if command -v magick &>/dev/null; then
-            magick "$WALLPAPER" -resize 500x500> "$CACHED_IMAGE"
+            CONVERT_CMD=(magick "$WALLPAPER" -resize '500x500>' "$CACHED_IMAGE")
         elif command -v convert &>/dev/null; then
-            convert "$WALLPAPER" -resize 500x500> "$CACHED_IMAGE"
+            CONVERT_CMD=(convert "$WALLPAPER" -resize '500x500>' "$CACHED_IMAGE")
         elif command -v ffmpeg &>/dev/null; then
-            ffmpeg -y -i "$WALLPAPER" -vf "scale='min(500,iw)':-1" "$CACHED_IMAGE" &>/dev/null
+            CONVERT_CMD=(ffmpeg -y -i "$WALLPAPER" -vf "scale='min(500,iw)':-1" "$CACHED_IMAGE")
         else
             # 没有工具就只能硬着头皮上原图了
-            TARGET_IMAGE="$WALLPAPER" 
+            TARGET_IMAGE="$WALLPAPER"
+        fi
+        if [ -n "${CONVERT_CMD+x}" ]; then
+            if ! "${CONVERT_CMD[@]}" 2>/dev/null; then
+                # 转换失败必须删坏缓存并中止, 否则下次 [ ! -f 缓存 ] 为假, 永远跳过转换
+                rm -f "$CACHED_IMAGE"
+                notify-send "Matugen Error" "图片转换失败，无法生成缓存: $(basename "$WALLPAPER")"
+                exit 1
+            fi
         fi
     fi
 fi
@@ -162,20 +195,43 @@ if [ "$LAST_WALL" != "$WALLPAPER" ]; then
 fi
 
 # --- 6. 执行 Matugen ---
+# 探测当前图片可用的 source-color-index 列表并写入缓存。
+# 探测全部失败（如非终端环境无偏好输入）时兜底 index 0，
+# 且保证缓存文件写入的是非空列表，避免下次"光速轮换"读到空数组。
+probe_valid_indices() {
+    VALID_INDICES=()
+    # 探测全部 0..5, 不因某个 index 无效就 break, 避免漏掉后续仍然有效的 index
+    for i in {0..5}; do
+        if matugen image "$TARGET_IMAGE" --source-color-index "$i" --dry-run &>/dev/null; then
+            VALID_INDICES+=("$i")
+        fi
+    done
+    if [ ${#VALID_INDICES[@]} -eq 0 ]; then
+        VALID_INDICES=(0)
+    fi
+    printf '%s\n' "${VALID_INDICES[*]}" > "$VALID_INDICES_FILE"
+}
+
 if [ "$NO_INDEX" = true ]; then
-    matugen image "$TARGET_IMAGE" -t "$STRATEGY" -m "$MODE"
+    # 交互模式 (由终端唤起, 用户手动选色)
+    if matugen image "$TARGET_IMAGE" -t "$STRATEGY" -m "$MODE"; then
+        echo "$WALLPAPER" > "$LAST_WALL_FILE"
+    else
+        # 生成失败 (含 Ctrl-C 中断): 不更新任何状态, 避免下次误判已处理
+        notify-send "Matugen Error" "matugen 生成失败，状态未更新"
+        exit 1
+    fi
 else
     # 后台自动化模式
+    SELECTED_INDEX=""
     if [ "$FORCE_ZERO" = true ]; then
         SELECTED_INDEX=0
-    else
-        # 判断：如果探测缓存都存在，直接走“光速轮换”
-        if [ "$LAST_WALL" == "$WALLPAPER" ] && [ -f "$VALID_INDICES_FILE" ] && [ -f "$CURRENT_INDEX_FILE" ]; then
-            
-            read -r -a VALID_INDICES < "$VALID_INDICES_FILE"
-            LAST_INDEX=$(cat "$CURRENT_INDEX_FILE")
-            NEXT_POS=0
-            
+    elif [ "$LAST_WALL" == "$WALLPAPER" ] && [ -f "$VALID_INDICES_FILE" ] && [ -f "$CURRENT_INDEX_FILE" ]; then
+        # 光速轮换：缓存齐全时直接轮换，不重复探测
+        read -r -a VALID_INDICES < "$VALID_INDICES_FILE" || VALID_INDICES=()
+        LAST_INDEX=$(cat "$CURRENT_INDEX_FILE")
+        NEXT_POS=0
+        if [ ${#VALID_INDICES[@]} -gt 0 ]; then
             for j in "${!VALID_INDICES[@]}"; do
                 if [ "${VALID_INDICES[$j]}" == "$LAST_INDEX" ]; then
                     NEXT_POS=$(( (j + 1) % ${#VALID_INDICES[@]} ))
@@ -183,36 +239,32 @@ else
                 fi
             done
             SELECTED_INDEX=${VALID_INDICES[$NEXT_POS]}
-
-        else
-            # === 首次处理本壁纸：执行探测 ===
-            VALID_INDICES=()
-            for i in {0..5}; do
-                if matugen image "$TARGET_IMAGE" --source-color-index "$i" --dry-run &>/dev/null; then
-                    VALID_INDICES+=("$i")
-                else
-                    break
-                fi
-            done
-            
-            echo "${VALID_INDICES[@]}" > "$VALID_INDICES_FILE"
-            
-            if [ ${#VALID_INDICES[@]} -eq 0 ]; then
-                SELECTED_INDEX=0 # 兜底
-            else
-                RANDOM_INDEX=$((RANDOM % ${#VALID_INDICES[@]}))
-                SELECTED_INDEX=${VALID_INDICES[$RANDOM_INDEX]}
-            fi
         fi
-        
-        echo "$SELECTED_INDEX" > "$CURRENT_INDEX_FILE"
+        # 空/异常缓存守卫：读不到有效 index 时重新探测，避免传空值给 matugen
+        if [ -z "$SELECTED_INDEX" ]; then
+            probe_valid_indices
+            RANDOM_INDEX=$((RANDOM % ${#VALID_INDICES[@]}))
+            SELECTED_INDEX=${VALID_INDICES[$RANDOM_INDEX]}
+        fi
+    else
+        # 首次处理本壁纸：执行探测
+        probe_valid_indices
+        RANDOM_INDEX=$((RANDOM % ${#VALID_INDICES[@]}))
+        SELECTED_INDEX=${VALID_INDICES[$RANDOM_INDEX]}
     fi
     
-    # 最终执行，传入决定好的 TARGET_IMAGE (可能是原图，也可能是缓存的缩小图)
-    matugen image "$TARGET_IMAGE" -t "$STRATEGY" -m "$MODE" --source-color-index "$SELECTED_INDEX"
+    # 双保险：任何路径都不允许把空 index 传给 matugen
+    SELECTED_INDEX="${SELECTED_INDEX:-0}"
     
-    # 状态持久化 (原逻辑)
-    echo "$WALLPAPER" > "$LAST_WALL_FILE"
+    # 最终执行，传入决定好的 TARGET_IMAGE (可能是原图，也可能是缓存的缩小图)
+    if matugen image "$TARGET_IMAGE" -t "$STRATEGY" -m "$MODE" --source-color-index "$SELECTED_INDEX"; then
+        # 状态持久化: 仅在成功时写入, 失败则下次仍会重新生成
+        echo "$SELECTED_INDEX" > "$CURRENT_INDEX_FILE"
+        echo "$WALLPAPER" > "$LAST_WALL_FILE"
+    else
+        notify-send "Matugen Error" "matugen 生成失败，状态未更新"
+        exit 1
+    fi
 fi
 
 # [新增]：将本次成功生成的壁纸路径持久化到要求2的目录中

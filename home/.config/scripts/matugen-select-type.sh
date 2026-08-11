@@ -13,7 +13,8 @@ if [ ! -d "$CACHE_DIR" ]; then
 fi
 
 # --- 1. 自动检测语言环境 ---
-if env | grep -q "zh_CN"; then
+# 只检查语言相关变量, 避免 env | grep 误匹配任意环境变量
+if [[ "$LANG" == *zh_CN* ]] || [[ "${LC_ALL:-}" == *zh_CN* ]] || [[ "${LC_MESSAGES:-}" == *zh_CN* ]]; then
     IS_CN=true
 else
     IS_CN=false
@@ -92,6 +93,10 @@ ${REGEN_OPTION}
 ${SCHEMES}"
 
 # --- 4. Fuzzel 菜单 ---
+if ! command -v fuzzel &>/dev/null; then
+    notify-send -u critical "Matugen" "缺少依赖: fuzzel，请检查是否安装"
+    exit 1
+fi
 SELECTED_LINE=$(echo "$OPTIONS" | fuzzel -d --prompt="$PROMPT_TEXT" --lines=14)
 
 if [ -z "$SELECTED_LINE" ]; then
