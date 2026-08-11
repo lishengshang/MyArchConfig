@@ -13,6 +13,7 @@ text/plain=neovide.desktop
 x-scheme-handler/zcode=zcode.desktop
 x-scheme-handler/clash=clash-verge.desktop;
 x-scheme-handler/clash-verge=clash-verge.desktop;
+image/webp=imv.desktop
 
 [Added Associations]
 image/jpeg=imv-dir.desktop;org.kde.gwenview.desktop;
@@ -21,3 +22,4 @@ application/json=neovide.desktop;
 text/plain=neovide.desktop;
 x-scheme-handler/clash=clash-verge.desktop;
 x-scheme-handler/clash-verge=clash-verge.desktop;
+image/webp=imv.desktop;
