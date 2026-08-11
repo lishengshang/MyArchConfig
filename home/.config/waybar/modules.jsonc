@@ -205,7 +205,7 @@
     "format": "",
     "on-click": "fuzzel",
     "on-click-right": "kitty || ghostty || alacritty || foot || konsole",
-    "on-click-middle": "~/.config/scripts/niri_auto_blur_bg.sh || pkill -f niri_auto_blur_bg.sh"
+    "on-click-middle": "~/.config/scripts/toggle-overview-blur.sh"
   },
   //电源菜单
   "group/powermenu": {
