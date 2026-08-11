@@ -264,7 +264,7 @@ elif [[ "$ACTION" =~ ^(hex|rgb)$ ]]; then
         # 优先使用 hyprpicker (修复了上个版本的正则小笔误)
         if [[ "$ACTION" == "rgb" ]]; then
             raw_val=$(hyprpicker --format rgb -n 2>/dev/null)
-            if [[ "$raw_val" =~ ^[0-9]+\ [0-9]+\[0-9]+$ ]]; then
+            if [[ "$raw_val" =~ ^[0-9]+\ [0-9]+\ [0-9]+$ ]]; then
                 value="rgb(${raw_val// /, })"
             else
                 value="$raw_val"

@@ -5,7 +5,9 @@
 
 set -euo pipefail
 
-WATCH_DIR="$HOME/.config/niri"
+# 注意：~/.config/niri 是 symlink 目录（指向 dotfiles repo），inotify 只监听
+# 到链接本身的变化，收不到真实文件的修改事件。readlink -f 解析到真实目录。
+WATCH_DIR="$(readlink -f "$HOME/.config/niri")"
 CACHE_DIR="$HOME/.cache/niri-hotkeys"
 DEBOUNCE_SEC=2
 

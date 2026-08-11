@@ -69,25 +69,9 @@ layout {
     }
 
     // You can also add a border. It's similar to the focus ring, but always visible.
-    // 窗口边框
+    // 窗口边框（已禁用；参数已清理，启用时按需配置）
     border {
-        // The settings are the same as for the focus ring.
-        // If you enable the border, you probably want to disable the focus ring.
         off
-
-        width 4
-        active-color "#ffc87f"
-        inactive-color "#505050"
-
-        // Color of the border around windows that request your attention.
-        urgent-color "#9b0000"
-
-        // Gradients can use a few different interpolation color spaces.
-        // For example, this is a pastel rainbow gradient via in="oklch longer hue".
-        //
-        // active-gradient from="#e5989b" to="#ffb4a2" angle=45 relative-to="workspace-view" in="oklch longer hue"
-
-        // inactive-gradient from="#505050" to="#808080" angle=45 relative-to="workspace-view"
     }
 
     // You can enable drop shadows for windows.

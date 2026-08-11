@@ -20,8 +20,8 @@ if version_ge "$CURRENT_VERSION" "$TARGET_VERSION"; then
     # 1. 后台启动截图，不阻塞脚本
     niri msg action screenshot &
 
-    # 2. 监听事件流，等待截图完成
-    log_output=$(niri msg event-stream | grep -m 1 --line-buffered "Screenshot captured")
+    # 2. 监听事件流，等待截图完成（timeout 10 防止按 Esc 取消后永久挂住）
+    log_output=$(timeout 10 niri msg event-stream | grep -m 1 --line-buffered "Screenshot captured")
 
     # 3. 从事件中提取出图片文件路径
     file_path="${log_output##*saved to }"

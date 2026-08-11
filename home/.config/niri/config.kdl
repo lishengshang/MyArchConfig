@@ -46,6 +46,12 @@ cursor {
     hide-after-inactive-ms 15000
 }
  
+// 剪贴板：禁用 primary 选择（中键粘贴），只保留常规剪贴板
+// 注意：只影响启用后新启动的应用
+clipboard {
+    disable-primary
+}
+
 // 带缩略图的alt+tab切换窗口功能（但是我设置的是super+tab，更符合逻辑）
 recent-windows {
     // 取消//off的注释可以禁用
@@ -77,10 +83,13 @@ recent-windows {
         Alt+Shift+grave { previous-window filter="app-id"; }
     }
 }
-// 这是include进来的颜色文件，主要设置了窗口边框
-include "colors.kdl"
+// 这是include进来的颜色文件，主要设置了窗口边框（matugen 生成，可选避免启动失败）
+include optional=true "colors.kdl"
 
 input {
+    // 工作区切换支持来回跳转（1→2→1）
+    workspace-auto-back-and-forth
+
     // focus-follows-mouse
     keyboard {
         xkb {
@@ -93,7 +102,7 @@ input {
     // Omitting settings disables them, or leaves them at their default values.
     // All commented-out settings here are examples, not defaults.
     touchpad {
-        // off                          // 完全禁用触控板
+        off                          // 完全禁用触控板（Mod+F3 通过 toggle-touchpad.sh 运行时切换）
         tap                              // 启用轻点点击：单指=左键，双指=右键，三指=中键
         dwt                              // disable-while-typing：打字时临时禁用触控板，防误触
         // dwtp                          // disable-while-trackpointing：使用指点杆(小红帽)时禁用触控板
@@ -102,9 +111,10 @@ input {
         // nautural-scroll可以翻转触摸板滚动的方向
         natural-scroll                   // 自然滚动：手指上滑=页面上移（macOS 风格）；关闭则反向
         //accel-speed -0.5               // 指针速度，范围 -1.0~1.0，负值变慢、正值变快
+        accel-speed 0.5                  // 指针速度：0.5 提速（-1.0~1.0，默认 0）
         accel-profile "flat"          // 加速曲线："flat" 线性无加速；"adaptive"(默认) 自适应加速
         // scroll-method "two-finger"    // 滚动方式：two-finger 双指 / edge 边缘 / on-button-down 按键时滚动 / no-scroll
-        // disabled-on-external-mouse    // 接入外部鼠标时自动禁用触控板
+        disabled-on-external-mouse       // 接入外部鼠标时自动禁用触控板
         scroll-factor 0.3                // 滚动速度倍数：<1 变慢，>1 变快
     }
 
@@ -143,8 +153,7 @@ spawn-at-startup "nm-applet"
 // 桌面壁纸的守护进程
 // --no-cache: 启动时不恢复上次壁纸, 避免与下方 waypaper --random 叠加产生"先旧后新"的闪烁
 spawn-at-startup "awww-daemon" "--no-cache"
-// 总览界面背景壁纸的守护进程
-spawn-at-startup "awww-daemon" "-n" "overview"
+// 总览界面背景壁纸的守护进程 (由 awww-overview-daemon.service 托管, 登录时自动启动)
 // 随机更换一张壁纸: 轮询等待 awww 就绪后立即执行, 缩短开机时无壁纸的窗口
 spawn-sh-at-startup "for i in $(seq 1 30); do awww query >/dev/null 2>&1 && break; sleep 0.1; done; waypaper --random"
 // 恢复壁纸
@@ -188,9 +197,9 @@ spawn-at-startup "swayosd-server"
 spawn-at-startup "~/.local/bin/niri-sidebar" "listen"
 
 // 允许root通过用户的xwayland打开窗口
-// 注释掉：xhost 未安装，Wayland 环境下通常不需要
-// 如需使用，安装 xorg-xhost 后取消注释
-spawn-at-startup "xhost" "+si:localuser:root"
+// xhost 未安装，Wayland 环境下通常不需要，已禁用
+// 如需使用：sudo pacman -S xorg-xhost 后取消下行注释
+// spawn-at-startup "xhost" "+si:localuser:root"
 
 // 音频调整程序，easyeffects，-w可以在后台启动
 spawn-at-startup "easyeffects" "-w"
@@ -202,6 +211,11 @@ spawn-at-startup "~/.cargo/bin/nirinit" "--save-interval" "300" "--no-restore"
 // 取消启动niri时自动开启快捷键教程
 hotkey-overlay {
      skip-at-startup
+}
+
+// 合盖立即锁屏（比 swayidle before-sleep 更即时；合盖外接屏使用时注意）
+switch-events {
+    lid-close { spawn "~/.config/niri/scripts/lock-screen.sh"; }
 }
 
 // 隐藏窗口标题栏
