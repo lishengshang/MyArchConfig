@@ -1,31 +1,43 @@
 # =============================================================================
 # integrations.zsh - 第三方工具集成
 # =============================================================================
-# 所有需要 `eval "$(tool init zsh)"` 的工具集中管理
+# 所有需要 init 脚本的工具集中管理（与 fish 的 _cached_init 策略对等：
+# init 输出缓存到 ~/.cache/zsh/init/，工具二进制更新时自动重建，避免每次
+# 启动都 fork 子进程生成脚本）。
 # 加载顺序：compinit 之后；starship 必须在最后（覆盖 PROMPT）
 # =============================================================================
 
+# --- 缓存工具 init 输出（fish conf.d/50-tools.fish _cached_init 移植）---
+# 用法：_zsh_cached_init <缓存名> <二进制路径> <生成命令...>
+# 命中（二进制 mtime 未变）→ source 缓存；未命中 → 重新生成。
+# 手动重建：rm -rf ~/.cache/zsh/init/
+_zsh_cached_init() {
+    local name="$1" bin="$2"; shift 2
+    [[ -x "$bin" ]] || return 1
+    local cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/init/$name.zsh"
+    if [[ ! -f "$cache" || "$bin" -nt "$cache" ]]; then
+        mkdir -p "${cache:h}"
+        "$@" > "$cache" 2>/dev/null || { rm -f "$cache"; return 1 }
+        [[ -s "$cache" ]] || { rm -f "$cache"; return 1 }
+    fi
+    source "$cache"
+}
+
 # --- Zoxide（智能 cd，--cmd cd 接管原生 cd）---
-if (( $+commands[zoxide] )); then
-    eval "$(zoxide init zsh --cmd cd)"
-fi
+(( $+commands[zoxide] )) && _zsh_cached_init zoxide "${commands[zoxide]}" zoxide init zsh --cmd cd
 
 # --- mise（统一版本管理器：Node/Python/Ruby/Go/...；替代 fnm/nvm/pyenv）---
-if (( $+commands[mise] )); then
-    eval "$(mise activate zsh)"
-fi
+(( $+commands[mise] )) && _zsh_cached_init mise "${commands[mise]}" mise activate zsh
 
 # --- direnv（项目级 .envrc 自动加载）---
-if (( $+commands[direnv] )); then
-    eval "$(direnv hook zsh)"
-fi
+(( $+commands[direnv] )) && _zsh_cached_init direnv "${commands[direnv]}" direnv hook zsh
 
 # --- Atuin（神级历史搜索：接管 Ctrl+R）---
 # 必须在 bindings.zsh 加载之后才生效（integrations 在最后，必赢 fzf）。
 if (( $+commands[atuin] )); then
     # --disable-up-arrow：↑ 仍然走 zsh 原生 up-line-or-search（按前缀搜索），
     # atuin 只接管 Ctrl+R，避免和 zsh-autosuggestions 冲突
-    eval "$(atuin init zsh --disable-up-arrow)"
+    _zsh_cached_init atuin "${commands[atuin]}" atuin init zsh --disable-up-arrow
     # atuin init 内部已绑 ^r；这里仅做兜底（widget 存在时才绑，避免静默报错）
     (( ${+widgets[atuin-search]} )) && bindkey '^r' atuin-search
 fi
@@ -41,8 +53,8 @@ if (( $+commands[carapace] )); then
     _carapace_excludes=(${_carapace_excludes#_})
     (( ${#_carapace_excludes} )) && export CARAPACE_EXCLUDES="${(j:,:)_carapace_excludes}"
     unset _carapace_excludes
-    # 用 <() 进程替换，无缓存（carapace 启动 <50ms，可接受）
-    source <(carapace _carapace zsh)
+    # 生成脚本缓存到 ~/.cache/zsh/init/（原为每次启动 source <(...) 进程替换）
+    _zsh_cached_init carapace "${commands[carapace]}" carapace _carapace zsh
 fi
 
 # --- command-not-found handler（Arch pkgfile 集成）---
@@ -75,6 +87,7 @@ unset _conda_init
 # --- Starship（提示符主题，跨 shell 通用）---
 # 必须在最后加载：starship init 会注册 precmd hook 接管 PROMPT，
 # 任何后续的 PROMPT 赋值都会覆盖它。
-if (( $+commands[starship] )); then
-    eval "$(starship init zsh)"
-fi
+(( $+commands[starship] )) && _zsh_cached_init starship "${commands[starship]}" starship init zsh
+
+# 清理 helper（避免污染全局命名空间）
+unfunction _zsh_cached_init
