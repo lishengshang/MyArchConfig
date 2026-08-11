@@ -1,12 +1,12 @@
 {
-  "median_ms": 141,
-  "mean_ms": 140,
+  "median_ms": 157,
+  "mean_ms": 151,
   "min_ms": 113,
-  "max_ms": 170,
+  "max_ms": 165,
   "runs": 15,
   "warmup": 3,
-  "date_iso": "2026-08-11T12:32:49+08:00",
+  "date_iso": "2026-08-11T12:38:30+08:00",
   "zsh_version": "5.9.2",
-  "git_sha": "1b7ff5d",
+  "git_sha": "cf9dfeb",
   "method": "pty-script"
 }
