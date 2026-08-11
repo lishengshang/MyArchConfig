@@ -15,6 +15,17 @@
 # Emacs 风格（设定 Ctrl+A/E/W/U/K 等默认绑定）
 bindkey -e
 
+# zsh-abbr 默认键位（space 展开 / Enter 展开并执行）在 plugins.zsh 加载时
+# 绑定，被上方的 `bindkey -e` 重置覆盖——这里重放，恢复缩写展开。
+# 注意：^  (Ctrl+Space) 不恢复：按 README 约定保持 autosuggest-accept
+#（zsh-autosuggestions 的 atload 会晚于此处绑定，最终生效）。
+if (( ${+widgets[abbr-expand-and-insert]} )); then
+    zle -N accept-line abbr-expand-and-accept
+    bindkey " " abbr-expand-and-insert
+    bindkey -M isearch "^ " abbr-expand-and-insert 2>/dev/null
+    bindkey -M isearch " " magic-space 2>/dev/null
+fi
+
 # 尝试多个 escape sequence，匹配到就绑定（消除终端差异）
 _bind_keys() {
     local widget=$1; shift
