@@ -57,9 +57,11 @@ done
 # ================= 辅助函数 =================
 
 send_notify() {
-    # $1: Title, $2: Body, $3: Extra Args (optional)
+    # $1: Title, $2: Body, 其余参数: 透传给 notify-send
     if [ "$SILENT_MODE" = false ]; then
-        notify-send "$1" "$2" $3
+        local title="$1" body="$2"
+        shift 2
+        notify-send "$title" "$body" "$@"
     fi
 }
 
@@ -104,7 +106,23 @@ build_source_order() {
 # ================= 主逻辑 =================
 
 mkdir -p "$SAVE_DIR"
-RAW_FILENAME="wall_$(date +%s).jpg"
+
+# 单实例锁: timer 与手动调用并发时, 防止互踩下载文件与 waypaper 配置。
+# mkdir+PID 自愈锁 (flock 的 fd 可能被外部进程继承导致永久占用)
+LOCK_DIR="$SAVE_DIR/.lock"
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    LOCK_PID=$(cat "$LOCK_DIR/pid" 2>/dev/null)
+    if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
+        exit 0
+    fi
+    rm -rf "$LOCK_DIR" 2>/dev/null
+    mkdir "$LOCK_DIR" 2>/dev/null || exit 0
+fi
+echo "$$" > "$LOCK_DIR/pid"
+trap 'rm -rf "$LOCK_DIR"' EXIT
+
+# 纳秒+PID 保证同秒多次调用也不冲突
+RAW_FILENAME="wall_$(date +%s%N)_$$.jpg"
 RAW_PATH="${SAVE_DIR}/${RAW_FILENAME}"
 
 USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -163,6 +181,24 @@ while IFS= read -r entry; do
     rm -f "$RAW_PATH"
 done <<< "$SOURCE_ORDER"
 
+# 保底源: 主循环只尝试前 MAX_SOURCE_ATTEMPTS 个, fallback 排在最后轮不到,
+# 必须在循环结束后单独尝试
+if [ "$DOWNLOAD_OK" = false ] && [ -n "$FALLBACK_SOURCE" ]; then
+    FALLBACK_NAME="${FALLBACK_SOURCE%%|*}"
+    FALLBACK_URL="${FALLBACK_SOURCE#*|}"
+    send_notify "壁纸" "正在尝试保底源 [$FALLBACK_NAME]..." "--expire-time=3000"
+
+    curl -L -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$FALLBACK_URL"
+    CURL_EXIT=$?
+
+    if [ $CURL_EXIT -eq 0 ] && validate_image "$RAW_PATH"; then
+        DOWNLOAD_OK=true
+        USED_SOURCE_NAME="$FALLBACK_NAME"
+    else
+        rm -f "$RAW_PATH"
+    fi
+fi
+
 # 下载结束,杀掉心跳通知进程
 if [ -n "$NOTIFY_PID" ]; then
     kill "$NOTIFY_PID" 2>/dev/null
@@ -210,7 +246,13 @@ fi
 
 # --- 3. 应用模块 ---
 
-awww img "$FINAL_PATH" --transition-duration 2 --transition-type center --transition-fps 60
+if ! awww img "$FINAL_PATH" --transition-duration 2 --transition-type center --transition-fps 60; then
+    send_notify "壁纸错误" "awww 应用壁纸失败" "--urgency=critical"
+    # 清理本次下载的文件, 避免残留
+    rm -f "$RAW_PATH"
+    [ "$FINAL_PATH" != "$RAW_PATH" ] && rm -f "$FINAL_PATH"
+    exit 1
+fi
 
 # 同步 waypaper 状态: 本脚本绕过 waypaper 直接调用 awww, 需手动更新 waypaper 的
 # 当前壁纸记录, 否则 waypaper GUI 显示的"当前壁纸"会过期, matugen-update.sh /
@@ -219,7 +261,9 @@ WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
 if [ -f "$WAYPAPER_CONFIG" ]; then
     # 把绝对路径转成 ~ 形式, 与 waypaper 配置风格保持一致
     WALLPAPER_TILDE="${FINAL_PATH/#$HOME/\~}"
-    sed -i "s|^wallpaper[[:space:]]*=.*|wallpaper = $WALLPAPER_TILDE|" "$WAYPAPER_CONFIG"
+    # 路径中的 & | \ 会破坏 sed 替换 (& 展开为匹配文本, | 终止分隔符, \ 是转义符)
+    WALLPAPER_TILDE_ESCAPED=$(printf '%s' "$WALLPAPER_TILDE" | sed 's/[&|\\]/\\&/g')
+    sed -i "s|^wallpaper[[:space:]]*=.*|wallpaper = $WALLPAPER_TILDE_ESCAPED|" "$WAYPAPER_CONFIG"
 fi
 
 # --- 4. 钩子与清理 ---
