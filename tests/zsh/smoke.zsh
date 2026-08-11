@@ -31,7 +31,8 @@ check() {
 # B. Core tools present
 # ---------------------------------------------------------------------------
 check "tool:cd=zoxide"      '(( ${+functions[cd]} ))'
-check "tool:mise"           '(( ${+functions[mise]} ))'
+# mise: shims mode (2026-08) - no hook function; PATH must contain shims dir
+check "tool:mise"           '(( $+commands[mise] )) && [[ ${PATH-} == *mise/shims* ]]'
 check "tool:direnv"         '(( ${+functions[_direnv_hook]} ))'
 check "tool:atuin"          '(( ${+widgets[atuin-search]} ))'
 check "tool:carapace"       '(( $+commands[carapace] ))'
