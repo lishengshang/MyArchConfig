@@ -2,9 +2,9 @@ function f -d "Random anime girl generator with Fastfetch"
     # ================= 配置区域 =================
     set -l CLEAN_CACHE_MODE true
     set -l DOWNLOAD_BATCH_SIZE 10
-    set -l MAX_CACHE_LIMIT 100
-    set -l MIN_TRIGGER_LIMIT 60
-    set -l MAX_USED_LIMIT 50
+    set -l MAX_CACHE_LIMIT 180
+    set -l MIN_TRIGGER_LIMIT 120
+    set -l MAX_USED_LIMIT 120
     # ===========================================
 
     # --- 语言检测 ---
@@ -59,7 +59,7 @@ function f -d "Random anime girl generator with Fastfetch"
                 set DELETE_START (math $MAX_CACHE_LIMIT + 1)
                 ls -tp \$CACHE_DIR/*.jpg 2>/dev/null | tail -n +\$DELETE_START | xargs -I {} rm -- '{}'
             end
-        " 200>\"$LOCK_FILE\" >/dev/null 2>&1 &
+        " 200>$LOCK_FILE >/dev/null 2>&1 &
         disown
     end
 
@@ -94,7 +94,7 @@ function f -d "Random anime girl generator with Fastfetch"
     # --- 显示图片 ---
     if test -n "$SELECTED_IMG"; and test -f "$SELECTED_IMG"
         fastfetch --logo "$SELECTED_IMG" --logo-preserve-aspect-ratio true $argv
-        mv "$SELECTED_IMG" "$USED_DIR/"
+        command mv "$SELECTED_IMG" "$USED_DIR/"
 
         set -l used_files $USED_DIR/*.jpg
         set -l used_count (count $used_files)

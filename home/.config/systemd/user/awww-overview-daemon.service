@@ -4,6 +4,9 @@ Description=awww daemon for niri overview background (blur layer, namespace: ove
 
 [Service]
 Type=simple
+# 等 niri socket 就绪再启动，杜绝登录时崩溃循环 (349 次 core dump 教训)
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 100); do [ -S "/run/user/$(id -u)/wayland-1" ] && exit 0; sleep 0.1; done; exit 1'
+Environment=WAYLAND_DISPLAY=wayland-1
 ExecStart=/usr/bin/awww-daemon -n overview
 # daemon 启动时若合成器未就绪会连接失败退出, Restart 自愈;
 # 崩溃/被杀后也会自动拉起 (之前依赖 niri_set_overview_blur_dark_bg.sh 的检查重启)

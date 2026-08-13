@@ -1,27 +1,41 @@
 #!/bin/bash
 
 # ================= 默认配置 =================
-# 源池: name|url  (顺序不重要,运行时随机打乱)
+# 源池: name|url|extractor
+#   extractor 为空 = 直出图源 (url 即图片地址)
+#   extractor 非空 = JSON API 源: 先 curl url, 再用 jq -r extractor 提取图片地址
+#   占位符 (仅 extractor/url 内有效): {{PAGE:N}} = 随机页 1..N, {{RANDOM}} = 随机索引 0..23
 SOURCES=(
-    "dmoe|https://www.dmoe.cc/random.php"
-    "moejue|https://random.MoeJue.cn/randbg?type=pc"
-    "paugram|https://api.paugram.com/wallpaper/?source=sina"
-    "paiii|https://t.paiii.cn/api/random"
-    "yppp|https://api.yppp.net/pc.php"
-    "uapis|https://uapis.cn/api/v1/random/image?category=acg&type=pc"
-    "touhou|https://img.paulzzh.com/touhou/random?size=pc"
+    "dmoe|https://www.dmoe.cc/random.php|"
+    "moejue|https://random.MoeJue.cn/randbg?type=pc|"
+    "paugram|https://api.paugram.com/wallpaper/?source=sina|"
+    "paiii|https://t.paiii.cn/api/random|"
+    "yppp|https://api.yppp.net/pc.php|"
+    "uapis|https://uapis.cn/api/v1/random/image?category=acg&type=pc|"
+    "touhou|https://img.paulzzh.com/touhou/random?size=pc|"
+    "anosu|https://api.anosu.top/img|"
+    "yande|https://yande.re/post.json?tags=rating:safe+width:%3E=1920+score:%3E=15+order:random&limit=1|.[0].file_url"
+    "wallhaven|https://wallhaven.cc/api/v1/search?categories=010&purity=100&sorting=toplist&topRange=3M&atleast=1920x1080&ratios=16x9,16x10&q=-ai%20art&page={{PAGE:10}}|.data[{{RANDOM}}].path"
+    "wallhaven-hot|https://wallhaven.cc/api/v1/search?categories=010&purity=100&sorting=toplist&topRange=1M&atleast=1920x1080&ratios=16x9,16x10&q=-ai%20art&page={{PAGE:3}}|.data[{{RANDOM}}].path"
 )
 
 # 保底源: 其他源全部失败后再尝试
-FALLBACK_SOURCE="alcy|https://t.alcy.cc/pc/"
+FALLBACK_SOURCE="alcy|https://t.alcy.cc/pc/|"
 
 SAVE_DIR="$HOME/Pictures/Wallpapers/api-random-download"
+
+# 最近使用过的源记录, 选源时跳过最近 RECENT_EXCLUDE_COUNT 次, 避免短时间重复
+RECENT_SOURCES_FILE="$SAVE_DIR/.recent_sources"
+RECENT_EXCLUDE_COUNT=3
 
 # 自动清理时保留最近多少张图片
 KEEP_COUNT=1000
 
 # 阈值: 宽度小于此值(即1080P及以下)才进行超分,2K/4K 原图直出
 UPSCALE_THRESHOLD=2200
+
+# 最小宽度: 低于此宽度的图片直接丢弃 (防低清图)
+MIN_WIDTH=1280
 
 # 失败降级: 最多尝试多少个源
 MAX_SOURCE_ATTEMPTS=3
@@ -38,7 +52,7 @@ usage() {
     echo "  -k           (Keep)    保留模式: 不清理旧壁纸"
     echo "  -n           (No Up)  禁用超分: 无论分辨率多少,都直接使用原图"
     echo "  -s           (Silent) 静默模式: 不发送任何 notify-send 通知"
-    echo "  -S <name>    (Source) 指定使用某个源 (alcy/dmoe/moejue/paugram/paiii/yppp/uapis/touhou)"
+    echo "  -S <name>    (Source) 指定使用某个源 (${SOURCES[*]//|*/ } ${FALLBACK_SOURCE%%|*})"
     echo "  -h           帮助信息"
     exit 0
 }
@@ -77,7 +91,23 @@ validate_image() {
     return 0
 }
 
+# 校验几何: 拒绝竖图与过小图片 (identify 不可用时跳过, 交给下游)
+# 用法: validate_geometry <path>  -> 返回 0 通过 / 1 拒绝
+validate_geometry() {
+    local f="$1"
+    command -v identify &> /dev/null || return 0
+    local w h
+    w=$(identify -format "%w" "$f" 2>/dev/null)
+    h=$(identify -format "%h" "$f" 2>/dev/null)
+    [ -n "$w" ] && [ -n "$h" ] || return 0
+    [ "$h" -le "$w" ] || return 1
+    [ "$w" -ge "$MIN_WIDTH" ] || return 1
+    return 0
+}
+
 # 从源池构造本次尝试顺序 (随机打乱,或把指定源放最前,保底源永远最后)
+# 随机模式下跳过最近 RECENT_EXCLUDE_COUNT 次用过的源, 避免短时间重复;
+# 若过滤后源池为空 (源太少或刚好用完一圈), 退化为全随机保证可用性。
 # 输出 stdout: 每行一个 "name|url";返回 1 表示 FORCED_SOURCE 不存在
 build_source_order() {
     local fallback_name="${FALLBACK_SOURCE%%|*}"
@@ -97,10 +127,36 @@ build_source_order() {
         done | shuf
         # 保底源放在最后
         [ "$fallback_name" != "$FORCED_SOURCE" ] && echo "$FALLBACK_SOURCE"
-    else
-        printf '%s\n' "${SOURCES[@]}" | shuf
-        echo "$FALLBACK_SOURCE"
+        return
     fi
+    # 随机模式: 过滤掉最近用过的源
+    local recent pool=() s name
+    recent=$(cat "$RECENT_SOURCES_FILE" 2>/dev/null)
+    for s in "${SOURCES[@]}"; do
+        name="${s%%|*}"
+        if printf '%s\n' "$recent" | grep -qxF -- "$name"; then
+            continue
+        fi
+        pool+=("$s")
+    done
+    if [ ${#pool[@]} -eq 0 ]; then
+        printf '%s\n' "${SOURCES[@]}" | shuf
+    else
+        printf '%s\n' "${pool[@]}" | shuf
+    fi
+    echo "$FALLBACK_SOURCE"
+}
+
+# 记录本次使用的源, 保留最近 RECENT_EXCLUDE_COUNT 个 (保底源不记录, "保底除外")
+# 用法: record_source <name>
+record_source() {
+    local name="$1"
+    [ -z "$name" ] && return 0
+    local tmp
+    tmp=$(mktemp)
+    { [ -f "$RECENT_SOURCES_FILE" ] && cat "$RECENT_SOURCES_FILE"; echo "$name"; } \
+        | tail -n "$RECENT_EXCLUDE_COUNT" > "$tmp"
+    mv "$tmp" "$RECENT_SOURCES_FILE"
 }
 
 # ================= 主逻辑 =================
@@ -119,7 +175,11 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     mkdir "$LOCK_DIR" 2>/dev/null || exit 0
 fi
 echo "$$" > "$LOCK_DIR/pid"
-trap 'rm -rf "$LOCK_DIR"' EXIT
+trap 'rm -rf "$LOCK_DIR"; [ -n "$EXISTING_HASHES" ] && rm -f "$EXISTING_HASHES"' EXIT
+
+# 预计算已存在文件的哈希集合, 用于下载去重
+EXISTING_HASHES=$(mktemp)
+find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -exec sha256sum {} + 2>/dev/null | cut -d' ' -f1 > "$EXISTING_HASHES"
 
 # 纳秒+PID 保证同秒多次调用也不冲突
 RAW_FILENAME="wall_$(date +%s%N)_$$.jpg"
@@ -165,16 +225,47 @@ while IFS= read -r entry; do
     fi
 
     SRC_NAME="${entry%%|*}"
-    SRC_URL="${entry#*|}"
+    SRC_REST="${entry#*|}"
+    SRC_URL="${SRC_REST%%|*}"
+    SRC_EXTRACT=""
+    [ "$SRC_REST" != "$SRC_URL" ] && SRC_EXTRACT="${SRC_REST#*|}"
 
     send_notify "壁纸" "正在尝试 [$SRC_NAME] ($ATTEMPT_COUNT/$MAX_SOURCE_ATTEMPTS)..." "--expire-time=3000"
 
-    curl -L -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$SRC_URL"
+    DOWNLOAD_URL="$SRC_URL"
+    if [ -n "$SRC_EXTRACT" ]; then
+        if ! command -v jq &> /dev/null; then
+            echo "跳过 [$SRC_NAME]: 缺少 jq" >&2
+            rm -f "$RAW_PATH"
+            continue
+        fi
+        send_notify "壁纸" "正在查询 [$SRC_NAME] API..." "--expire-time=3000"
+        API_URL="$SRC_URL"
+        P_SPEC=$(printf '%s' "$API_URL" | sed -n 's/.*{{PAGE:\([0-9]*\)}}.*/\1/p')
+        [ -n "$P_SPEC" ] && API_URL=$(printf '%s' "$API_URL" | sed "s|{{PAGE:$P_SPEC}}|$((RANDOM % P_SPEC + 1))|")
+        EXPR="$SRC_EXTRACT"
+        case "$EXPR" in
+            *'{{RANDOM}}'*) EXPR=$(printf '%s' "$EXPR" | sed "s|{{RANDOM}}|$((RANDOM % 24))|") ;;
+        esac
+        DOWNLOAD_URL=$(curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 30 "$API_URL" | jq -r "$EXPR" 2>/dev/null)
+        case "$DOWNLOAD_URL" in
+            http*) ;;
+            *) rm -f "$RAW_PATH"; continue ;;
+        esac
+    fi
+
+    curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$DOWNLOAD_URL"
     CURL_EXIT=$?
 
-    if [ $CURL_EXIT -eq 0 ] && validate_image "$RAW_PATH"; then
+    if [ $CURL_EXIT -eq 0 ] && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
+        HASH=$(sha256sum "$RAW_PATH" | cut -d' ' -f1)
+        if grep -qFx -- "$HASH" "$EXISTING_HASHES"; then
+            rm -f "$RAW_PATH"
+            continue
+        fi
         DOWNLOAD_OK=true
         USED_SOURCE_NAME="$SRC_NAME"
+        record_source "$SRC_NAME"
         break
     fi
 
@@ -185,13 +276,14 @@ done <<< "$SOURCE_ORDER"
 # 必须在循环结束后单独尝试
 if [ "$DOWNLOAD_OK" = false ] && [ -n "$FALLBACK_SOURCE" ]; then
     FALLBACK_NAME="${FALLBACK_SOURCE%%|*}"
-    FALLBACK_URL="${FALLBACK_SOURCE#*|}"
+    FALLBACK_REST="${FALLBACK_SOURCE#*|}"
+    FALLBACK_URL="${FALLBACK_REST%%|*}"
     send_notify "壁纸" "正在尝试保底源 [$FALLBACK_NAME]..." "--expire-time=3000"
 
-    curl -L -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$FALLBACK_URL"
+    curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$FALLBACK_URL"
     CURL_EXIT=$?
 
-    if [ $CURL_EXIT -eq 0 ] && validate_image "$RAW_PATH"; then
+    if [ $CURL_EXIT -eq 0 ] && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
         DOWNLOAD_OK=true
         USED_SOURCE_NAME="$FALLBACK_NAME"
     else
@@ -211,6 +303,14 @@ if [ "$DOWNLOAD_OK" = false ]; then
     exit 1
 fi
 
+# 按实际内容修正扩展名 (部分源返回 PNG/WEBP, .jpg 后缀会导致解码失败)
+case "$(file --mime-type -b "$RAW_PATH" 2>/dev/null)" in
+    image/png)
+        [ "${RAW_PATH##*.}" = "png" ] || { mv "$RAW_PATH" "${RAW_PATH%.jpg}.png" && RAW_PATH="${RAW_PATH%.jpg}.png"; } ;;
+    image/webp)
+        [ "${RAW_PATH##*.}" = "webp" ] || { mv "$RAW_PATH" "${RAW_PATH%.jpg}.webp" && RAW_PATH="${RAW_PATH%.jpg}.webp"; } ;;
+esac
+
 # --- 2. 智能超分模块 ---
 
 FINAL_PATH="$RAW_PATH"
@@ -218,11 +318,17 @@ MSG_EXTRA="来自 $USED_SOURCE_NAME"
 
 if [ "$ENABLE_UPSCALE" = true ]; then
     IMG_WIDTH=0
+    IMG_HEIGHT=0
     if command -v identify &> /dev/null; then
         IMG_WIDTH=$(identify -format "%w" "$RAW_PATH")
+        IMG_HEIGHT=$(identify -format "%h" "$RAW_PATH")
     fi
 
-    if [ "$IMG_WIDTH" -gt 0 ] && [ "$IMG_WIDTH" -lt "$UPSCALE_THRESHOLD" ] && command -v waifu2x-ncnn-vulkan &> /dev/null; then
+    # 仅对横屏且宽度不足的图超分 (竖图已被 validate_geometry 拦截, 此处双保险)
+    if [ "$IMG_WIDTH" -gt 0 ] && [ "$IMG_HEIGHT" -gt 0 ] \
+        && [ "$IMG_WIDTH" -lt "$UPSCALE_THRESHOLD" ] \
+        && [ "$IMG_HEIGHT" -le "$IMG_WIDTH" ] \
+        && command -v waifu2x-ncnn-vulkan &> /dev/null; then
         send_notify "壁纸" "正在超分放大图片..." "--expire-time=2000"
         UPSCALED_PATH="${RAW_PATH%.*}.png"
 
