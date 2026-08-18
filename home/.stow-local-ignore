@@ -1,0 +1,2 @@
+# Do not deploy Agent/runtime state that may exist in a working tree.
+\.omo(/|$)
