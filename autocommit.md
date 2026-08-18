@@ -1,6 +1,6 @@
 # 自动备份指南
 
-dotfiles 配了 systemd user timer，定期自动检测变更并 commit + push 到 GitHub。
+dotfiles 配了 systemd user timer，定期自动检测变更并创建本地 commit。timer 默认不会 push 到 GitHub；确认无误后手动执行 `bash ~/dotfiles/auto-commit.sh --push`。
 
 ## 工作原理
 
@@ -17,19 +17,15 @@ cd ~/dotfiles && git status --porcelain
    ↓
 生成 commit message（时间戳 + 改动文件列表）
   ↓
-git add -A   ← .gitignore 黑名单兜底，缓存/敏感文件进不来
+筛选并暂存配置源文件   ← home/ + 根目录 *.sh；排除补全、主题、generated 和 VS Code 动态颜色
   ↓
 git commit
   ↓
-git pull --rebase   ← 处理多机器冲突
+默认结束（只保留本地 commit，不访问远程）
   ↓
-冲突? ──有──> 放弃 push，本地保留 commit（你手动处理）
-   │
-   否
-   ↓
-git push origin main
-  ↓
-完成
+手动运行 auto-commit.sh --push?
+   ├─否──> 完成
+   └─是──> git pull --rebase → 冲突时停止并保留本地 commit → git push
 ```
 
 ## 当前配置
@@ -47,7 +43,7 @@ git push origin main
 
 | 文件 | 作用 |
 |---|---|
-| `~/dotfiles/auto-commit.sh` | 核心脚本：检测变更 → commit → push |
+| `~/dotfiles/auto-commit.sh` | 核心脚本：检测变更 → 本地 commit；`--push` 才同步远程 |
 | `~/.config/systemd/user/dotfiles-autocommit.service` | systemd service 定义 |
 | `~/.config/systemd/user/dotfiles-autocommit.timer` | systemd timer 定义（频率在此改） |
 
@@ -98,14 +94,17 @@ journalctl --user -u dotfiles-autocommit.service --since today
 
 ### 手动触发一次
 
-不想等到下次定时，立刻跑一次：
+不想等到下次定时，立刻创建本地 commit：
 
 ```bash
 # 方式 1：通过 systemd（推荐，日志走 journal）
 systemctl --user start dotfiles-autocommit.service
 
-# 方式 2：直接跑脚本（日志直接输出到终端）
+# 方式 2：直接跑脚本（只创建本地 commit，不 push）
 bash ~/dotfiles/auto-commit.sh
+
+# 手动确认后同步远程（pull --rebase + push）
+bash ~/dotfiles/auto-commit.sh --push
 ```
 
 ### 暂停 / 恢复
@@ -172,7 +171,7 @@ def5678 auto: 2026-07-19 03:00:02
 ```
 auto: 2026-07-22 03:00:01
 
-改动文件 (3): home/.config/niri/config.kdl,home/.config/zsh/aliases.zsh,home/.config/waybar/colors.css
+改动文件 (3): home/.config/niri/config.kdl,home/.config/zsh/aliases.zsh,home/.config/waybar/modules.jsonc
 - 新增/未跟踪: 0
 - 修改: 3
 - 删除: 0
@@ -209,13 +208,13 @@ journalctl --user -u dotfiles-autocommit.service -n 50
 
 | 错误信息 | 原因 | 解决 |
 |---|---|---|
-| `pull --rebase 失败` | 远程有冲突 commit | `dot status` 看，`dot rebase --abort` 放弃 或 `--continue` 解决 |
-| `push 失败` | 网络问题 / gh 凭证失效 | `gh auth status` 检查 |
+| `pull --rebase 失败` | 使用 `--push` 时远程有冲突 commit | `dot status` 看，`dot rebase --abort` 放弃 或 `--continue` 解决 |
+| `push 失败` | 使用 `--push` 时网络问题 / gh 凭证失效 | `gh auth status` 检查 |
 | `permission denied` | 脚本没执行权限 | `chmod +x ~/dotfiles/auto-commit.sh` |
 
 ### rebase 冲突处理
 
-auto-commit 检测到冲突会放弃 push，本地保留 commit。你需要手动处理：
+使用 `auto-commit.sh --push` 检测到冲突会停止 push，本地保留 commit。你需要手动处理：
 
 ```bash
 # 看当前状态
@@ -232,10 +231,24 @@ dot push
 
 ## 安全说明
 
-### 为什么 `git add -A` 是安全的
+### 自动提交范围
 
-新方案中仓库根目录在 `~/dotfiles`，`git add -A` 只会加仓库内的文件。
-`~/dotfiles/.gitignore` 用黑名单模式排除敏感文件：
+自动提交不是对整个仓库执行无条件的 `git add -A`，而是只处理：
+
+- `home/` 下的配置源文件；
+- 仓库根目录下的 `*.sh` 维护脚本。
+
+以下内容不会被自动提交，必须人工审查后提交：
+
+- `~/.local/share/fish/generated-completions/`（仓库中的手写补全源仍可自动提交）；
+- `fish_variables`；
+- `home/.config/**/colors.*`；
+- `home/.config/**/generated.*`；
+- `35-pager-matugen.fish`；
+- VS Code `settings.json` 动态颜色；
+- README、HOW、包列表和 Agent 协作文档。
+
+这不会取消 `.gitignore` 的作用。`.gitignore` 仍然是敏感文件的第二层防线：
 
 ```gitignore
 # 敏感文件

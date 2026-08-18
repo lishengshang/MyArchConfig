@@ -12,14 +12,15 @@
 
 - **GNU Stow 部署**: `~/dotfiles/home/` 作为 stow 包，`stow -d ~/dotfiles -t $HOME home` 一键部署软链
 - **普通 git 仓库**: `~/dotfiles` 就是标准 git 仓库，GUI 工具 / `cd ~/dotfiles && git log` 直接可用
+- **安全自动提交**: systemd timer 默认只提交配置源文件到本地，不自动 push；动态生成物和文档需人工提交
 - **黑名单策略**: `.gitignore` 默认跟踪所有文件，黑名单排除敏感/缓存文件
 - **新机器一键恢复**: `setup.sh` 完成 clone + stow 部署，`bootstrap.sh` 装依赖包
-- **AUR helper 引导**: `bootstrap.sh` 检测到没有 paru/yay 时自动 bootstrap 一个
+- **AUR helper 引导**: `bootstrap.sh` 支持 `--aur-helper auto|paru|yay`，默认 paru 优先、yay fallback
 - **Dry-run 预演**: `setup.sh` / `bootstrap.sh` / `uninstall.sh` 都支持 `--dry-run`
-- **反向卸载**: `uninstall.sh` 停 timer + stow -D 撤销软链 + 删仓库
+- **反向卸载**: `uninstall.sh` 停止 user units + stow -D 撤销软链；默认保留仓库，`--remove-repo` 才删除仓库
 - **CI 静态检查**: `.github/workflows/lint.yml` 对所有 .sh 跑 shellcheck + bash -n
-- **包列表自动生成**: `pkglist.txt` + `foreign-pkglist.txt` 记录已装软件
-- **缓存文件不跟踪**: fish completions、zcompdump、cached_layouts 等自动生成物不进仓库
+- **包列表分层**: `packages/*.generated.txt` 保存当前机器快照，`packages/*.txt` 保存手工 profile，根目录包列表保留兼容软链
+- **生成文件不跟踪**: 工具生成的 Fish completions、zcompdump、Matugen 主题和 cached_layouts 不进仓库；手写补全源文件仍受 Git 管理
 
 ## 仓库布局
 
@@ -30,11 +31,16 @@
 ├── autocommit.md                     # 自动提交方案设计文档
 ├── setup.sh                          # 新机器一键初始化（支持 --dry-run）
 ├── bootstrap.sh                      # 装包脚本（支持 --dry-run，含 AUR helper 引导）
-├── uninstall.sh                      # 反向卸载（支持 --dry-run / --force）
-├── auto-commit.sh                    # 定时把工作区变动提交到远程
+├── uninstall.sh                      # 反向卸载（支持 --dry-run / --force / --remove-repo）
+├── auto-commit.sh                    # 定时把工作区变动提交到本地（默认不 push）
 ├── update-pkglist.sh                 # 重新生成包列表
-├── pkglist.txt                       # pacman 原生包列表（自动生成）
-├── foreign-pkglist.txt               # AUR 包列表（自动生成）
+├── packages/                         # 生成包列表 + 手工安装 profile
+│   ├── pkglist.generated.txt          # 当前机器原生包快照
+│   ├── foreign-pkglist.generated.txt  # 当前机器 AUR 包快照
+│   ├── core.txt / niri.txt / desktop.txt / laptop.txt / nvidia.txt
+│   └── aur/                           # AUR 手工 profile
+├── pkglist.txt                        # 兼容软链，指向 packages/*.generated.txt
+├── foreign-pkglist.txt                # 兼容软链，指向 packages/*.generated.txt
 ├── .gitignore                        # 黑名单策略 gitignore
 ├── .github/
 │   └── workflows/
@@ -88,16 +94,24 @@ bash <(curl -fsSL https://raw.githubusercontent.com/lishengshang/MyArchConfig/ma
 # 1. clone + stow 部署（自动安装 stow、clone 仓库、创建软链）
 bash <(curl -fsSL https://raw.githubusercontent.com/lishengshang/MyArchConfig/main/setup.sh)
 
-# 2. 装包（可选，支持 --dry-run 预演）
+# 2. 装包（默认安装当前机器 generated lists）
 bash ~/dotfiles/bootstrap.sh
+
+# 或选择额外的手工 profile
+bash ~/dotfiles/bootstrap.sh --profile core,niri,desktop
+
+# 指定 AUR helper；默认策略是 paru，失败后 fallback 到 yay
+bash ~/dotfiles/bootstrap.sh --aur-helper paru
 
 # 3. 重新加载 shell
 exec zsh
 
-# 4. 启用 systemd user units（自动提交 / 自动壁纸 / overview 模糊背景）
-systemctl --user enable --now dotfiles-autocommit.timer
-systemctl --user enable --now random-api-wallpaper.timer
-systemctl --user enable --now awww-overview-daemon.service
+# 4. （可选）启用 systemd user units
+# 启用全部仓库 unit:
+bash ~/dotfiles/setup.sh --enable-units
+# 或只启用自动提交:
+# bash ~/dotfiles/setup.sh --enable-units=dotfiles-autocommit.timer
+# dotfiles-autocommit 默认只创建本地 commit，不会自动 push
 
 # 5. 开启 linger（让 timer 在未登录时也能跑）
 sudo loginctl enable-linger $USER
@@ -132,7 +146,13 @@ dotd                # dot diff
 dotl                # dot log --oneline -10
 dotp                # dot push
 
-# 更新包列表
+# 手动确认并推送自动生成的本地 commit
+bash ~/dotfiles/auto-commit.sh --push
+
+# 检查依赖、Stow 链接、生成文件和 systemd 状态
+bash ~/.config/scripts/dot-doctor.sh
+
+# 更新当前机器的 generated 包列表（不会覆盖手工 profile）
 bash ~/dotfiles/update-pkglist.sh
 ```
 

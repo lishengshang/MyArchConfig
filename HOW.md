@@ -14,13 +14,20 @@ bash <(curl -fsSL https://raw.githubusercontent.com/lishengshang/MyArchConfig/ma
 # 3. 重新加载 shell 让 dot/dota 别名生效
 exec zsh
 
-# 4. 安装所有软件包（pacman + AUR）
+# 4. 安装当前机器的 generated 软件包（pacman + AUR）
 bash ~/dotfiles/bootstrap.sh
 
-# 5. 启用 systemd user units（自动提交 / 自动壁纸 / overview 模糊背景）
-systemctl --user enable --now dotfiles-autocommit.timer
-systemctl --user enable --now random-api-wallpaper.timer
-systemctl --user enable --now awww-overview-daemon.service
+# 可选：额外安装手工 profile
+bash ~/dotfiles/bootstrap.sh --profile core,niri,desktop
+
+# 指定 AUR helper（auto / paru / yay）
+bash ~/dotfiles/bootstrap.sh --aur-helper paru
+
+# 5. （可选）启用 systemd user units
+# 启用全部仓库 unit:
+bash ~/dotfiles/setup.sh --enable-units
+# 或只启用自动提交:
+# bash ~/dotfiles/setup.sh --enable-units=dotfiles-autocommit.timer
 
 # 6. 开启 linger（让 timer 在未登录时也能跑）
 sudo loginctl enable-linger $USER
@@ -45,8 +52,8 @@ dot log -5      # 看最近的提交
 # setup.sh 预演: 显示会 clone 哪里、stow 部署什么
 bash ~/dotfiles/setup.sh --dry-run
 
-# bootstrap.sh 预演: 显示会装哪些包（前 10 个预览），不实际安装
-bash ~/dotfiles/bootstrap.sh --dry-run
+# bootstrap.sh 预演: 显示 generated 包和 profile 会装什么，不实际安装
+bash ~/dotfiles/bootstrap.sh --dry-run --profile core,niri --aur-helper auto
 ```
 
 `--dry-run` 不做任何写操作，可以放心跑。
@@ -139,13 +146,13 @@ dot push
 
 ## 更新包列表
 
-装了新软件后，更新包列表:
+装了新软件后，更新当前机器的 generated 包列表（不会覆盖手工 profile）:
 
 ```bash
 bash ~/dotfiles/update-pkglist.sh
 
 # 提交
-git -C ~/dotfiles add pkglist.txt foreign-pkglist.txt
+git -C ~/dotfiles add packages pkglist.txt foreign-pkglist.txt
 git -C ~/dotfiles commit -m "update pkglist: add foo"
 git -C ~/dotfiles push
 ```
@@ -156,7 +163,7 @@ git -C ~/dotfiles push
 
 ### 自动备份（systemd user timer）
 
-每 3 天凌晨 03:00 自动检测变更并 commit + push 到 GitHub。错过的时间（关机/休眠）开机后补跑。
+每 3 天凌晨 03:00 自动检测变更并创建本地 commit，不会自动 push 到 GitHub。错过的时间（关机/休眠）开机后补跑。需要同步远程时手动执行 `bash ~/dotfiles/auto-commit.sh --push`。
 
 完整指南（工作原理 / 查看状态 / 修改频率 / 故障排查 / 安全说明）见 **[autocommit.md](autocommit.md)**。
 
@@ -169,8 +176,11 @@ systemctl --user list-timers dotfiles-autocommit.*
 # 查看自动提交日志
 journalctl --user -u dotfiles-autocommit.service -n 50
 
-# 手动触发一次
+# 手动触发一次（只创建本地 commit，不 push）
 systemctl --user start dotfiles-autocommit.service
+
+# 手动确认并同步远程（pull --rebase + push）
+bash ~/dotfiles/auto-commit.sh --push
 
 # 暂停 / 恢复
 systemctl --user stop dotfiles-autocommit.timer
@@ -208,8 +218,9 @@ dot stash pop       # 恢复
 | 文件 | 说明 | 重新生成方式 |
 |---|---|---|
 | `.config/zsh/.zcompdump*` | zsh 补全缓存 | 启动 zsh 时自动 |
-| `.config/fish/completions/*.fish` | fish 补全（fisher/工具自动生成） | `fisher update` 或工具首次运行 |
-| `.config/fish/fish_variables` | fisher 状态变量 | `fisher update` 时根据 `fish_plugins` 重新生成 |
+| `.config/fish/completions/*.fish` | 手写 Fish 补全源文件 | 随仓库恢复 |
+| `.local/share/fish/generated-completions/*.fish` | 工具运行时生成的补全 | `fish-update-completions --force` |
+| `.config/fish/fish_variables` | Fish universal 变量 | Fish 自己重新生成 |
 | `.config/fcitx5/conf/cached_layouts` | fcitx5 键盘布局缓存 | fcitx5 启动时扫描 |
 | `.config/fcitx5/cache/` | fcitx5 其他缓存 | fcitx5 启动时 |
 | `.config/mpv/` | mpv 是独立 git 仓库 | 单独 clone mpv 仓库 |
@@ -232,6 +243,14 @@ dot commit -m "untrack cache file"
 - **重型方案**: 迁移到 chezmoi，支持模板、加密、机器感知
 
 ## 故障排查
+
+### 一键健康检查
+
+```bash
+bash ~/.config/scripts/dot-doctor.sh
+```
+
+它会检查 Git 工作区、核心命令、可选依赖、Stow 链接、生成文件忽略规则、Fish 运行时补全、systemd user units 和 Niri 配置。
 
 ### stow 部署冲突
 
@@ -283,11 +302,12 @@ stow -d ~/dotfiles -t "$HOME" home
 
 | 动作 | 是否执行 |
 |---|---|
-| 停止并禁用 `dotfiles-autocommit.{timer,service}` | ✅ 会做 |
+| 停止并禁用仓库管理的 systemd user units | ✅ 会做 |
 | `stow -D` 撤销 home/ 包的软链 | ✅ 会做 |
-| 删除仓库目录 `~/dotfiles/` | ✅ 会做 |
-| 删除 `$HOME` 下被 stow 部署的配置文件内容 | ❌ 不做（只删软链，内容在 ~/dotfiles/home/ 里） |
-| 删除 `~/.config/systemd/user/dotfiles-autocommit.*` | ❌ 不做（手动决定） |
+| 默认删除仓库目录 `~/dotfiles/` | ❌ 不做 |
+| 使用 `--remove-repo` 删除仓库目录 | ✅ 明确指定后才做 |
+| 删除 `$HOME` 下被 stow 部署的配置文件内容 | ❌ 不做（默认保留在 `~/dotfiles/home/`） |
+| 删除 systemd user unit 文件 | ✅ 随 `stow -D` 撤销软链，不删除仓库中的源文件 |
 
 ### 用法
 
@@ -298,8 +318,14 @@ bash ~/dotfiles/uninstall.sh --dry-run
 # 默认（交互确认）
 bash ~/dotfiles/uninstall.sh
 
-# 跳过确认
+# 跳过确认（默认仍然保留仓库）
 bash ~/dotfiles/uninstall.sh --force
+
+# 明确删除仓库及其中保存的配置真实内容（会再次建议确认）
+bash ~/dotfiles/uninstall.sh --remove-repo
+
+# 无交互删除仓库（高风险，仅在确认备份后使用）
+bash ~/dotfiles/uninstall.sh --remove-repo --force
 
 # 帮助
 bash ~/dotfiles/uninstall.sh --help
