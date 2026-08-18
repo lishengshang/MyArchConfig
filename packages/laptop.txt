@@ -1,0 +1,10 @@
+# Laptop-specific packages; review before installing on a desktop.
+brightnessctl
+libinput-tools
+power-profiles-daemon
+ddcutil
+linux-zen
+linux-zen-headers
+sof-firmware
+alsa-firmware
+efibootmgr

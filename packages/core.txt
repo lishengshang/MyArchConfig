@@ -1,0 +1,6 @@
+# Portable base for a new Arch installation.
+git
+stow
+zsh
+fish
+fzf

@@ -1,0 +1,3 @@
+# AUR additions for the desktop profile.
+carapace-bin
+visual-studio-code-bin

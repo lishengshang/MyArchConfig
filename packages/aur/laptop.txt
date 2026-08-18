@@ -1,0 +1,2 @@
+# AUR additions for selected laptop hardware.
+clevo-drivers-dkms-git

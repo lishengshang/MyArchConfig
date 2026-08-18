@@ -1,0 +1,5 @@
+# NVIDIA/CUDA profile; install only on matching hardware.
+nvidia-open-dkms
+nvidia-settings
+lib32-nvidia-utils
+egl-wayland

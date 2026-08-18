@@ -1,0 +1,21 @@
+# Niri desktop and direct runtime dependencies.
+niri
+waybar
+fuzzel
+mako
+awww
+hyprlock
+swayidle
+swayosd
+grim
+slurp
+satty
+wl-clipboard
+cliphist
+xdg-desktop-portal-gnome
+networkmanager
+network-manager-applet
+polkit-gnome
+fcitx5
+fcitx5-gtk
+fcitx5-qt

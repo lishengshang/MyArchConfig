@@ -1,0 +1,20 @@
+# Common CLI and desktop applications used by the configs.
+neovim
+neovide
+kitty
+ghostty
+yazi
+bat
+eza
+fd
+ripgrep
+starship
+zoxide
+atuin
+direnv
+mise
+jq
+git-delta
+lazygit
+fastfetch
+btop

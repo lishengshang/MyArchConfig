@@ -1,22 +1,19 @@
 #!/usr/bin/env bash
 # =============================================================================
-# update-pkglist.sh - 重新生成 pacman 包列表
+# update-pkglist.sh - 重新生成当前机器的显式包列表
 # =============================================================================
-# 用法:
-#   bash ~/dotfiles/update-pkglist.sh
-#
 # 生成:
-#   pkglist.txt         - 显式安装的原生包（pacman -Qqen）
-#   foreign-pkglist.txt - 显式安装的 AUR/外部包（pacman -Qqem）
+#   packages/pkglist.generated.txt         - 原生包（pacman -Qqen）
+#   packages/foreign-pkglist.generated.txt - AUR/外部包（pacman -Qqem）
 #
-# 建议时机:
-#   - 装了新软件后
-#   - 升级大版本前
-#   - 每月一次（可挂 systemd user timer）
+# 根目录的 pkglist.txt / foreign-pkglist.txt 是兼容旧命令的软链。
+# 手工 profile 位于 packages/*.txt 和 packages/aur/*.txt，不会被覆盖。
 # =============================================================================
 set -euo pipefail
 
 DOTFILES_DIR="$HOME/dotfiles"
+PACKAGES_DIR="$DOTFILES_DIR/packages"
+mkdir -p "$PACKAGES_DIR"
 cd "$DOTFILES_DIR"
 
 if ! command -v pacman >/dev/null; then
@@ -24,14 +21,18 @@ if ! command -v pacman >/dev/null; then
     exit 1
 fi
 
-pacman -Qqen > pkglist.txt
-pacman -Qqem > foreign-pkglist.txt
+pacman -Qqen > "$PACKAGES_DIR/pkglist.generated.txt"
+pacman -Qqem > "$PACKAGES_DIR/foreign-pkglist.generated.txt"
 
-echo "✓ 生成完成:"
-echo "    pkglist.txt         ($(wc -l < pkglist.txt) 个原生包)"
-echo "    foreign-pkglist.txt ($(wc -l < foreign-pkglist.txt) 个 AUR 包)"
-echo
-echo "如果要把变更提交到 dotfiles:"
-echo "    git -C ~/dotfiles add pkglist.txt foreign-pkglist.txt"
-echo "    git -C ~/dotfiles commit -m 'update pkglist'"
-echo "    git -C ~/dotfiles push"
+# 兼容旧文档和手动命令；如果用户误删软链，下次运行会恢复。
+ln -sfn packages/pkglist.generated.txt pkglist.txt
+ln -sfn packages/foreign-pkglist.generated.txt foreign-pkglist.txt
+
+printf '✓ 生成完成:\n'
+printf '    packages/pkglist.generated.txt         (%s 个原生包)\n' "$(wc -l < "$PACKAGES_DIR/pkglist.generated.txt")"
+printf '    packages/foreign-pkglist.generated.txt (%s 个 AUR 包)\n' "$(wc -l < "$PACKAGES_DIR/foreign-pkglist.generated.txt")"
+printf '\n手工 profile 不会被覆盖，可用 bootstrap.sh --profile 选择。\n'
+printf '如果要提交包列表:\n'
+printf '    git -C ~/dotfiles add packages pkglist.txt foreign-pkglist.txt\n'
+printf "    git -C ~/dotfiles commit -m 'update generated package lists'\n"
+printf '    git -C ~/dotfiles push\n'
