@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # ============================================================================
 # ~/.config/bash/bashrc        — XDG-compliant bash interactive rc
 # ============================================================================
@@ -10,6 +11,12 @@
 #
 # 触发条件：交互式 bash（登录或非登录）
 # ============================================================================
+
+# 防止 /etc/bash.bashrc trampoline 和 ~/.bashrc wrapper 重复 source。
+if [[ "${DOTFILES_BASHRC_LOADED:-0}" == 1 ]]; then
+    return
+fi
+export DOTFILES_BASHRC_LOADED=1
 
 # 仅交互式 shell 继续往下走（被 trampoline source 时也应该保险一下）
 [[ $- != *i* ]] && return
