@@ -1,5 +1,8 @@
 [Unit]
 Description=Random API wallpaper switcher
+# 壁纸切换需要 Wayland/Niri；跟随图形会话，不影响无图形会话下的自动提交。
+After=graphical-session.target
+PartOf=graphical-session.target
 
 [Service]
 Type=oneshot
