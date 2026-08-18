@@ -740,7 +740,7 @@ stop_rec() {
         mkdir -p "$gif_dir"
         local filename=$(basename "$save_path")
         local gif_out="$gif_dir/${filename%.*}.gif"
-        local filters="fps=$GIF_FPS,scale=$GIF_WIDTH:-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=$GIF_STATS_MODE[p];[s1][p]paletteuse=dither=$GIF_DITHER_MODE"
+        local filters="fps=$GIF_FPS,scale=$GIF_WIDTH:-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=${GIF_STATS_MODE}[p];[s1][p]paletteuse=dither=${GIF_DITHER_MODE}"
         
         if ffmpeg -y -v error -i "$save_path" -vf "$filters" "$gif_out"; then
              rm "$save_path"
