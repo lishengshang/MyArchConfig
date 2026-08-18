@@ -1,7 +1,7 @@
 output "eDP-1" {
     // 右边：笔记本屏幕
     mode "2560x1600@165.004"
-    scale 1.5
+    scale 1.4
     position x=2048 y=0
 }
 output "DP-1" {
