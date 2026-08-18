@@ -9,8 +9,10 @@
 #   bash ~/dotfiles/setup.sh
 #
 # 选项:
-#   --dry-run  只打印会做什么，不实际执行（不 clone / 不 stow / 不装包）
-#   -h, --help 显示帮助
+#   --dry-run                 只打印会做什么，不实际执行（不 clone / 不 stow / 不装包）
+#   --enable-units            启用仓库 unit 清单中的全部 systemd user units
+#   --enable-units=UNIT,...   只启用指定的 systemd user units
+#   -h, --help                显示帮助
 #
 # 这个脚本做五件事:
 #   1. 确保 stow 已安装（没有则 pacman 装）
@@ -22,16 +24,23 @@
 set -euo pipefail
 
 DRY_RUN=false
+ENABLE_UNITS=false
+REQUESTED_UNITS=()
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
+        --enable-units) ENABLE_UNITS=true ;;
+        --enable-units=*)
+            ENABLE_UNITS=true
+            IFS=',' read -r -a REQUESTED_UNITS <<< "${arg#--enable-units=}"
+            ;;
         -h|--help)
-            sed -n '2,22p' "$0"
+            sed -n '2,26p' "$0"
             exit 0
             ;;
         *)
             echo "未知参数: $arg" >&2
-            echo "用法: $0 [--dry-run]" >&2
+            echo "用法: $0 [--dry-run] [--enable-units[=UNIT,...]]" >&2
             exit 1
             ;;
     esac
@@ -46,6 +55,14 @@ fi
 
 REMOTE="https://github.com/lishengshang/MyArchConfig.git"
 DOTFILES_DIR="$HOME/dotfiles"
+DEFAULT_MANAGED_UNITS=(
+    dotfiles-autocommit.timer
+    dotfiles-autocommit.service
+    random-api-wallpaper.timer
+    random-api-wallpaper.service
+    awww-overview-daemon.service
+    swayidle.service
+)
 
 # --- 1. 确保 stow 已安装 ---
 if ! command -v stow &>/dev/null; then
@@ -92,6 +109,25 @@ else
     fi
 fi
 
+# --- 3.5 创建 VS Code 本地 settings 生成物 ---
+# settings.base.json 由 Git 管理；settings.json 由 Matugen 在本地生成并被 .gitignore 排除。
+VSCODE_BASE="$HOME/.config/Code/User/settings.base.json"
+VSCODE_SETTINGS="$HOME/.config/Code/User/settings.json"
+if $DRY_RUN; then
+    echo "[dry-run] 如果 $VSCODE_SETTINGS 不存在，从 $VSCODE_BASE 创建本地副本"
+else
+    if [[ -r "$VSCODE_BASE" ]]; then
+        # 清理旧版本 stow 到已删除 settings.json 的断链，但不碰用户自己的普通文件。
+        if [[ -L "$VSCODE_SETTINGS" ]] && [[ "$(readlink "$VSCODE_SETTINGS")" == *"/settings.json" ]]; then
+            rm -f -- "$VSCODE_SETTINGS"
+        fi
+        if [[ ! -e "$VSCODE_SETTINGS" ]]; then
+            cp -- "$VSCODE_BASE" "$VSCODE_SETTINGS"
+            echo "✓ 已创建 VS Code 本地 settings.json"
+        fi
+    fi
+fi
+
 # --- 4. 重生成 matugen 主题产物 ---
 # matugen 的 colors.* 产物是生成物，不进 git（见 .gitignore 黑名单）。
 # 新机器 stow 后这些文件不存在，需要跑一次 matugen-update.sh 重新生成。
@@ -114,13 +150,40 @@ else
     fi
 fi
 
-# --- 4.5 启用 systemd user units（自动提交 / 自动壁纸 / overview 模糊 daemon） ---
-# 需要 user manager 已就绪（图形会话登录后）；SSH/无会话环境会失败，打印提示即可。
-if $DRY_RUN; then
-    echo "[dry-run] systemctl --user enable --now dotfiles-autocommit.timer random-api-wallpaper.timer awww-overview-daemon.service"
+# --- 4.5 可选启用 systemd user units ---
+# 默认不启用；使用 --enable-units 或 --enable-units=UNIT,... 显式启用。
+MANAGED_UNITS=("${DEFAULT_MANAGED_UNITS[@]}")
+if [[ -r "$DOTFILES_DIR/systemd-user-units.txt" ]]; then
+    MANAGED_UNITS=()
+    while IFS= read -r unit || [[ -n "$unit" ]]; do
+        [[ -z "$unit" || "$unit" == \#* ]] && continue
+        MANAGED_UNITS+=("$unit")
+    done < "$DOTFILES_DIR/systemd-user-units.txt"
+fi
+
+if ((${#REQUESTED_UNITS[@]} > 0)); then
+    for requested in "${REQUESTED_UNITS[@]}"; do
+        if [[ ! " ${MANAGED_UNITS[*]} " == *" $requested "* ]]; then
+            echo "错误: 不在 systemd-user-units.txt 中的 unit: $requested" >&2
+            exit 1
+        fi
+    done
+    UNITS_TO_ENABLE=("${REQUESTED_UNITS[@]}")
+elif $ENABLE_UNITS; then
+    UNITS_TO_ENABLE=("${MANAGED_UNITS[@]}")
+else
+    UNITS_TO_ENABLE=()
+fi
+
+if ((${#UNITS_TO_ENABLE[@]} == 0)); then
+    echo "-> 跳过 systemd user units（使用 --enable-units 显式启用）"
+elif $DRY_RUN; then
+    for unit in "${UNITS_TO_ENABLE[@]}"; do
+        echo "[dry-run] systemctl --user enable --now $unit"
+    done
 else
     echo "-> 启用 systemd user units ..."
-    for unit in dotfiles-autocommit.timer random-api-wallpaper.timer awww-overview-daemon.service; do
+    for unit in "${UNITS_TO_ENABLE[@]}"; do
         if systemctl --user enable --now "$unit" 2>/dev/null; then
             echo "✓ 已启用 $unit"
         else
@@ -142,10 +205,12 @@ cat <<'EOF'
     2. 重新加载 shell:
         exec zsh   # 或 exec fish
 
-    3. 启用 systemd user units（自动提交 / 自动壁纸 / overview 模糊背景）:
-        systemctl --user enable --now dotfiles-autocommit.timer
-        systemctl --user enable --now random-api-wallpaper.timer
-        systemctl --user enable --now awww-overview-daemon.service
+    3. （可选）启用 systemd user units:
+        # 启用全部仓库 unit:
+        bash ~/dotfiles/setup.sh --enable-units
+        # 或只启用指定 unit:
+        bash ~/dotfiles/setup.sh --enable-units=dotfiles-autocommit.timer
+        # dotfiles-autocommit 默认只创建本地 commit，不会自动 push
 
     4. 开启 linger（让 timer 在未登录时也能跑，一次性命令）:
         sudo loginctl enable-linger $USER
