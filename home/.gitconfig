@@ -7,8 +7,6 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
-[safe]
-	directory = *
 # [url "https://gh-proxy.com/https://github.com/"]
 # 	insteadOf = https://github.com/
 # [url "https://github.com/"]
