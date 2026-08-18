@@ -21,11 +21,8 @@ environment {
     QT_IM_MODULE "fcitx"
     SDL_IM_MODULE "fcitx"
     INPUT_METHOD "fcitx"
-    // GLFW (kitty 等) 只识别 ibus 字符串,fcitx5 提供 ibus 兼容前端
-    GLFW_IM_MODULE "ibus"
     // qt主题
     QT_QPA_PLATFORMTHEME "gtk3"
-    QT_QPA_PLATFORMTHEME_QT6 "gtk3"
     // 解决quickshell图标主题缺失问题
     QS_ICON_THEME "Adwaita"
     // GTK软件使用的渲染器，可以解决n卡双显卡导致的GTK应用启动缓慢问题，AMD或Intel单显卡不需要这行设置可以注释掉
@@ -188,7 +185,8 @@ spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
 //spawn-at-startup "~/.config/niri/scripts/swayidle.sh"
 
 // 大写锁定键的osd显示
-spawn-at-startup "swayosd-server"
+// 延迟3秒启动,避开会话D-Bus未就绪的竞争窗口(swayosd 0.3.x连接失败时静默失效且不重试)
+spawn-sh-at-startup "sleep 3 && swayosd-server"
 
 // 自动开启护眼模式,经纬度设置位置
 // spawn-at-startup "~/.local/bin/toggle-wlsunset"

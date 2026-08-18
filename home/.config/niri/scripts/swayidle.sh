@@ -29,8 +29,8 @@ set -euo pipefail
 # ─── 配置 ────────────────────────────────────────────────────────────────────
 # 单位：秒。修改这里即可调整时长。
 LOCK_TIMEOUT=480        # 8 分钟：锁屏
-SCREEN_TIMEOUT=900      # 15 分钟：熄屏（未锁定则先锁屏）
-SUSPEND_TIMEOUT=1500    # 25 分钟：休眠
+SCREEN_TIMEOUT=600      # 10 分钟：熄屏（锁屏后 2 分钟，未锁定则先锁屏）
+SUSPEND_TIMEOUT=1200    # 20 分钟：挂起（挂起满 1.5 小时后自动转休眠）
 
 # 统一锁屏入口（已锁定则跳过，后台启动立即返回）。
 # 注意：swayidle 用 sh -c 执行命令字符串，这里的 $HOME 会在运行时由 sh 展开。
@@ -73,7 +73,7 @@ fi
 #   ├──────────────┼──────────────────────────────────┼────────────────────────────┤
 #   │ 8 分钟空闲    │ lock-screen.sh（hyprlock 锁屏）    │ power-on-monitors         │
 #   │ 15 分钟空闲   │ lock-screen.sh 兜底 + 熄屏         │ power-on-monitors         │
-#   │ 25 分钟空闲   │ systemctl suspend                │ power-on-monitors         │
+#   │ 20 分钟空闲   │ 亮屏+suspend-then-hibernate        │ power-on-monitors         │
 #   │ 任意休眠      │ lock-screen.sh（before-sleep 兜底）│ power-on-monitors         │
 #   │                │                                  │   (after-resume)          │
 #   └──────────────┴──────────────────────────────────┴────────────────────────────┘
@@ -85,7 +85,7 @@ exec swayidle -w \
         resume                   'niri msg action power-on-monitors' \
     timeout "$SCREEN_TIMEOUT"   "$LOCK_CMD; niri msg action power-off-monitors" \
         resume                   'niri msg action power-on-monitors' \
-    timeout "$SUSPEND_TIMEOUT"  'systemctl suspend' \
+    timeout "$SUSPEND_TIMEOUT"  'niri msg action power-on-monitors && systemctl suspend-then-hibernate' \
         resume                   'niri msg action power-on-monitors' \
     before-sleep                "$LOCK_CMD" \
     after-resume                'niri msg action power-on-monitors'
