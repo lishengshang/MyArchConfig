@@ -1,4 +1,5 @@
 #!/bin/bash
+set -Eeuo pipefail
 
 GENERATED_COLORS="$HOME/.cache/matugen_vscode_inject.json"
 
@@ -14,30 +15,46 @@ declare -A VARIANTS=(
 
 injected=0
 
+if [[ ! -r "$GENERATED_COLORS" ]]; then
+    echo "⚠️ Generated VS Code colors not found: $GENERATED_COLORS"
+    exit 0
+fi
+
 for pkg in "${!VARIANTS[@]}"; do
     config_dir="${VARIANTS[$pkg]}"
     if pacman -Qq "$pkg" >/dev/null 2>&1; then
-        VSCODE_SETTINGS="$HOME/.config/$config_dir/User/settings.json"
+        user_dir="$HOME/.config/$config_dir/User"
+        base_settings="$user_dir/settings.base.json"
+        vscode_settings="$user_dir/settings.json"
 
-        if [ ! -f "$VSCODE_SETTINGS" ]; then
-            mkdir -p "$(dirname "$VSCODE_SETTINGS")"
-            echo "{}" > "$VSCODE_SETTINGS"
+        if [[ ! -r "$base_settings" ]]; then
+            echo "⚠️ Base VS Code settings not found: $base_settings"
+            continue
         fi
 
-        tmp=$(mktemp)
-        if jq -s '.[0] * .[1]' "$VSCODE_SETTINGS" "$GENERATED_COLORS" > "$tmp"; then
-            # Write through the path (not mv) so a stow symlink survives
-            cat "$tmp" > "$VSCODE_SETTINGS"
-            rm -f "$tmp"
+        mkdir -p "$user_dir"
+
+        # settings.json 是 Matugen 生成的本地文件，不再写穿 Stow 软链。
+        # 第一次运行时从 Git 管理的 settings.base.json 创建它。
+        if [[ -L "$vscode_settings" ]]; then
+            rm -f "$vscode_settings"
+        fi
+        if [[ ! -f "$vscode_settings" ]]; then
+            cp -- "$base_settings" "$vscode_settings"
+        fi
+
+        tmp=$(mktemp "$user_dir/settings.json.tmp.XXXXXX")
+        if jq -s '.[0] * .[1]' "$vscode_settings" "$GENERATED_COLORS" > "$tmp"; then
+            mv -f -- "$tmp" "$vscode_settings"
             echo "✅ VS Code colors updated for $pkg ($config_dir)."
             injected=$((injected + 1))
         else
             echo "❌ Injection failed for $pkg ($config_dir)."
-            rm -f "$tmp"
+            rm -f -- "$tmp"
         fi
     fi
 done
 
-if [ "$injected" -eq 0 ]; then
+if [[ "$injected" -eq 0 ]]; then
     echo "⚠️ No supported VS Code variant found (visual-studio-code, code, vscodium, etc.). Skipping injection."
 fi

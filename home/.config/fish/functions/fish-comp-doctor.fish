@@ -2,7 +2,7 @@
 # fish-comp-doctor - 补全系统健康检查
 # ============================================================================
 # 检查三层补全架构的状态：
-#   1. 工具自带补全（completions/*.fish 由 fish-update-completions 生成）
+#   1. 工具自带补全（XDG_DATA_HOME 运行时生成 + ~/.config 手写补全）
 #   2. carapace 兜底（CARAPACE_BRIDGES 配置 + 注册规则数）
 #   3. fish 默认（路径补全）
 #
@@ -32,9 +32,13 @@ function fish-comp-doctor -d "Fish completion system health check"
         end
         echo "  $c_ok✓ 已安装$c_rst: "(command -v $cmd)
 
-        # 是否有 completions/ 文件
+        # 是否有手写或运行时生成的补全文件
+        set -l generated_dir "$XDG_DATA_HOME/fish/generated-completions"
         set -l f ~/.config/fish/completions/$cmd.fish
-        if test -f $f
+        if not test -f "$f"
+            set f "$generated_dir/$cmd.fish"
+        end
+        if test -f "$f"
             set -l lines (wc -l < $f | string trim)
             set -l size (stat -c %s $f)
             echo "  $c_ok✓ 工具自带补全$c_rst: $f ($lines 行, $size 字节)"
@@ -75,12 +79,14 @@ function fish-comp-doctor -d "Fish completion system health check"
     echo "$c_title━━━━━━━━━━━ 补全系统健康检查 ━━━━━━━━━━━$c_rst"
     echo ""
 
-    # --- completions/ 目录 ---
+    # --- 源补全和运行时生成补全目录 ---
     set -l comp_dir ~/.config/fish/completions
-    set -l comp_count (ls $comp_dir/*.fish 2>/dev/null | count)
-    echo "$c_label[1] completions/ 目录$c_rst"
-    echo "  路径: $comp_dir"
-    echo "  文件: $comp_count 个"
+    set -l generated_dir "$XDG_DATA_HOME/fish/generated-completions"
+    set -l comp_count (find "$comp_dir" -maxdepth 1 -type f -name '*.fish' 2>/dev/null | count)
+    set -l generated_count (find "$generated_dir" -maxdepth 1 -type f -name '*.fish' 2>/dev/null | count)
+    echo "$c_label[1] 补全目录$c_rst"
+    echo "  手写源: $comp_dir ($comp_count 个)"
+    echo "  运行时生成: $generated_dir ($generated_count 个)"
     echo ""
 
     # --- carapace 状态 ---
@@ -108,7 +114,7 @@ function fish-comp-doctor -d "Fish completion system health check"
     set -l missing_native
     for cmd in $managed_cmds
         if command -q $cmd
-            if test -f $comp_dir/$cmd.fish
+            if test -f "$generated_dir/$cmd.fish"; or test -f "$comp_dir/$cmd.fish"
                 set has_native (math $has_native + 1)
             else
                 set -a missing_native $cmd

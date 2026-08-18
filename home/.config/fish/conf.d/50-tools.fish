@@ -9,10 +9,11 @@
 # 手动重建：rm -rf ~/.cache/fish/init/
 #
 # 三层补全架构（详见 functions/fish-update-completions.fish）：
-#   1. 工具自带补全（completions/*.fish, 最准）   ← fish-update-completions 生成
-#   2. carapace 兜底（2000+ 命令, on-demand）    ← 下面 carapace 段
-#   3. fish 默认（文件/路径补全）
-# 工具自带补全放在 completions/ 会自动覆盖 carapace（fish 后注册赢）。
+#   1. 工具自带补全（最准）                       ← XDG_DATA_HOME 运行时生成
+#   2. 手写补全（dot/dota/y 等）                   ← ~/.config/fish/completions
+#   3. carapace 兜底（2000+ 命令, on-demand）      ← 下面 carapace 段
+#   4. fish 默认（文件/路径补全）
+# 工具自带补全和手写补全都会覆盖 carapace（fish 后注册赢）。
 # 健康检查: fish-comp-doctor
 # ============================================================================
 
@@ -59,9 +60,6 @@ if status is-interactive
     # --- uv shell 补全 ---
     _cached_init uv uv generate-shell-completion fish
 
-    # --- fnm Node.js 版本管理 ---
-    _cached_init fnm fnm env --use-on-cd --shell fish
-
     # --- mise 统一版本管理器（Node/Python/Ruby/Go） ---
     _cached_init mise mise activate fish
 
@@ -71,7 +69,7 @@ if status is-interactive
     # --- carapace 通用补全引擎（兜底） ---
     # 安装: paru -S carapace-bin
     # 作用: 为 2000+ 命令提供 on-demand 补全，覆盖未生成自带补全的工具
-    # 工具自带补全（completions/*.fish）会自动覆盖 carapace（后注册赢）
+    # 工具自带补全和手写补全会自动覆盖 carapace（后注册赢）
     # 健康检查: fish-comp-doctor
     if command -q carapace
         set -gx CARAPACE_BRIDGES 'zsh,fish,bash,inshellisense'
@@ -79,19 +77,27 @@ if status is-interactive
     end
 
     # --- 预加载自带补全（解决 carapace 占位问题） ---
-    # fish 4.x 懒加载 completions/ 依赖 `complete -c CMD` 钩子触发。
+    # fish 4.x 懒加载 fish_complete_path 依赖 `complete -c CMD` 钩子触发。
     # carapace 的 `complete --no-files CMD -a '...'` 注册后会"占位"，
-    # 阻止 fish 加载 completions/CMD.fish（即使文件存在也不会 source）。
+    # 阻止 fish 加载对应的 CMD.fish（即使文件存在也不会 source）。
     # 这里显式 source 自带补全文件，让它们赢过 carapace（后注册覆盖先注册）。
     #
     # 只预加载"工具自带补全比 carapace 更准"的关键命令，避免全量 source
     # 拖慢启动。其他命令让 carapace 兜底即可。
     # mise 必须预加载: carapace 的 mise spec 有 bug (unsupported cmd prop
-    # effect), 补全返回空, 只有自带补全 completions/mise.fish 可用
+    # effect), 补全返回空, 只有自带补全 mise.fish 可用
     for cmd in opencode gh uv niri starship bat procs delta fd lazygit \
                git apt dot dota y zoxide eza rg mise
-        set -l f ~/.config/fish/completions/$cmd.fish
-        test -f $f; and source $f 2>/dev/null
+        # 手写补全优先，其次使用 ~/.local/share 下运行时生成的补全。
+        for completions_dir in \
+            ~/.config/fish/completions \
+            "$XDG_DATA_HOME/fish/generated-completions"
+            set -l f "$completions_dir/$cmd.fish"
+            if test -f "$f"
+                source "$f" 2>/dev/null
+                break
+            end
+        end
     end
 
     # --- Atuin 神级历史搜索（接管 Ctrl+R） ---

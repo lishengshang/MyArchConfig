@@ -2,14 +2,14 @@
 # fish-update-completions - 批量生成工具自带的 fish 补全
 # ============================================================================
 # 三层补全架构（优先级从高到低）：
-#   1. 工具自带补全（最准，支持动态子命令）  ← 本函数生成
+#   1. 工具自带补全（最准，支持动态子命令）  ← 本函数生成到 XDG_DATA_HOME
 #   2. carapace 兜底（2000+ 命令，on-demand 调用）
 #   3. fish 默认（文件/路径补全）
 #
 # fish 的 complete 规则后注册覆盖先注册：
 #   - carapace 在 50-tools.fish 启动时注册（先）
-#   - completions/*.fish 在 Tab 时懒加载（后，覆盖 carapace）
-# 因此工具自带补全放在 completions/ 会自动赢过 carapace。
+#   - fish_complete_path 中的源/生成补全在 Tab 时懒加载（后，覆盖 carapace）
+# 因此工具自带补全会自动赢过 carapace。
 #
 # 用法:
 #   fish-update-completions          # 生成所有支持的
@@ -49,8 +49,9 @@ function fish-update-completions -d "Generate tool-native fish completions"
         echo "清理孤儿补全（仅本函数生成的）..."
         set -l managed_cmds niri starship uv gh bat delta fd lazygit procs mise
         set -l removed 0
+        set -l generated_dir "$XDG_DATA_HOME/fish/generated-completions"
         for cmd in $managed_cmds
-            set -l f ~/.config/fish/completions/$cmd.fish
+            set -l f "$generated_dir/$cmd.fish"
             if test -f $f
                 and not command -q $cmd
                 rm -f -- $f
@@ -99,7 +100,9 @@ function fish-update-completions -d "Generate tool-native fish completions"
             continue
         end
 
-        set -l out_file ~/.config/fish/completions/$cmd.fish
+        set -l generated_dir "$XDG_DATA_HOME/fish/generated-completions"
+        mkdir -p "$generated_dir"
+        set -l out_file "$generated_dir/$cmd.fish"
 
         # 已存在且非强制：跳过
         if test -f $out_file

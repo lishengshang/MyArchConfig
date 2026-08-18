@@ -17,7 +17,7 @@ Arch Linux 上的 fish 4.8.1 配置。设计原则：**conf.d 模块化 + 工具
 │   ├── 20-abbreviations.fish         缩写（abbr，按空格展开）
 │   ├── 25-aliases.fish               别名（安全标志 + 透明替换）
 │   ├── 35-pager.fish                 Pager 配色说明（已迁移到 matugen）
-│   ├── 35-pager-matugen.fish         ← matugen 自动生成，勿手改
+│   ├── 35-pager-matugen.fish         ← matugen 运行时生成，勿手改
 │   ├── 40-fzf.fish                   FZF 主题 + 预览
 │   ├── 50-tools.fish                 工具初始化（starship/zoxide/atuin/carapace...）
 │   ├── 60-cnf.fish                   command-not-found 处理（pkgfile）
@@ -25,7 +25,7 @@ Arch Linux 上的 fish 4.8.1 配置。设计原则：**conf.d 模块化 + 工具
 │   ├── done.fish                     ← Fisher 插件
 │   ├── fzf.fish                      ← Fisher 插件
 │   └── sponge.fish                   ← Fisher 插件
-├── completions/                      工具自带补全（51 个文件，fish-update-completions 生成，已入库）
+├── completions/                      手写补全（dot/dota/y/f 等，源文件入库）
 ├── functions/                        自定义函数 + 插件函数
 │   └── fish_user_key_bindings.fish   键绑定（fish 官方覆盖点，见下文）
 └── themes/                           （空，配色由 matugen 动态注入）
@@ -270,7 +270,7 @@ pager / 命令行颜色映射设计（`~/.config/matugen/templates/fish-pager.fi
 ```
 Tab 触发补全
      ↓
-1. 工具自带补全（completions/*.fish）    ← 最准，支持动态子命令
+1. 工具自带补全（fish_complete_path 中的运行时文件） ← 最准，支持动态子命令
      ↓ 未注册时
 2. carapace 兜底（2000+ 命令，on-demand）  ← 50-tools.fish 启动时注册
      ↓ carapace 未覆盖时
@@ -284,7 +284,7 @@ fish-comp-doctor           # 全局补全系统体检
 fish-comp-doctor gh        # 诊断单个命令的补全来源
 ```
 
-### 生成/更新工具自带补全
+### 生成/更新工具自带补全（写入 XDG 数据目录）
 
 ```fish
 fish-update-completions           # 生成所有支持的工具补全
@@ -295,7 +295,7 @@ fish-update-completions --clean   # 删除孤儿补全（工具已卸载的）
 
 ### 预加载关键命令补全
 
-`50-tools.fish` 启动时会显式 source 一批关键命令的自带补全（opencode/gh/uv/niri/starship/bat/procs/delta/fd/lazygit/git/apt/dot/dota/y/zoxide/eza/rg），避免 carapace 占位阻止 fish 加载更准的自带补全。
+`50-tools.fish` 启动时会显式 source 一批关键命令的自带补全（opencode/gh/uv/niri/starship/bat/procs/delta/fd/lazygit/git/apt/dot/dota/y/zoxide/eza/rg/mise）。工具生成的补全写入 `~/.local/share/fish/generated-completions/`，手写补全仍放在 `~/.config/fish/completions/`，避免 carapace 占位阻止更准确的补全。
 
 ---
 
@@ -312,11 +312,10 @@ fish-update-completions --clean   # 删除孤儿补全（工具已卸载的）
 | atuin | 历史搜索（Ctrl-R） | `~/.config/atuin/` |
 | carapace | 通用补全兜底 | `CARAPACE_BRIDGES=zsh,fish,bash,inshellisense` |
 | uv | Python 包管理 | |
-| fnm | Node.js 版本 | |
-| mise | 统一版本管理器 | |
+| mise | 统一版本管理器（Node/Python/Ruby/Go） | |
 | direnv | 项目环境 | |
 
-缓存目录：`~/.cache/fish/init/`。**重建缓存**：`rm -rf ~/.cache/fish/init/`。
+缓存目录：`~/.cache/fish/init/`。补全目录：`~/.local/share/fish/generated-completions/`。**重建 init 缓存**：`rm -rf ~/.cache/fish/init/`。**重建补全**：`fish-update-completions --force`。
 
 ---
 

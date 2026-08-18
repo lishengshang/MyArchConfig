@@ -11,6 +11,13 @@
 # 关闭默认欢迎语(无需 -x, 不需要导出给子进程)
 set -g fish_greeting ''
 
+# 工具自带的 Fish 补全是运行时生成物，不写入 dotfiles 仓库。
+# fish-update-completions.fish 会写入这个目录，fish_complete_path 负责懒加载。
+set -l generated_completions "$XDG_DATA_HOME/fish/generated-completions"
+if not contains -- "$generated_completions" $fish_complete_path
+    set -g fish_complete_path "$generated_completions" $fish_complete_path
+end
+
 # 兜底: environment.d 未生效时(首次登录、修复模式、SSH)
 # 保证 XDG 系列至少有合理默认
 test -z "$XDG_CONFIG_HOME"; and set -gx XDG_CONFIG_HOME $HOME/.config

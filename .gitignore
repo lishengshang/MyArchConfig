@@ -23,14 +23,36 @@
 *.key
 *.pem
 *.secret
+*.p12
+*.pfx
+*.gpg
 credentials
 
 # --- 敏感目录（即使出现在 home/ 下也不跟踪）---
 .ssh/
 .gnupg/
+.aws/
 
 # --- 缓存 / 自动生成物 ---
 .netrwhist
+home/.config/fish/fish_variables
+home/.config/fish/conf.d/35-pager-matugen.fish
+home/.config/niri/colors.kdl
+home/.config/waybar/colors.css
+home/.config/starship/colors.toml
+home/.config/fuzzel/colors.ini
+home/.config/kitty/themes/matugen.conf
+home/.config/mako/colors.conf
+home/.config/cava/themes/matugen
+home/.config/btop/themes/matugen.theme
+home/.config/yazi/theme.toml
+home/.config/ghostty/themes/Matugen
+home/.config/gtk-3.0/colors.css
+home/.config/gtk-4.0/colors.css
+home/.config/swayosd/colors.css
+home/.config/fastfetch/config.jsonc
+home/.config/nvim/generated.lua
+home/.config/Code/User/settings.json
 
 # --- systemd wants 目录（自动生成，不跟踪）---
 *.wants/

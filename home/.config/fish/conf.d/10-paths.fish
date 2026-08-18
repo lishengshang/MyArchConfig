@@ -13,8 +13,7 @@
 for dir in \
     $HOME/.local/bin \
     $HOME/.bun/bin \
-    $HOME/.cargo/bin \
-    $HOME/.local/share/fnm
+    $HOME/.cargo/bin
 
     if test -d $dir
         fish_add_path -gm $dir

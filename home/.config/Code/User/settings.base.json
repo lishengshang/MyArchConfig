@@ -1,0 +1,28 @@
+{
+  "github.copilot.nextEditSuggestions.enabled": false,
+  "github.copilot.nextEditSuggestions.allowWhitespaceOnlyChanges": false,
+  "github.copilot.nextEditSuggestions.extendedRange": false,
+  "github.copilot.renameSuggestions.triggerAutomatically": false,
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  },
+  "workbench.iconTheme": "vscode-icons",
+  "files.autoSave": "onWindowChange",
+  "editor.mouseWheelZoom": true,
+  "powershell.promptToUpdatePowerShell": false,
+  "python.analysis.typeCheckingMode": "basic",
+  "telemetry.telemetryLevel": "off",
+  "claudeCode.preferredLocation": "panel",
+  "editor.fontFamily": "\"JetBrainsMono Nerd Font Mono\",\"Noto Sans CJK SC\",monospace",
+  "terminal.integrated.fontFamily": "\"JetBrainsMono Nerd Font Mono\"",
+  "terminal.integrated.fontLigatures.enabled": true,
+  "editor.fontSize": 15,
+  "chat.viewSessions.orientation": "stacked",
+  "extensions.experimental.affinity": {
+    "asvetliakov.vscode-neovim": 1
+  },
+  "workbench.startupEditor": "none"
+}
