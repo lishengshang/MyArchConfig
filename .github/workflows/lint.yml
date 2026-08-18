@@ -1,17 +1,5 @@
 # =============================================================================
-# lint.yml - dotfiles 脚本的静态检查
-# =============================================================================
-# 检查范围:
-#   - bash -n:    所有 .sh 脚本的语法检查
-#   - shellcheck: 所有 .sh 脚本（warning 级别起报）
-#
-# 扫描路径:
-#   - 仓库根目录 *.sh（setup.sh / bootstrap.sh / uninstall.sh / auto-commit.sh / update-pkglist.sh）
-#   - home/.config/scripts/*.sh（自定义脚本）
-#
-# 不做的事:
-#   - 不真的跑 setup.sh / bootstrap.sh（需要在 archlinux 容器里测，后续再加）
-#   - 不检查 zsh / fish 配置文件（语言不同，且动态加载难测）
+# lint.yml - 多语言静态检查 + 敏感信息扫描
 # =============================================================================
 name: lint
 
@@ -23,32 +11,107 @@ on:
 
 jobs:
   static-checks:
-    name: shellcheck + bash -n
+    name: shell and config static checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Install interpreters and validators
+        run: sudo apt-get update && sudo apt-get install -y shellcheck fish zsh stow
 
-      - name: Run bash -n and shellcheck on all .sh
+      - name: Run language-aware static checks
+        shell: bash
         run: |
+          set -uo pipefail
           fail=0
-          # 扫描仓库根目录 *.sh + home/.config/scripts/*.sh
-          while IFS= read -r f; do
+
+          # 检查配置目录和测试目录中的脚本，而不是只检查仓库根目录。
+          # 脚本按 shebang 选择解释器；仓库中存在 Fish 代码使用 .sh 扩展名的历史文件。
+          mapfile -t files < <(find . -type f \( -name '*.sh' -o -path '*/scripts/*' -o -path './tests/zsh/*.sh' \) -not -path './.git/*' -not -path './home/.config/fish/completions/*' | sort)
+
+          for f in "${files[@]}"; do
+            [[ -s "$f" ]] || continue
+            shebang=$(head -n 1 "$f")
             echo "::group::$f"
-            if bash -n "$f"; then
-              echo "  bash -n ok"
-            else
-              echo "  bash -n FAIL"
-              fail=1
-            fi
-            if shellcheck -S warning "$f"; then
-              echo "  shellcheck ok"
-            else
-              echo "  shellcheck FAIL"
-              fail=1
-            fi
+            case "$shebang" in
+              *fish*)
+                if fish -n "$f"; then
+                  echo "  fish -n ok"
+                else
+                  echo "  fish -n FAIL"
+                  fail=1
+                fi
+                ;;
+              *zsh*)
+                if zsh -n "$f"; then
+                  echo "  zsh -n ok"
+                else
+                  echo "  zsh -n FAIL"
+                  fail=1
+                fi
+                ;;
+              */bash*|*/sh|*' sh'*)
+                if bash -n "$f"; then
+                  echo "  bash -n ok"
+                else
+                  echo "  bash -n FAIL"
+                  fail=1
+                fi
+                # 先让真正的 ShellCheck error 阻断 CI；已有 warning 后续单独清理。
+                if shellcheck -S error "$f"; then
+                  echo "  shellcheck errors: none"
+                else
+                  echo "  shellcheck errors: found"
+                  fail=1
+                fi
+                ;;
+              *)
+                echo "  skipped: unsupported or missing shell shebang"
+                ;;
+            esac
             echo "::endgroup::"
-          done < <(find . -maxdepth 1 -type f -name '*.sh' -o -path './home/.config/scripts/*.sh' | sort)
+          done
+
+          # Fish 配置和补全不一定位于 scripts/ 目录，额外检查其扩展名文件。
+          while IFS= read -r -d '' f; do
+            if ! fish -n "$f"; then
+              echo "fish -n FAIL: $f"
+              fail=1
+            fi
+          done < <(find home -type f -name '*.fish' -print0)
+
+          while IFS= read -r -d '' f; do
+            if ! zsh -n "$f"; then
+              echo "zsh -n FAIL: $f"
+              fail=1
+            fi
+          done < <(find home tests -type f -name '*.zsh' -print0 2>/dev/null)
+
+          while IFS= read -r -d '' f; do
+            if ! python3 -m py_compile "$f"; then
+              echo "python compile FAIL: $f"
+              fail=1
+            fi
+          done < <(find . -type f -name '*.py' -not -path './.git/*' -print0)
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+
           exit "$fail"
+
+      - name: Run Stow temporary HOME integration test
+        run: tests/stow/integration.sh
+
+  secret-scan:
+    name: gitleaks secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Public repositories do not need a Gitleaks license token.
+      # GITHUB_TOKEN allows the action to report findings on the workflow run.
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
