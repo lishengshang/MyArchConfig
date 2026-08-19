@@ -81,7 +81,8 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | ----------- | ----------------------------------------------- |
 | `starship`  | 提示符主题（跨 shell，Rust 实现，配置在 `~/.config/starship.toml`） |
 | `zoxide`    | 智能 cd，通过 `--cmd cd` 接管原生 `cd`          |
-| `mise`      | 统一版本管理器（Node/Python/Ruby/Go...）；shims 模式（`activate --shims`，零启动 hook 开销；如需 .mise.toml 项目级 env 自动重载，改用 `activate zsh`） |
+| `fnm`       | Node/npm/pi 版本管理；按目录读取 `.node-version`/`.nvmrc` |                          |
+| `mise`      | 管理 Python/Ruby/Go 等工具版本；shims 模式（`activate --shims`，零启动 hook 开销） |
 | `direnv`    | 项目级 `.envrc` 自动加载                        |
 | `atuin`     | 神级历史搜索，接管 `Ctrl+R`（不接管 ↑）         |
 | `carapace`  | 多 shell 通用补全引擎（桥接 zsh/fish/bash/inshellisense，统一提供 opencode/uv/gh/deno 等工具补全） |

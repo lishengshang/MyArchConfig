@@ -7,6 +7,12 @@
 # 可用 socket 作为 fallback。
 set -Eeuo pipefail
 
+# 该 unit 曾被 default.target 全局启动；KDE 中必须立即退出，避免
+# awww-daemon 连接 KDE 的 Wayland socket 后反复崩溃。
+if ! pgrep -u "${UID:-$(id -u)}" -x niri >/dev/null 2>&1; then
+    exit 0
+fi
+
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 WAIT_SECONDS=30
 

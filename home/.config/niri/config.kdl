@@ -15,12 +15,13 @@ environment {
     // 设置界面语言
     LANG "zh_CN.UTF-8"
     LC_CTYPE "en_US.UTF-8" //这一项可以解决漏字问题，但是也许会导致steam之类的x11应用无法使用中文输入法
-    // 输入法环境变量 (Wayland 原生应用走 text-input-v3 不需要这些,以下主要给 XWayland 应用)
-    XMODIFIERS "@im=fcitx"
-    GTK_IM_MODULE "fcitx"
-    QT_IM_MODULE "fcitx"
-    SDL_IM_MODULE "fcitx"
-    INPUT_METHOD "fcitx"
+    // 输入法环境变量
+    // Wayland 原生应用不需要这些；XWayland 应用请单独设置。
+    // XMODIFIERS "@im=fcitx"
+    // GTK_IM_MODULE "fcitx"
+    // QT_IM_MODULE "fcitx"
+    // SDL_IM_MODULE "fcitx"
+    // INPUT_METHOD "fcitx"
     // qt主题
     QT_QPA_PLATFORMTHEME "gtk3"
     // 解决quickshell图标主题缺失问题
@@ -160,7 +161,9 @@ spawn-sh-at-startup "for i in $(seq 1 30); do awww query >/dev/null 2>&1 && brea
 spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 
 // 屏幕分享、录屏相关的环境设置,如果屏幕分享出异常的话可以开启
-spawn-sh-at-startup "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=niri & /usr/lib/xdg-desktop-portal-gnome"
+spawn-sh-at-startup "dbus-update-activation-environment --systemd WAYLAND_DISPLAY NIRI_SOCKET XDG_CURRENT_DESKTOP=niri & /usr/lib/xdg-desktop-portal-gnome"
+// Niri 专用 user services：不再全局 enable，避免切到 KDE 后继续运行。
+spawn-at-startup "~/.config/niri/scripts/niri-session-services.sh"
 
 // GNOME tracker修复
 // spawn-sh-at-startup "systemctl --user set-environment XDG_SESSION_CLASS=user"
@@ -180,7 +183,7 @@ spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
 //spawn-at-startup "systemctl" "--user" "start" "linuxqq-clipsync"
 
 // 闲置时自动熄屏锁屏睡眠：由 systemd user service 管理
-// 启用：systemctl --user enable --now swayidle.service
+// 由 niri-session-services.sh 在 Niri 会话中显式 start，不要全局 enable
 // 回退方案：取消下一行注释，改用 niri 启动（注意 flock 会防止重复实例）
 //spawn-at-startup "~/.config/niri/scripts/swayidle.sh"
 

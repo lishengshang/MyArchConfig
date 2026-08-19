@@ -60,8 +60,15 @@ if status is-interactive
     # --- uv shell 补全 ---
     _cached_init uv uv generate-shell-completion fish
 
-    # --- mise 统一版本管理器（Node/Python/Ruby/Go） ---
+    # --- mise：继续管理 Python/Ruby/Go 等非 Node 工具 ---
     _cached_init mise mise activate fish
+
+    # --- fnm：统一管理 Node/npm/pi，并按目录自动切换 ---
+    # fnm 必须在 mise shims 之后初始化，让 fnm 的 multishell 路径优先。
+    if command -q fnm
+        fnm env --use-on-cd --shell fish | source
+        fnm use default --silent-if-unchanged >/dev/null 2>&1
+    end
 
     # --- direnv 项目环境 ---
     _cached_init direnv direnv hook fish

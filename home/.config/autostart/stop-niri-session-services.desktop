@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Stop Niri session services
+Comment=Keep Niri-only user services out of KDE
+Exec=/home/mio/.config/niri/scripts/stop-niri-session-services.sh
+OnlyShowIn=KDE;
+NoDisplay=true
+Terminal=false

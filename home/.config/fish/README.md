@@ -312,7 +312,8 @@ fish-update-completions --clean   # 删除孤儿补全（工具已卸载的）
 | atuin | 历史搜索（Ctrl-R） | `~/.config/atuin/` |
 | carapace | 通用补全兜底 | `CARAPACE_BRIDGES=zsh,fish,bash,inshellisense` |
 | uv | Python 包管理 | |
-| mise | 统一版本管理器（Node/Python/Ruby/Go） | |
+| fnm | Node/npm/pi 版本管理；按目录自动切换 | |
+| mise | 管理 Python/Ruby/Go 等工具版本 | |
 | direnv | 项目环境 | |
 
 缓存目录：`~/.cache/fish/init/`。补全目录：`~/.local/share/fish/generated-completions/`。**重建 init 缓存**：`rm -rf ~/.cache/fish/init/`。**重建补全**：`fish-update-completions --force`。

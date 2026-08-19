@@ -26,11 +26,18 @@ _zsh_cached_init() {
 # --- Zoxide（智能 cd，--cmd cd 接管原生 cd）---
 (( $+commands[zoxide] )) && _zsh_cached_init zoxide "${commands[zoxide]}" zoxide init zsh --cmd cd
 
-# --- mise（统一版本管理器：Node/Python/Ruby/Go/...；替代 fnm/nvm/pyenv）---
+# --- mise（Python/Ruby/Go 等工具版本管理；Node 由 fnm 负责）---
 # shims 模式：启动零 hook 开销（-13ms），工具按调用经 shim 解析版本。
 # 实测 shim 单次调用开销 ~0ms（usage 1-2ms 级工具无感）。
 # 注意：失去 precmd hook-env 自动重载（无 .mise.toml 项目时无影响）。
 (( $+commands[mise] )) && eval "$(mise activate zsh --shims)"
+
+# --- fnm（Node/npm/pi 版本管理；按目录读取 .node-version/.nvmrc）---
+# fnm 放在 mise shims 之后初始化，确保 Node 由 fnm 而不是 mise/system node 接管。
+if (( $+commands[fnm] )); then
+    eval "$(fnm env --use-on-cd --shell zsh)"
+    fnm use default --silent-if-unchanged >/dev/null 2>&1
+fi
 
 # --- direnv（项目级 .envrc 自动加载）---
 (( $+commands[direnv] )) && _zsh_cached_init direnv "${commands[direnv]}" direnv hook zsh

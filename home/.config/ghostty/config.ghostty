@@ -1,0 +1,44 @@
+# Ghostty 基础配置
+# 该文件通过 ~/.config/ghostty/config.ghostty 链接使用。
+
+# ─── 窗口 ────────────────────────────────────────────────────────────────────
+# 单位是终端字符格，不是像素。
+window-width = 115
+window-height = 35
+# 禁止保存上一次窗口尺寸，保证每次新建窗口都使用上面的大小。
+window-save-state = never
+window-padding-x = 10
+window-padding-y = 8
+window-padding-balance = true
+window-inherit-working-directory = true
+window-decoration = auto
+window-vsync = true
+
+# ─── 字体 ────────────────────────────────────────────────────────────────────
+font-family = JetBrainsMono Nerd Font Mono
+font-size = 13
+font-thicken = true
+
+# ─── 颜色与光标 ──────────────────────────────────────────────────────────────
+# 使用当前已有的 Matugen 主题：~/.config/ghostty/themes/Matugen
+# 该文件由 matugen 更新时会被重新生成，Ghostty 可用 Ctrl+Shift+R 重载。
+theme = Matugen
+cursor-style = block
+cursor-style-blink = true
+cursor-opacity = 0.95
+background-opacity = 0.96
+
+# ─── 交互 ────────────────────────────────────────────────────────────────────
+copy-on-select = true
+mouse-hide-while-typing = true
+mouse-scroll-multiplier = precision:1,discrete:3
+scrollback-limit = 10000000
+confirm-close-surface = true
+
+# 自动启用 Shell Integration，使目录、光标位置、标题等功能正常工作。
+shell-integration = detect
+shell-integration-features = cursor,title,path
+
+# ─── 常用快捷键 ──────────────────────────────────────────────────────────────
+# 保留 Ghostty 默认快捷键，并额外提供一个容易记的配置重载键。
+keybind = ctrl+shift+r=reload_config

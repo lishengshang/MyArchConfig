@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# 该脚本由全局 user timer 调度；linger 用户管理器在 KDE 中也会继续运行。
+# 必须在最前面判断 Niri，不能等 waypaper/matugen 执行后再判断。
+if ! pgrep -u "${UID:-$(id -u)}" -x niri >/dev/null 2>&1; then
+    exit 0
+fi
+
 WALLPAPER_DIR="$HOME/Pictures/Wallpapers/api-random-download"
 WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
 MATUGEN_UPDATE="$HOME/.config/scripts/matugen-update.sh"

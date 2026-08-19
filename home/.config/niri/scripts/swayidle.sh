@@ -19,12 +19,18 @@
 #
 # 推荐启动方式（任选其一）：
 #   1) systemd user service（推荐，见 ~/.config/systemd/user/swayidle.service）
-#      systemctl --user enable --now swayidle.service
+#      systemctl --user start swayidle.service
 #   2) niri spawn-at-startup（回退方案）
 #      spawn-at-startup "~/.config/niri/scripts/swayidle.sh"
 #
 
 set -euo pipefail
+
+# swayidle/hyprlock 只属于 Niri。即使 unit 被误启动，也不能在 KDE
+# 中参与锁屏、suspend 或 NVIDIA 的 sleep 流程。
+if ! pgrep -u "${UID:-$(id -u)}" -x niri >/dev/null 2>&1; then
+    exit 0
+fi
 
 # ─── 配置 ────────────────────────────────────────────────────────────────────
 # 单位：秒。修改这里即可调整时长。
