@@ -1,0 +1,23 @@
+[Unit]
+Description=Resident wallpaper theme updater
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=exec
+ExecStart=%h/.config/scripts/wallpaper-theme-daemon.sh
+Restart=on-failure
+RestartSec=2
+# Keep theme generation from competing with Niri and foreground applications.
+Nice=10
+IOSchedulingClass=idle
+IOWeight=20
+CPUWeight=20
+OOMScoreAdjust=200
+KillMode=mixed
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wallpaper-theme
+
+[Install]
+WantedBy=default.target

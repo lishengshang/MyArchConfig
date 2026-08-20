@@ -4,8 +4,7 @@ CACHE_DIR="$HOME/.cache/matugen-strategy"
 TYPE_FILE="$CACHE_DIR/type"
 MODE_FILE="$CACHE_DIR/mode"
 INDEX_MODE_FILE="$CACHE_DIR/index_mode"
-UPDATE_SCRIPT="$HOME/.config/scripts/matugen-update.sh"
-WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
+POST_UPDATE="$HOME/.config/scripts/wallpaper-post-command.sh"
 
 # --- 0. 确保缓存目录存在 ---
 if [ ! -d "$CACHE_DIR" ]; then
@@ -148,11 +147,11 @@ if [ -n "$REAL_VALUE" ]; then
     # 发送通知
     notify-send "Matugen" "$NOTIFY_MSG"
 
-    # 【修改】：直接调用带有 -f 参数的更新脚本。
-    # 这样可以让 update.sh 自己去走那套完善的 awww + niri 的多显示器逻辑，更加安全精确。
-    if [ -x "$UPDATE_SCRIPT" ]; then
-        "$UPDATE_SCRIPT" -f
+    # 颜色提取、应用主题和模糊背景都放到低优先级后台 worker，避免
+    # fuzzel 关闭后立刻占满 CPU 让当前应用卡顿或闪烁。
+    if [ -x "$POST_UPDATE" ]; then
+        nohup "$POST_UPDATE" --force >/dev/null 2>&1 </dev/null &
     else
-        notify-send "Error" "脚本未找到: $UPDATE_SCRIPT"
+        notify-send "Error" "脚本未找到: $POST_UPDATE"
     fi
 fi

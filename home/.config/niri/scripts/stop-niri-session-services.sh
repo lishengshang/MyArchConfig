@@ -7,6 +7,7 @@ for unit in \
     random-api-wallpaper.timer \
     random-api-wallpaper.service \
     awww-overview-daemon.service \
+    wallpaper-theme.service \
     gtk-theme-by-time.timer \
     gtk-theme-by-time.service; do
     systemctl --user stop "$unit" 2>/dev/null || true

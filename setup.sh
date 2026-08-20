@@ -61,6 +61,7 @@ DEFAULT_MANAGED_UNITS=(
     random-api-wallpaper.timer
     random-api-wallpaper.service
     awww-overview-daemon.service
+    wallpaper-theme.service
     swayidle.service
 )
 

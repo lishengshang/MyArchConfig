@@ -374,13 +374,14 @@ fi
 
 # --- 4. 钩子与清理 ---
 
+# 颜色提取和模糊背景生成统一交给异步 worker，避免切换快捷键等待
+# ImageMagick，也避免与 waypaper 的 post_command 重复执行。
+POST_UPDATE="$HOME/.config/scripts/wallpaper-post-command.sh"
+if [ -x "$POST_UPDATE" ]; then
+    nohup "$POST_UPDATE" >/dev/null 2>&1 </dev/null &
+fi
+
 (
-    [ -x "$HOME/.config/scripts/matugen-update.sh" ] && "$HOME/.config/scripts/matugen-update.sh" "$FINAL_PATH" > /dev/null
-
-    sleep 0.5
-
-    [ -x "$HOME/.config/scripts/niri_set_overview_blur_dark_bg.sh" ] && "$HOME/.config/scripts/niri_set_overview_blur_dark_bg.sh" > /dev/null
-
     # 动态清理逻辑: 保留最近 KEEP_COUNT 张,按修改时间倒序
     # 用 find -printf + NUL 分隔处理文件名特殊字符;${line#* } 跳过 mtime 字段
     if [ "$ENABLE_CLEANUP" = true ]; then

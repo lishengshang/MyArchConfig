@@ -26,6 +26,7 @@ dbus-update-activation-environment --systemd \
 
 # 这些服务不再挂在 default.target/timers.target 下，只由 Niri 显式启动。
 systemctl --user start awww-overview-daemon.service
+systemctl --user start wallpaper-theme.service
 systemctl --user start random-api-wallpaper.timer
 systemctl --user start swayidle.service
 systemctl --user start gtk-theme-by-time.timer

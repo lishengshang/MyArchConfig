@@ -18,9 +18,6 @@ flock -n 9 || {
 
 WALLPAPER_DIR="$HOME/Pictures/Wallpapers/api-random-download"
 WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
-MATUGEN_UPDATE="$HOME/.config/scripts/matugen-update.sh"
-BLUR_UPDATE="$HOME/.config/scripts/niri_set_overview_blur_dark_bg.sh"
-
 # 防重复随机: 随机选择时排除最近切换过的 NO_REPEAT 张 (可按需修改)
 NO_REPEAT=5
 HISTORY_FILE="$HOME/.cache/random-wallpaper-history"
@@ -66,36 +63,17 @@ if [ -z "$SELECTED" ] || [ ! -f "$SELECTED" ]; then
     exit 1
 fi
 
-# 3. 应用壁纸 (waypaper 会写配置并触发 post_command)
-waypaper --wallpaper "$SELECTED"
+# 3. 应用壁纸。随机脚本自己安排异步主题更新，禁止 waypaper 再执行
+# 同一个 post_command，否则会重复跑 Matugen 并再次生成模糊背景。
+waypaper --no-post-command --wallpaper "$SELECTED"
 
 # 4. 记录历史 (只保留最近 NO_REPEAT 条)
 echo "$SELECTED" >> "$HISTORY_FILE"
 tail -n "$NO_REPEAT" "$HISTORY_FILE" > "$HISTORY_FILE.tmp" && mv "$HISTORY_FILE.tmp" "$HISTORY_FILE"
 
-# 5. 等待 waypaper 写入配置并应用
-sleep 0.5
-
-# 6. 读取 waypaper 实际选中的壁纸路径
-WALLPAPER=""
-if [ -f "$WAYPAPER_CONFIG" ]; then
-    WALLPAPER=$(sed -n 's/^wallpaper[[:space:]]*=[[:space:]]*//p' "$WAYPAPER_CONFIG")
-    WALLPAPER="${WALLPAPER/#\~/$HOME}"
-fi
-
-# 7. 显式更新颜色主题（避免 waypaper post_command 在 CLI 模式下失效）
-# stderr 静默: post_command 可能已先行触发, 锁竞争时 matugen-update 会输出
-# "已有实例在运行" 到 stderr (非错误, exit 0); 真失败仍会通过 notify-send 弹出
-if [ -x "$MATUGEN_UPDATE" ]; then
-    if [ -n "$WALLPAPER" ] && [ -f "$WALLPAPER" ]; then
-        "$MATUGEN_UPDATE" -f "$WALLPAPER" 2>/dev/null
-    else
-        "$MATUGEN_UPDATE" -f 2>/dev/null
-    fi
-fi
-
-# 8. 更新 overview 模糊背景
-if [ -x "$BLUR_UPDATE" ]; then
-    sleep 0.8
-    "$BLUR_UPDATE"
+# 5. 主题和 overview 背景必须在后台处理。颜色提取/模糊图生成不应阻塞
+# wallpaper 命令或让 compositor 同步等待；worker 还会合并快速连续的切换。
+POST_UPDATE="$HOME/.config/scripts/wallpaper-post-command.sh"
+if [ -x "$POST_UPDATE" ]; then
+    nohup "$POST_UPDATE" >/dev/null 2>&1 </dev/null &
 fi
