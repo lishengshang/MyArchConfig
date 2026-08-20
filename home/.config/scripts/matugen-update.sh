@@ -3,7 +3,8 @@
 # --- 1. 参数解析 ---
 WALLPAPER=""
 NO_INDEX=false
-FORCE_UPDATE=false # 【新增】：强制更新标志
+FORCE_UPDATE=false # 强制更新标志
+CACHE_ONLY=false   # 只准备调色板缓存，不写入/刷新主题
 
 show_help() {
     echo "Usage: matugen-update.sh [OPTIONS] [WALLPAPER]"
@@ -11,7 +12,8 @@ show_help() {
     echo "Options:"
     echo "  -h, --help       显示此帮助信息"
     echo "  -n, --no-index   不指定 index，在终端运行时唤起 matugen 原生的交互式颜色选择"
-    echo "  -f, --force      强制重新生成，忽略壁纸未更改的检查" # 【新增】
+    echo "  -f, --force      强制重新生成，忽略壁纸未更改的检查"
+    echo "      --cache-only  只生成调色板缓存，不刷新主题"
     exit 0
 }
 
@@ -24,8 +26,12 @@ while [[ $# -gt 0 ]]; do
             NO_INDEX=true
             shift
             ;;
-        -f|--force)          # 【新增】：捕获强制更新参数
+        -f|--force)
             FORCE_UPDATE=true
+            shift
+            ;;
+        --cache-only)
+            CACHE_ONLY=true
             shift
             ;;
         *)
@@ -43,12 +49,14 @@ INDEX_MODE_FILE="$CACHE_DIR/index_mode"
 LAST_WALL_FILE="$CACHE_DIR/last_wallpaper"     
 CURRENT_INDEX_FILE="$CACHE_DIR/current_index"  
 VALID_INDICES_FILE="$CACHE_DIR/valid_indices"  
-SHRUNK_CACHE_DIR="$CACHE_DIR/shrunk_images"   
+SHRUNK_CACHE_DIR="$CACHE_DIR/shrunk_images"
+PALETTE_CACHE_DIR="$CACHE_DIR/palettes"
 
 # 新增：用于记录上次生成壁纸路径以跳过重复任务的目录和文件
 UPDATE_CACHE_DIR="$HOME/.cache/matugen-update"
 mkdir -p "$UPDATE_CACHE_DIR"
 LAST_PROCESSED_WALL_FILE="$UPDATE_CACHE_DIR/last_wallpaper_path"
+PALETTE_FINGERPRINT_FILE="$UPDATE_CACHE_DIR/current_palette_fingerprint"
 
 # 单实例锁：timer/waybar/手动调用可能并发，防止竞态写缓存（空缓存曾导致崩溃）。
 # 用 mkdir+PID 自愈锁而非 flock: flock 的 fd 可能被外部进程继承(实测 swayosd-server
@@ -69,7 +77,7 @@ trap 'rm -rf "$LOCK_DIR"' EXIT
 
 WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
 
-mkdir -p "$SHRUNK_CACHE_DIR"
+mkdir -p "$SHRUNK_CACHE_DIR" "$PALETTE_CACHE_DIR"
 
 # --- 3. 获取当前聚焦显示器的壁纸路径 ---
 if [ -z "$WALLPAPER" ]; then
@@ -120,6 +128,17 @@ trim() { sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
 if [ -f "$TYPE_FILE" ]; then STRATEGY=$(trim < "$TYPE_FILE"); else STRATEGY="scheme-tonal-spot"; fi
 if [ -f "$MODE_FILE" ]; then MODE=$(trim < "$MODE_FILE"); else MODE="dark"; fi
 
+# ClassicUI keeps a runtime profile. Keep its dark/light selector in sync with
+# Matugen, otherwise Fcitx5 can keep displaying the old DarkTheme forever.
+set_fcitx_theme_mode() {
+    local runtime_profile="$HOME/.config/fcitx5/conf/classicui.conf"
+    local use_dark=True
+    [[ "$MODE" == light ]] && use_dark=False
+    if [[ -f "$runtime_profile" ]] && grep -q '^UseDarkTheme=' "$runtime_profile"; then
+        sed -i "s/^UseDarkTheme=.*/UseDarkTheme=$use_dark/" "$runtime_profile"
+    fi
+}
+
 FORCE_ZERO=true
 if [ -f "$INDEX_MODE_FILE" ]; then
     if [ "$(trim < "$INDEX_MODE_FILE")" == "random" ]; then
@@ -141,49 +160,53 @@ if [ "$FORCE_UPDATE" = false ] && [ "$WALLPAPER" == "$LAST_PROCESSED_WALL" ] && 
 fi
 
 
-# --- 5. [智能缓存] 哈希化与选择性转换 ---
-# 利用 MD5 生成该路径独一无二的缓存文件名
-WALL_HASH=$(echo -n "$WALLPAPER" | md5sum | awk '{print $1}')
+# --- 5. [智能缓存] 哈希化与缩小 ---
+# Matugen 只需要图片的主色，不需要解码原始 4K/8K 图片。直接把超大图
+# 交给它会在取色时占用大量内存和 CPU，切换壁纸时就会表现为整个桌面卡顿。
+# 缓存名包含 mtime/size，避免同一路径替换图片后继续使用旧颜色。
+WALL_SIGNATURE=$(stat -c '%Y:%s' "$WALLPAPER" 2>/dev/null || printf '0:0')
+WALL_HASH=$(printf '%s:%s' "$WALLPAPER" "$WALL_SIGNATURE" | md5sum | awk '{print $1}')
 CACHED_IMAGE="$SHRUNK_CACHE_DIR/${WALL_HASH}.png"
-TARGET_IMAGE="$WALLPAPER" # 默认直接喂原图
-
-# 仅获取真实 MIME 类型
+TARGET_IMAGE="$WALLPAPER"
 FILE_MIME=$(file -b --mime-type "$WALLPAPER")
 NEED_CONVERT=false
 
-# 只有真实格式是 webp 时，才触发 ImageMagick 转换
-if [[ "$FILE_MIME" == *"webp"* ]]; then
+# 统一把 WebP 或超过 1600px 的图片缩小。这个尺寸足够稳定地提取调色板，
+# 同时把 Matugen 的输入从数千万像素限制到约 2.5M 像素。
+if [[ "$FILE_MIME" == image/webp ]]; then
     NEED_CONVERT=true
+elif command -v identify &>/dev/null; then
+    IMAGE_WIDTH=$(identify -format '%w' "${WALLPAPER}[0]" 2>/dev/null || printf '0')
+    IMAGE_HEIGHT=$(identify -format '%h' "${WALLPAPER}[0]" 2>/dev/null || printf '0')
+    if [[ "$IMAGE_WIDTH" =~ ^[0-9]+$ && "$IMAGE_HEIGHT" =~ ^[0-9]+$ ]] \
+        && { [ "$IMAGE_WIDTH" -gt 1600 ] || [ "$IMAGE_HEIGHT" -gt 1600 ]; }; then
+        NEED_CONVERT=true
+    fi
 fi
 
 if [ "$NEED_CONVERT" = true ]; then
     TARGET_IMAGE="$CACHED_IMAGE"
-    # 缓存不存在或已损坏(如旧版脚本失败时留下的错误文本)时重新转换
     CACHE_VALID=false
     if [ -f "$CACHED_IMAGE" ]; then
         CACHE_MIME=$(file -b --mime-type "$CACHED_IMAGE" 2>/dev/null)
         [[ "$CACHE_MIME" == image/* ]] && CACHE_VALID=true
     fi
     if [ "$CACHE_VALID" = false ]; then
-        # '500x500>' 必须整体加引号: 否则 shell 把 > 当重定向, 500x500 被当成输入文件, 命令必失败
+        TMP_IMAGE="$CACHED_IMAGE.tmp.$$"
+        CONVERT_CMD=()
         if command -v magick &>/dev/null; then
-            CONVERT_CMD=(magick "$WALLPAPER" -resize '500x500>' "$CACHED_IMAGE")
+            CONVERT_CMD=(magick "${WALLPAPER}[0]" -auto-orient -resize '1600x1600>' -strip "$TMP_IMAGE")
         elif command -v convert &>/dev/null; then
-            CONVERT_CMD=(convert "$WALLPAPER" -resize '500x500>' "$CACHED_IMAGE")
+            CONVERT_CMD=(convert "${WALLPAPER}[0]" -auto-orient -resize '1600x1600>' -strip "$TMP_IMAGE")
         elif command -v ffmpeg &>/dev/null; then
-            CONVERT_CMD=(ffmpeg -y -i "$WALLPAPER" -vf "scale='min(500,iw)':-1" "$CACHED_IMAGE")
-        else
-            # 没有工具就只能硬着头皮上原图了
-            TARGET_IMAGE="$WALLPAPER"
+            CONVERT_CMD=(ffmpeg -y -i "$WALLPAPER" -vf "scale='min(1600,iw)':-2" "$TMP_IMAGE")
         fi
-        if [ -n "${CONVERT_CMD+x}" ]; then
-            if ! "${CONVERT_CMD[@]}" 2>/dev/null; then
-                # 转换失败必须删坏缓存并中止, 否则下次 [ ! -f 缓存 ] 为假, 永远跳过转换
-                rm -f "$CACHED_IMAGE"
-                notify-send "Matugen Error" "图片转换失败，无法生成缓存: $(basename "$WALLPAPER")"
-                exit 1
-            fi
+        if [ ${#CONVERT_CMD[@]} -eq 0 ] || ! "${CONVERT_CMD[@]}" 2>/dev/null; then
+            rm -f "$TMP_IMAGE"
+            notify-send "Matugen Error" "图片缩放失败，无法生成缓存: $(basename "$WALLPAPER")"
+            exit 1
         fi
+        mv -f "$TMP_IMAGE" "$CACHED_IMAGE"
     fi
 fi
 
@@ -211,6 +234,8 @@ probe_valid_indices() {
     fi
     printf '%s\n' "${VALID_INDICES[*]}" > "$VALID_INDICES_FILE"
 }
+
+FCITX5_UPDATED=false
 
 if [ "$NO_INDEX" = true ]; then
     # 交互模式 (由终端唤起, 用户手动选色)
@@ -255,14 +280,60 @@ else
     
     # 双保险：任何路径都不允许把空 index 传给 matugen
     SELECTED_INDEX="${SELECTED_INDEX:-0}"
-    
-    # 最终执行，传入决定好的 TARGET_IMAGE (可能是原图，也可能是缓存的缩小图)
-    if matugen image "$TARGET_IMAGE" -t "$STRATEGY" -m "$MODE" --source-color-index "$SELECTED_INDEX"; then
+
+    # 先缓存 Matugen 的调色板 JSON。后续渲染使用 `matugen json`，不再重新
+    # 解码图片；这也是预生成服务和正式应用之间共享的缓存。
+    PALETTE_KEY=$(printf '%s:%s:%s:%s' "$WALL_HASH" "$STRATEGY" "$MODE" "$SELECTED_INDEX" \
+        | md5sum | awk '{print $1}')
+    PALETTE_FILE="$PALETTE_CACHE_DIR/${PALETTE_KEY}.json"
+    if ! jq -e '.base16 and .colors' "$PALETTE_FILE" >/dev/null 2>&1; then
+        TMP_PALETTE="$PALETTE_FILE.tmp.$$"
+        if ! matugen image "$TARGET_IMAGE" -t "$STRATEGY" -m "$MODE" \
+            --source-color-index "$SELECTED_INDEX" --json hex --quiet >"$TMP_PALETTE" \
+            || ! jq -e '.base16 and .colors' "$TMP_PALETTE" >/dev/null 2>&1; then
+            rm -f "$TMP_PALETTE"
+            notify-send "Matugen Error" "调色板生成失败: $(basename "$WALLPAPER")"
+            exit 1
+        fi
+        mv -f "$TMP_PALETTE" "$PALETTE_FILE"
+    fi
+
+    if [ "$CACHE_ONLY" = true ]; then
+        echo "Palette cached: $PALETTE_FILE"
+        exit 0
+    fi
+
+    # 只比较实际参与渲染的颜色值。壁纸路径、JSON 中的 image 字段等元数据
+    # 不参与比较；只有颜色完全一致时才跳过主题写入和 Waybar 重载。
+    PALETTE_FINGERPRINT=$(jq -S --arg mode "$MODE" \
+        '[.colors | to_entries[] | {key: .key, color: (.value[$mode].color // .value.default.color)}]' \
+        "$PALETTE_FILE" | sha256sum | awk '{print $1}')
+    LAST_PALETTE_FINGERPRINT=$(cat "$PALETTE_FINGERPRINT_FILE" 2>/dev/null || true)
+    if [[ -n "$LAST_PALETTE_FINGERPRINT" && "$PALETTE_FINGERPRINT" == "$LAST_PALETTE_FINGERPRINT" ]]; then
+        echo "$SELECTED_INDEX" > "$CURRENT_INDEX_FILE"
+        echo "$WALLPAPER" > "$LAST_WALL_FILE"
+        echo "$WALLPAPER" > "$LAST_PROCESSED_WALL_FILE"
+        echo "Palette unchanged exactly; skipping theme reload."
+        exit 0
+    fi
+
+    # 先刷新当前明暗模式的 Fcitx5；另一套主题在 helper 内随后生成。
+    # 这样输入法不必等待全套桌面模板写完才看到新颜色。
+    FCITX5_UPDATE="$HOME/.config/matugen/scripts/matugen-fcitx5.sh"
+    set_fcitx_theme_mode
+    if [[ -x "$FCITX5_UPDATE" ]]; then
+        "$FCITX5_UPDATE" "$WALLPAPER" "$SELECTED_INDEX" "$STRATEGY" "$PALETTE_FILE" "$MODE"
+        FCITX5_UPDATED=true
+    fi
+
+    # 使用缓存 JSON 渲染主题，避免再次读取壁纸和执行颜色提取。
+    if matugen json "$PALETTE_FILE" -t "$STRATEGY" -m "$MODE"; then
         # 状态持久化: 仅在成功时写入, 失败则下次仍会重新生成
         echo "$SELECTED_INDEX" > "$CURRENT_INDEX_FILE"
         echo "$WALLPAPER" > "$LAST_WALL_FILE"
+        echo "$PALETTE_FINGERPRINT" > "$PALETTE_FINGERPRINT_FILE"
     else
-        notify-send "Matugen Error" "matugen 生成失败，状态未更新"
+        notify-send "Matugen Error" "主题生成失败，状态未更新"
         exit 1
     fi
 fi
@@ -274,9 +345,9 @@ echo "$WALLPAPER" > "$LAST_PROCESSED_WALL_FILE"
 # 单独用最小 Matugen 配置生成 light/dark 两份 Fcitx5 主题，避免为了
 # 输入法重复生成 Waybar 等其他目标。Fcitx5 根据当前桌面的明暗设置选择。
 FCITX5_UPDATE="$HOME/.config/matugen/scripts/matugen-fcitx5.sh"
-if [[ -x "$FCITX5_UPDATE" ]]; then
-    "$FCITX5_UPDATE" "$WALLPAPER" "${SELECTED_INDEX:-0}" "$STRATEGY"
-    fcitx5-remote -r >/dev/null 2>&1 || true
+if [[ "$FCITX5_UPDATED" != true && -x "$FCITX5_UPDATE" ]]; then
+    set_fcitx_theme_mode
+    "$FCITX5_UPDATE" "$WALLPAPER" "${SELECTED_INDEX:-0}" "$STRATEGY" "${PALETTE_FILE:-}" "$MODE"
 fi
 
 # --- 8. GTK 外观由 gtk-theme-by-time.timer 管理 ---
