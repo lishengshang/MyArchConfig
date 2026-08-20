@@ -1,0 +1,11 @@
+[Unit]
+Description=Switch GTK theme at 07:00 and 18:00 local time
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+OnCalendar=*-*-* 18:00:00
+Persistent=true
+Unit=gtk-theme-by-time.service
+
+[Install]
+WantedBy=timers.target

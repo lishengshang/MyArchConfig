@@ -270,15 +270,15 @@ fi
 # [新增]：将本次成功生成的壁纸路径持久化到要求2的目录中
 echo "$WALLPAPER" > "$LAST_PROCESSED_WALL_FILE"
 
-# --- 7. 刷新 GNOME 主题设置 ---
-if [ "$MODE" == "light" ]; then
-    gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
-    gsettings set org.gnome.desktop.interface color-scheme "prefer-light"
-    gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk3-dark"
-    gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk"
-else
-    gsettings set org.gnome.desktop.interface color-scheme "prefer-light"
-    gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
-    gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk"
-    gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk3-dark"
+# --- 7. Fcitx5 双模式主题 ---
+# 单独用最小 Matugen 配置生成 light/dark 两份 Fcitx5 主题，避免为了
+# 输入法重复生成 Waybar 等其他目标。Fcitx5 根据当前桌面的明暗设置选择。
+FCITX5_UPDATE="$HOME/.config/matugen/scripts/matugen-fcitx5.sh"
+if [[ -x "$FCITX5_UPDATE" ]]; then
+    "$FCITX5_UPDATE" "$WALLPAPER" "${SELECTED_INDEX:-0}" "$STRATEGY"
+    fcitx5-remote -r >/dev/null 2>&1 || true
 fi
+
+# --- 8. GTK 外观由 gtk-theme-by-time.timer 管理 ---
+# Matugen 只负责生成 GTK CSS 颜色，不在每次换壁纸时覆盖 GTK 的主题/深浅色。
+# 这样 Niri 的定时主题和 KDE 自己的 GTK 主题策略不会被壁纸更新打断。

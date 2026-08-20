@@ -22,7 +22,10 @@ fi
 
 for pkg in "${!VARIANTS[@]}"; do
     config_dir="${VARIANTS[$pkg]}"
-    if pacman -Qq "$pkg" >/dev/null 2>&1; then
+    # pacman -Qq accepts package provides (for example `code` is provided by
+    # visual-studio-code-bin). Match the installed package name exactly so a
+    # VS Code OSS directory is not probed when only the binary package exists.
+    if pacman -Qq 2>/dev/null | grep -Fx "$pkg" >/dev/null; then
         user_dir="$HOME/.config/$config_dir/User"
         base_settings="$user_dir/settings.base.json"
         vscode_settings="$user_dir/settings.json"

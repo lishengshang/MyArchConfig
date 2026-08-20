@@ -278,8 +278,7 @@ find "$TARGET_DIR/scalable/mimetypes" -name "x-office-document*.svg" -print0 | x
 find "$TARGET_DIR/scalable/mimetypes" -name "x-office-presentation*.svg" -print0 | xargs -0 -P0 sed -i "$CMD_PRES"
 # [Group 10] Mimetypes - Audio
 find "$TARGET_DIR/scalable/mimetypes" -name "audio-x-generic*.svg" -print0 | xargs -0 -P0 sed -i "$CMD_AUDIO"
-# 4. 应用变更
-gsettings set org.gnome.desktop.interface icon-theme "$TARGET_THEME"
-flatpak override --user --env=ICON_THEME="$TARGET_THEME" 2>/dev/null || true
-
+# 4. 生成完成，但不修改全局 icon-theme。
+# 主题文件保留在 ~/.local/share/icons/Adwaita-Matugen-{A,B}，需要时可手动选择；
+# 不自动写 GSettings/Flatpak override，避免覆盖 GTK 定时器或 KDE 自己的图标策略。
 exit 0

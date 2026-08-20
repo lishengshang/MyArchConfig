@@ -33,10 +33,10 @@ input_path = '~/.config/matugen/templates/kitty-colors.conf'
 output_path ='~/.config/kitty/themes/matugen.conf'
 post_hook = "kitty +kitten themes --reload-in=all matugen &>/dev/null &"
 
-# [templates.fcitx5]
-# input_path = '~/.config/matugen/templates/fcitx5-theme.conf'
-# output_path = '~/.local/share/fcitx5/themes/Matugen/theme.conf'
-# post_hook= 'fcitx5 -r & disown '
+[templates.fcitx5]
+input_path = '~/.config/matugen/templates/fcitx5-theme.conf'
+output_path = '~/.local/share/fcitx5/themes/Matugen/theme.conf'
+post_hook = 'fcitx5-remote -r >/dev/null 2>&1 || true'
 
 [templates.mako]
 input_path = '~/.config/matugen/templates/mako-colors.conf'
