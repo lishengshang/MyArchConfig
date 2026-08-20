@@ -235,6 +235,21 @@ if ((${#aur_packages[@]} > 0)); then
     fi
 fi
 
+# --- 4. Rust 用户工具 ---
+# nirinit 不是 pacman/AUR 包，而是 cargo crate。仅在显式选择 niri
+# profile 且命令缺失时安装，避免每次 bootstrap 都覆盖用户已有版本。
+if printf '%s\n' "${PROFILES[@]}" | grep -Fxq niri; then
+    if command -v nirinit >/dev/null 2>&1; then
+        echo "✓ nirinit 已存在: $(command -v nirinit)"
+    elif $DRY_RUN; then
+        echo "[dry-run] cargo install --locked nirinit"
+    elif command -v cargo >/dev/null 2>&1; then
+        cargo install --locked nirinit
+    else
+        echo "警告: 未找到 cargo，无法安装 nirinit；会话恢复功能不可用" >&2
+    fi
+fi
+
 echo
 if $DRY_RUN; then
     echo "=== [dry-run] 以上是会安装的包，实际未执行。 ==="

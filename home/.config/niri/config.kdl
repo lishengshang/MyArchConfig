@@ -173,13 +173,14 @@ spawn-at-startup "mako"
 // 任务栏
 spawn-at-startup "waybar"
 
-// 输入法
+// 输入法：Niri 使用 Matugen-Light/Matugen-Dark；KDE 会话使用 Plasma 配置
+spawn-at-startup "~/.config/scripts/fcitx5-session-theme.sh" "niri"
 spawn-at-startup "fcitx5" 
 
 // 剪贴板守护进程
-//cliphist
-// wayland <--> x11 剪贴板同步 这个包是我自己推的clipsync-git
-spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
+// 默认不自动保存剪贴板，避免密码/Token 被长期写入历史；需要时创建
+// ~/.config/niri/clipboard-history.enabled，再手动启动脚本或重启 Niri。
+spawn-at-startup "~/.config/niri/scripts/clipboard-history.sh"
 //spawn-at-startup "systemctl" "--user" "start" "linuxqq-clipsync"
 
 // 闲置时自动熄屏锁屏睡眠：由 systemd user service 管理
@@ -216,7 +217,7 @@ hotkey-overlay {
 
 // 合盖立即锁屏（比 swayidle before-sleep 更即时；合盖外接屏使用时注意）
 switch-events {
-    lid-close { spawn "~/.config/niri/scripts/lock-screen.sh"; }
+    lid-close { spawn "~/.config/niri/scripts/lock-screen.sh" "--wait-ready"; }
 }
 
 // 隐藏窗口标题栏

@@ -1,4 +1,5 @@
 # AUR additions for the Niri profile.
+nirius
 waypaper
 wl-longshot-git
 wl-screenrec-git

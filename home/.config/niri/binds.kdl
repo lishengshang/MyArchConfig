@@ -73,7 +73,7 @@ binds {
     Mod+X hotkey-overlay-title="切换标签页显示 Toggle column tabbed display" { toggle-column-tabbed-display; }
     Mod+Shift+B hotkey-overlay-title="切换浮动/平铺聚焦 Switch focus between floating and tiling" { switch-focus-between-floating-and-tiling; }
     Mod+N hotkey-overlay-title="切换浮动聚焦 Change focus to floating" { switch-focus-between-floating-and-tiling; }
-    Alt+grave hotkey-overlay-title="切换浮动/平铺聚焦 Switch focus between floating and tiling" { switch-focus-between-floating-and-tiling; }
+    // Alt+grave 保留给 recent-windows 的同应用窗口切换，避免快捷键冲突。
 
     // 鼠标辅助
     Mod+WheelScrollDown hotkey-overlay-title="滚轮切换聚焦 Change focus with wheel" { focus-column-right; }
@@ -239,12 +239,12 @@ binds {
 
     // 剪贴板
     Mod+V hotkey-overlay-title="剪贴板 Clipboard" {
-        spawn-sh "nirius focus-or-spawn --app-id cliphist-tui -- kitty --single-instance --class cliphist-tui -e cliphist-tui"
+        spawn "~/.config/niri/scripts/clipboard-history-ui.sh"
     }
 
     // 锁屏与电源（锁屏统一走 lock-screen.sh，与自动锁屏同一个 hyprlock）
     // allow-when-locked=true：hyprlock 崩溃（红屏）时可重新拉起锁屏恢复（官方 FAQ 推荐）
-    Mod+Alt+L allow-when-locked=true allow-inhibiting=false hotkey-overlay-title="锁屏 Lock screen" { spawn "~/.config/niri/scripts/lock-screen.sh"; }
+    Mod+Alt+L allow-when-locked=true allow-inhibiting=false hotkey-overlay-title="锁屏 Lock screen" { spawn "~/.config/niri/scripts/lock-screen.sh" "--wait-ready"; }
     Mod+Shift+P hotkey-overlay-title="电源菜单 Powermenu" { spawn "~/.config/niri/scripts/powermenu"; }
 
     // 会话恢复

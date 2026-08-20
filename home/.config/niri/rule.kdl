@@ -20,13 +20,13 @@ window-rule {
 // Kitty 终端透明度
 window-rule {
     match app-id="kitty"
-    opacity 0.92
+    opacity 0.95
 }
 
 // Ghostty 终端透明度
 window-rule {
     match app-id="ghostty"
-    opacity 0.92
+    opacity 0.95
 }
 
 // 取消图片预览、视频播放器之类的透明度，并且以浮动模式打开

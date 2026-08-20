@@ -1,6 +1,8 @@
 # systemd user units provided by or enabled from this dotfiles repository.
 dotfiles-autocommit.timer
+gtk-theme-by-time.timer
 dotfiles-autocommit.service
+gtk-theme-by-time.service
 random-api-wallpaper.timer
 random-api-wallpaper.service
 awww-overview-daemon.service

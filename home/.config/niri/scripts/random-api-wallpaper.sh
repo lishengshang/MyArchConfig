@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 
-# 该脚本由全局 user timer 调度；linger 用户管理器在 KDE 中也会继续运行。
+# 该脚本由 user timer 和快捷键共同调用；linger 用户管理器在 KDE 中也会继续运行。
 # 必须在最前面判断 Niri，不能等 waypaper/matugen 执行后再判断。
 if ! pgrep -u "${UID:-$(id -u)}" -x niri >/dev/null 2>&1; then
     exit 0
 fi
+
+# timer、快捷键和 waypaper post-command 可能同时触发；使用用户 runtime
+# 锁保证“选图 -> 写 waypaper -> Matugen -> overview 背景”是单实例的。
+LOCK_ROOT="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+[[ -d "$LOCK_ROOT" ]] || LOCK_ROOT=/tmp
+exec 9>"$LOCK_ROOT/random-api-wallpaper-${UID:-$(id -u)}.lock"
+flock -n 9 || {
+    echo "random wallpaper update already running; skip" >&2
+    exit 0
+}
 
 WALLPAPER_DIR="$HOME/Pictures/Wallpapers/api-random-download"
 WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"

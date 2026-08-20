@@ -97,6 +97,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/lishengshang/MyArchConfig/ma
 # 2. 装包（默认安装当前机器 generated lists）
 bash ~/dotfiles/bootstrap.sh
 
+# Niri profile 会额外安装 nirius；若缺少 nirinit 且本机有 cargo，
+# bootstrap 会执行 cargo install --locked nirinit。clipsync-git 是外部可选组件，
+# 不会被自动安装。
+
 # 或选择额外的手工 profile
 bash ~/dotfiles/bootstrap.sh --profile core,niri,desktop
 
@@ -118,6 +122,47 @@ sudo loginctl enable-linger $USER
 ```
 
 详见 [HOW.md](HOW.md)。
+
+### GTK 定时主题
+
+Niri 会话中的 `gtk-theme-by-time.timer` 会按本地时间在每天 07:00 和 18:00 切换 GTK 外观：
+07:00–18:00 使用已安装的 `Breeze`，18:00–次日 07:00 使用 `Breeze-Dark`。
+它只在检测到 Niri 运行时执行；切换到 KDE 后由 KDE 自己管理 GTK 外观，不会被本定时器覆盖。
+它只修改 GNOME/GTK 的 GSettings，不修改 KDE/Qt 主题，也不会改写 Stow 管理的 `settings.ini`。
+已有 GTK 程序可能需要重启后才完全刷新外观。Matugen 只生成 GTK CSS 颜色，不再在换壁纸时覆盖这套定时主题。
+
+### Niri 可选功能
+
+剪贴板历史默认关闭，避免密码和 Token 被持久化保存。需要启用时执行：
+
+```bash
+touch ~/.config/niri/clipboard-history.enabled
+nohup ~/.config/niri/scripts/clipboard-history.sh >/dev/null 2>&1 &
+```
+
+关闭并清理已有历史：
+
+```bash
+rm -f ~/.config/niri/clipboard-history.enabled ~/.cache/cliphist/db
+```
+
+锁屏使用 Matugen 主题，但缺少动态颜色文件时会自动使用仓库内的静态回退颜色。
+
+Fcitx5 会按桌面会话切换配置：Niri 使用 Matugen-Light/Matugen-Dark，KDE 使用 KDE Plasma 的 `plasma` 主题，并跟随 KDE 的明暗设置。运行时的 `classicui.conf` 不再由 Stow 直接管理，由会话脚本生成。
+
+`nirinit` 由 `cargo install --locked nirinit` 管理；`clipsync-git` 不属于仓库包 profile，
+仅在你明确需要 Wayland/X11 剪贴板同步时单独安装。
+
+剪贴板 TUI 的默认快捷键是 `Mod+V`（通常为 Super+V）。自定义 TUI 支持：
+
+```text
+Enter/Ctrl-F  粘贴
+Ctrl-P        固定/取消固定当前记录
+Ctrl-X        删除当前记录（需要确认）
+Alt-X         清空全部记录（需要确认）
+Ctrl-R        返回列表后刷新
+```
+固定状态只保存 cliphist ID，不额外复制正文。
 
 ### 日常使用
 

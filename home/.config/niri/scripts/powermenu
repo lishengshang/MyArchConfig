@@ -22,9 +22,9 @@ fi
 
 OPTIONS="${OPT_LOCK}\n${OPT_SCREEN_OFF}\n${OPT_QUIT}\n${OPT_SUSPEND}\n${OPT_HIBERNATE}\n${OPT_REBOOT}\n${OPT_POWEROFF}"
 
-# 锁屏（统一入口：hyprlock，已锁定则跳过；脚本立即返回，不阻塞后续动作）
+# 锁屏（统一入口：hyprlock，已锁定则跳过；等待锁屏建立后再继续）
 do_lock() {
-    "$HOME/.config/niri/scripts/lock-screen.sh"
+    "$HOME/.config/niri/scripts/lock-screen.sh" --wait-ready
 }
 
 CHOICE=$(echo -e "$OPTIONS" | fuzzel --dmenu --width 14 --lines 7)

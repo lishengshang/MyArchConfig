@@ -39,10 +39,10 @@ SCREEN_TIMEOUT=600      # 10 分钟：熄屏（锁屏后 2 分钟，未锁定则
 SUSPEND_TIMEOUT=1200    # 20 分钟：挂起（挂起满 1.5 小时后自动转休眠）
 
 # 统一锁屏入口。
-# 普通 timeout 使用异步模式；熄屏和 before-sleep 使用 --wait-ready，
-# 确认 hyprlock 已建立后再继续，避免系统在锁屏建立前 suspend。
+# 所有 timeout 和 before-sleep 都使用 --wait-ready，确认 hyprlock 已建立后
+# 再继续，避免锁屏失败后继续熄屏或 suspend。
 # 注意：swayidle 用 sh -c 执行命令字符串，这里的 $HOME 会在运行时由 sh 展开。
-LOCK_CMD='$HOME/.config/niri/scripts/lock-screen.sh'
+LOCK_CMD='$HOME/.config/niri/scripts/lock-screen.sh --wait-ready'
 LOCK_READY_CMD='$HOME/.config/niri/scripts/lock-screen.sh --wait-ready'
 
 # ─── 日志辅助 ────────────────────────────────────────────────────────────────

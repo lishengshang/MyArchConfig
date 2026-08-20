@@ -94,11 +94,14 @@ else
 fi
 
 section "外部 user service"
-if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
-    if systemctl --user list-unit-files 2>/dev/null | grep -q '^clipsync-git\.service'; then
+if [[ ! -e "$HOME/.config/niri/clipboard-sync.enabled" ]]; then
+    ok "外部 clipsync-git 同步默认关闭，跳过检查"
+elif command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+    if systemctl --user list-unit-files --no-legend 2>/dev/null \
+        | grep -q '^clipsync-git\.service[[:space:]]'; then
         ok "clipsync-git.service 已安装"
     else
-        warn "clipsync-git.service 未安装（Waybar 剪贴板同步按钮不可用）"
+        warn "clipsync-git.service 未安装（剪贴板同步功能不可用）"
     fi
 else
     warn "user systemd manager 不可用，跳过外部 service 检查"
@@ -106,13 +109,32 @@ fi
 
 section "Systemd user units"
 if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
-    for unit in dotfiles-autocommit.timer random-api-wallpaper.timer awww-overview-daemon.service swayidle.service; do
-        if systemctl --user is-enabled "$unit" >/dev/null 2>&1; then
-            ok "$unit 已启用"
-        else
-            warn "$unit 未启用"
-        fi
-    done
+    # dotfiles-autocommit 是真正需要 enable 的独立 timer。
+    if systemctl --user is-enabled dotfiles-autocommit.timer >/dev/null 2>&1; then
+        ok "dotfiles-autocommit.timer 已启用"
+    else
+        warn "dotfiles-autocommit.timer 未启用"
+    fi
+
+    # 这些单元故意不全局 enable，而是在 Niri 会话中由
+    # niri-session-services.sh 显式启动；检查运行状态而不是 enable 状态。
+    if pgrep -u "${UID:-$(id -u)}" -x niri >/dev/null 2>&1; then
+        for unit in random-api-wallpaper.timer awww-overview-daemon.service swayidle.service gtk-theme-by-time.timer; do
+            if systemctl --user is-active --quiet "$unit"; then
+                ok "$unit 在 Niri 会话中运行"
+            else
+                warn "$unit 未在 Niri 会话中运行"
+            fi
+        done
+    else
+        for unit in random-api-wallpaper.timer awww-overview-daemon.service swayidle.service gtk-theme-by-time.timer; do
+            if systemctl --user is-active --quiet "$unit"; then
+                warn "$unit 在非 Niri 会话中运行（应停止）"
+            else
+                ok "$unit 在非 Niri 会话中未运行"
+            fi
+        done
+    fi
 else
     warn "user systemd manager 不可用，跳过 unit 检查"
 fi

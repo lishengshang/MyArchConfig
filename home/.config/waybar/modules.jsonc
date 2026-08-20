@@ -204,7 +204,7 @@
     "tooltip-format": "左键：软件启动菜单\n右键：打开终端",
     "format": "",
     "on-click": "fuzzel",
-    "on-click-right": "kitty || ghostty || alacritty || foot || konsole",
+    "on-click-right": "kitty || ghostty || alacritty || foot || konsole"
     // "on-click-middle": "~/.config/scripts/toggle-overview-blur.sh"
   },
   //电源菜单
@@ -428,9 +428,9 @@
   //剪贴板
   "custom/clipboard": {
     "format": "󰅍",
-    "on-click": "kitty --class cliphist-tui -e cliphist-tui",
-    "on-click-middle": "pkill wl-paste 2>/dev/null; sleep 0.3; nohup wl-paste --watch cliphist store >/dev/null 2>&1 & sleep 0.5 && systemctl restart --user clipsync-git",
-    "on-click-right": "rm -f ~/.cache/cliphist/db",
+    "on-click": "~/.config/niri/scripts/clipboard-history-ui.sh",
+    "on-click-middle": "~/.config/niri/scripts/restart-clipboard-history.sh",
+    "on-click-right": "~/.config/niri/scripts/clipboard-history-clear.sh",
     "tooltip-format": "左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
   },
   // 壁纸切换
