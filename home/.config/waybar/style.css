@@ -1,4 +1,9 @@
+/* Matugen controls Waybar's palette when the wallpaper changes.
+   GTK/system light-dark switching is kept separate from this import. */
 @import "colors.css";
+
+/* colors.css does not define this helper used by the tray modules. */
+@define-color on_surface_container @on_surface;
 
 /* 核心逻辑：全相对单位 (em) 改造
    基准字体大小：18px

@@ -170,8 +170,10 @@ spawn-at-startup "~/.config/niri/scripts/niri-session-services.sh"
 // 通知程序
 spawn-at-startup "mako"
 
-// 任务栏
-spawn-at-startup "waybar"
+// 任务栏：Waybar 固定使用深色 GTK 外观，不跟随桌面的明暗模式
+// Waybar keeps its dark panel style; global GTK applications use Adwaita icons.
+// It loads a generated runtime stylesheet so Matugen colors can hot-reload.
+spawn-sh-at-startup "~/.config/scripts/waybar-reload-colors.sh && GTK_THEME=Breeze-Dark waybar -s ~/.config/waybar/style.runtime.css"
 
 // 输入法：Niri 使用 Matugen-Light/Matugen-Dark；KDE 会话使用 Plasma 配置
 spawn-at-startup "~/.config/scripts/fcitx5-session-theme.sh" "niri"
