@@ -250,27 +250,31 @@
     "on-scroll-down": "true"
   },
   //内屏亮度
-  "backlight/slider": {
-    "min": 5,
-    "max": 100,
-    "orientation": "horizontal"
-  },
-  "backlight": {
-    "tooltip": true,
-    "tooltip-format": "调节内屏亮度",
-    "format": "{icon}",
-    "format-icons": [
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      ""
-    ]
-  },
+  // 禁用原因：本机唯一背光设备是 NVIDIA 驱动注册的 /sys/class/backlight/nvidia_0，
+  // Waybar 原生 backlight 模块周期读取它会与 NVIDIA suspend 注销背光
+  // （nvidia-sleep.sh -> backlight_device_unregister）发生驱动内部锁死，导致睡死。
+  // 内屏亮度改用桌面环境快捷键或 brightnessctl 手动控制。
+  // "backlight/slider": {
+  //   "min": 5,
+  //   "max": 100,
+  //   "orientation": "horizontal"
+  // },
+  // "backlight": {
+  //   "tooltip": true,
+  //   "tooltip-format": "调节内屏亮度",
+  //   "format": "{icon}",
+  //   "format-icons": [
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     ""
+  //   ]
+  // },
   //调节外接屏幕亮度
   "group/ddcutil": {
     "orientation": "inherit",
@@ -279,8 +283,8 @@
     },
     "modules": [
       "custom/ddcutil-day",
-      "backlight/slider",
-      "backlight",
+      // "backlight/slider",
+      // "backlight",
       "custom/separator#1",
       "custom/ddcutil-sleep",
       "custom/ddcutil-night"
