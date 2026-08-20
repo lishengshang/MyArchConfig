@@ -50,17 +50,20 @@ confirm() {
 }
 
 build_menu() {
-    local id content marker
+    local id content
+    # First pass: pinned items (★) at the top
     cliphist list | while IFS=$'\t' read -r id content; do
         [[ "$id" =~ ^[0-9]+$ ]] || continue
         if is_pinned "$id"; then
-            marker='★'
-        else
-            marker=' '
+            printf '★\t%s\t%s\n' "$id" "$content"
         fi
-        # Field 1 is the visual marker, field 2 is the stable cliphist ID,
-        # and field 3+ is the original cliphist preview text.
-        printf '%s\t%s\t%s\n' "$marker" "$id" "$content"
+    done
+    # Second pass: unpinned items below
+    cliphist list | while IFS=$'\t' read -r id content; do
+        [[ "$id" =~ ^[0-9]+$ ]] || continue
+        if ! is_pinned "$id"; then
+            printf ' \t%s\t%s\n' "$id" "$content"
+        fi
     done
 }
 
@@ -69,12 +72,13 @@ while true; do
         --no-sort \
         --delimiter=$'\t' \
         --with-nth='1,3..' \
+        --tabstop=1 \
         --height=100% \
         --layout=reverse \
         --border \
         --prompt='剪贴板> ' \
-        --header='Enter/Ctrl-F 粘贴 | Ctrl-P 固定 | Ctrl-X 删除 | Alt-X 清空 | Ctrl-R 刷新' \
-        --expect=ctrl-p,ctrl-x,alt-x,ctrl-r \
+        --header=$'Enter/^F 粘贴 · ^P 固定 · ^X 删除\nAlt-X 清空 · ^R 刷新' \
+        --expect=ctrl-p,ctrl-x,alt-x,ctrl-r,ctrl-f \
         2>/dev/null || true)
 
     [[ -n "$selected" ]] || exit 0
@@ -96,9 +100,13 @@ while true; do
             toggle_pin "$id"
             ;;
         ctrl-x)
-            if confirm "确认删除第 $id 条记录？"; then
+            if is_pinned "$id"; then
+                if confirm "确认删除第 $id 条（星标）？"; then
+                    printf '%s\n' "$original" | cliphist delete >/dev/null
+                    sed -i -E "/^${id}$/d" "$PIN_FILE"
+                fi
+            else
                 printf '%s\n' "$original" | cliphist delete >/dev/null
-                sed -i -E "/^${id}$/d" "$PIN_FILE"
             fi
             ;;
         alt-x)
@@ -111,7 +119,7 @@ while true; do
             ;;
         *)
             # Enter and Ctrl-F both paste the selected full cliphist record.
-            printf '%s\n' "$original" | cliphist decode | wl-copy
+            printf '%s\n' "$original" | cliphist decode | wl-copy 2>/dev/null
             exit 0
             ;;
     esac
