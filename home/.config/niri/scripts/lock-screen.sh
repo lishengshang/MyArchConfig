@@ -36,19 +36,9 @@ LOCK_ROOT="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
 [[ -d "$LOCK_ROOT" ]] || LOCK_ROOT=/tmp
 LOCK_FILE="$LOCK_ROOT/dotfiles-hyprlock-${UID:-$(id -u)}.lock"
 exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
-    # 另一个实例正在启动。非等待调用方保持幂等返回；等待调用方
-    # 必须等待现有实例真正建立，不能在竞态窗口中再启动第二个实例。
-    if ! $WAIT_READY; then
-        exit 0
-    fi
-    if wait_ready; then
-        exit 0
-    fi
-    echo "已有 hyprlock 实例未能在 5 秒内建立" >&2
-    exit 1
-fi
 
+# 函数必须定义在 flock 抢占路径之前：抢占路径会调用 wait_ready，
+# 若定义在调用之后，bash 会报“wait_ready: 未找到命令”并因 set -e 中断。
 is_locked() {
     pgrep -x -u "${UID:-$(id -u)}" hyprlock >/dev/null 2>&1
 }
@@ -66,6 +56,19 @@ wait_ready() {
     done
     return 1
 }
+
+if ! flock -n 9; then
+    # 另一个实例正在启动。非等待调用方保持幂等返回；等待调用方
+    # 必须等待现有实例真正建立，不能在竞态窗口中再启动第二个实例。
+    if ! $WAIT_READY; then
+        exit 0
+    fi
+    if wait_ready; then
+        exit 0
+    fi
+    echo "已有 hyprlock 实例未能在 5 秒内建立" >&2
+    exit 1
+fi
 
 # 已锁定则幂等返回；--wait-ready 视为已满足。
 if is_locked; then
