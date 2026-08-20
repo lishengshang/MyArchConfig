@@ -28,7 +28,9 @@ CACHE_SUBDIR_NAME="niri-overview-blur-dark"
 LINK_NAME="cache-niri-overview-blur-dark"
 
 # --- 自动预生成与清理配置 ---
-AUTO_PREGEN="true"               # true/false：是否在后台进行维护
+# Do not launch ImageMagick for every wallpaper in WALL_DIR on each switch.
+# That background sweep competes with the compositor and causes visible stalls.
+AUTO_PREGEN="false"              # true/false：是否在后台进行维护
 ORPHAN_CACHE_LIMIT=10            # 允许保留多少个“非重要壁纸”的缓存
 
 # [关键配置] 重要壁纸目录
@@ -164,9 +166,9 @@ for monitor in "${!MONITOR_WALLPAPERS[@]}"; do
         # 直接写同一路径会互相覆盖导致缓存损坏 (awww img 解码失败)
         TMP_OUT_PATH="$FINAL_IMG_PATH.tmp.$$"
         if [[ -n "$IMG_FILL_COLOR" && -n "$IMG_COLORIZE_STRENGTH" ]]; then
-            magick "${img_path}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$TMP_OUT_PATH"
+            magick "${img_path}[0]" -auto-orient -resize '2560x2560>' -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$TMP_OUT_PATH"
         else
-            magick "${img_path}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$TMP_OUT_PATH"
+            magick "${img_path}[0]" -auto-orient -resize '2560x2560>' -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$TMP_OUT_PATH"
         fi
         
         if [ $? -eq 0 ] && [ -f "$TMP_OUT_PATH" ]; then
@@ -250,9 +252,9 @@ run_maintenance_in_background() {
             fi
 
             if [[ -n "$IMG_FILL_COLOR" && -n "$IMG_COLORIZE_STRENGTH" ]]; then
-                magick "${img}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$tgt.tmp.$$"
+                magick "${img}[0]" -auto-orient -resize '2560x2560>' -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" -fill "$IMG_FILL_COLOR" -colorize "$IMG_COLORIZE_STRENGTH" "$tgt.tmp.$$"
             else
-                magick "${img}[0]" -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$tgt.tmp.$$"
+                magick "${img}[0]" -auto-orient -resize '2560x2560>' -colorspace sRGB -blur "$IMG_BLUR_STRENGTH" "$tgt.tmp.$$"
             fi
             # 原子落盘: 与前台生成并发时防止写坏缓存文件
             mv -f "$tgt.tmp.$$" "$tgt" 2>/dev/null || rm -f "$tgt.tmp.$$"
