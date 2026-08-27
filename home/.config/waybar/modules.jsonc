@@ -430,13 +430,13 @@
   "dwl/window": {
     "format": "[{layout}]{title}"
   },
-  //剪贴板
+  //剪贴板 - niri-clip 独立
   "custom/clipboard": {
     "format": "󰅍",
-    "on-click": "~/.config/niri/scripts/clipboard-history-ui.sh",
-    "on-click-middle": "~/.config/niri/scripts/restart-clipboard-history.sh",
-    "on-click-right": "~/.config/niri/scripts/clipboard-history-clear.sh",
-    "tooltip-format": "左键：打开剪贴板\n右键：清除剪贴板历史\n中键：重启剪贴板后台服务"
+    "on-click": "niri-clip tui",
+    "on-click-middle": "systemctl --user restart niri-clip",
+    "on-click-right": "niri-clip wipe",
+    "tooltip-format": "左键：打开剪贴板\n右键：清空历史\n中键：重启服务"
   },
   // 壁纸切换
   "custom/wallpapers": {
