@@ -7,4 +7,4 @@ OnUnitActiveSec=8min
 Unit=random-api-wallpaper.service
 
 [Install]
-WantedBy=timers.target
+WantedBy=graphical-session.target

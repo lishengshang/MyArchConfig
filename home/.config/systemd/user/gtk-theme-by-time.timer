@@ -8,4 +8,4 @@ Persistent=true
 Unit=gtk-theme-by-time.service
 
 [Install]
-WantedBy=timers.target
+WantedBy=graphical-session.target
