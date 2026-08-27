@@ -430,13 +430,13 @@
   "dwl/window": {
     "format": "[{layout}]{title}"
   },
-  //剪贴板 - niri-clip 独立
+  //剪贴板 - niri-clip 独立 (平铺，与 Mod+V 一致)
   "custom/clipboard": {
     "format": "󰅍",
-    "on-click": "niri-clip tui",
+    "on-click": "kitty --class niri-clip -e niri-clip tui",
     "on-click-middle": "systemctl --user restart niri-clip",
     "on-click-right": "niri-clip wipe",
-    "tooltip-format": "左键：打开剪贴板\n右键：清空历史\n中键：重启服务"
+    "tooltip-format": "左键：打开剪贴板 (平铺)\n右键：清空历史\n中键：重启服务"
   },
   // 壁纸切换
   "custom/wallpapers": {

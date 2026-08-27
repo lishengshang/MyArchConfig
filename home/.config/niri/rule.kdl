@@ -52,16 +52,22 @@ window-rule {
     open-floating true
 }
 
-// shorinclip剪贴板TUI 
+// niri-clip 剪贴板 - 平铺，大小与旧浮动一致
 window-rule{
-	match app-id="shorinclip"
-	match app-id="cliphist-tui"
+	match app-id="niri-clip"
 	default-column-width { fixed 500; }
     default-window-height { fixed 675; }
-    //min-height 800
-	open-floating true
-	default-floating-position x=50 y=100 relative-to="top"
 }
+
+// 旧 shorinclip/cliphist 浮动规则已废弃，保留注释
+// window-rule{
+// 	match app-id="shorinclip"
+// 	match app-id="cliphist-tui"
+// 	default-column-width { fixed 500; }
+//     default-window-height { fixed 675; }
+// 	open-floating true
+// 	default-floating-position x=50 y=100 relative-to="top"
+// }
 
 // window-rule{
 // 	match app-id="yesplaymusic"
