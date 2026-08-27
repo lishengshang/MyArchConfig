@@ -237,8 +237,8 @@ binds {
     // 触控板禁用切换（翻转 config.kdl 的 off，niri live-reload 即时生效，无需 sudo）
     Mod+F3 { spawn "~/.config/niri/scripts/toggle-touchpad.sh"; }
 
-    // 剪贴板
-    Mod+V hotkey-overlay-title="剪贴板 Clipboard" {
+    // 剪贴板 - niri-clip (独立)
+    Mod+V hotkey-overlay-title="剪贴板" {
         spawn "~/.config/niri/scripts/clipboard-history-ui.sh"
     }
 
