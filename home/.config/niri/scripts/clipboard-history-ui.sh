@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
-# Open clipboard history only when the opt-in watcher is enabled.
+# Open clipboard history - niri-clip v0.4 independent
 set -Eeuo pipefail
-
 ENABLE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/niri/clipboard-history.enabled"
 if [[ ! -e "$ENABLE_FILE" ]]; then
-    notify-send "剪贴板历史已关闭" "如需启用，请创建 ~/.config/niri/clipboard-history.enabled" 2>/dev/null || true
+    notify-send "剪贴板历史已关闭" "创建 ~/.config/niri/clipboard-history.enabled 后再使用" 2>/dev/null || true
     exit 0
 fi
-
-if ! command -v nirius >/dev/null 2>&1; then
-    notify-send -u critical "剪贴板历史" "缺少命令: nirius" 2>/dev/null || true
-    exit 1
+# 直接用 niri spawn 新窗口，不复用旧的 --single-instance 旧窗口会显示陈旧 fzf
+# 若已有旧窗口，先关掉（避免 focus-or-spawn 复用空历史）
+if nirius focus --app-id cliphist-tui 2>/dev/null; then
+    niri msg action close-window 2>/dev/null || true
+    sleep 0.15
 fi
-
-exec nirius focus-or-spawn --app-id cliphist-tui -- \
-    kitty --single-instance --class cliphist-tui \
-    -e "$HOME/.config/niri/scripts/clipboard-history-tui.sh"
+exec niri msg action spawn -- "kitty" "--class" "cliphist-tui" "-e" "niri-clip" "tui"
