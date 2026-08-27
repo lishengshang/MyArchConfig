@@ -52,11 +52,13 @@ window-rule {
     open-floating true
 }
 
-// niri-clip 剪贴板 - 平铺，大小与旧浮动一致
+// niri-clip 剪贴板 - 浮动，大小与之前一致
 window-rule{
 	match app-id="niri-clip"
 	default-column-width { fixed 500; }
     default-window-height { fixed 675; }
+	open-floating true
+	default-floating-position x=50 y=100 relative-to="top"
 }
 
 // 旧 shorinclip/cliphist 浮动规则已废弃，保留注释
