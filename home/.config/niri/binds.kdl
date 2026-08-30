@@ -237,9 +237,10 @@ binds {
     // 触控板禁用切换（翻转 config.kdl 的 off，niri live-reload 即时生效，无需 sudo）
     Mod+F3 { spawn "~/.config/niri/scripts/toggle-touchpad.sh"; }
 
-    // 剪贴板 - niri-clip (独立)
+    // 剪贴板 - niri-clip (独立)：走 tui 后端选择（auto 优先原生 GUI）。
+    // 绝对路径：niri spawn 的 PATH 不含 ~/.cargo/bin
     Mod+V hotkey-overlay-title="剪贴板" {
-        spawn "~/.config/niri/scripts/clipboard-history-ui.sh"
+        spawn "/home/mio/.cargo/bin/niri-clip" "tui"
     }
 
     // 锁屏与电源（锁屏统一走 lock-screen.sh，与自动锁屏同一个 hyprlock）

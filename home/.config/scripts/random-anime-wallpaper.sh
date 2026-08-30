@@ -1,4 +1,6 @@
 #!/bin/bash
+# 随机下载动漫壁纸并应用 (Mod+Shift+F10)。
+# 依赖 wallpaper-lib.sh (同目录公共库): 锁 / 通知 / waypaper 同步 / 主题后处理。
 
 # ================= 默认配置 =================
 # 源池: name|url|extractor
@@ -14,6 +16,9 @@ SOURCES=(
     "uapis|https://uapis.cn/api/v1/random/image?category=acg&type=pc|"
     "touhou|https://img.paulzzh.com/touhou/random?size=pc|"
     "anosu|https://api.anosu.top/img|"
+    "zhuqiy|https://rimg.zhuqiy.top/api/random?type=pc|"
+    "horosama|https://api.horosama.com/random.php|"
+    "98qy|https://www.98qy.com/sjbz/api.php?method=pc&lx=dongman|"
     "yande|https://yande.re/post.json?tags=rating:safe+width:%3E=1920+score:%3E=15+order:random&limit=1|.[0].file_url"
     "wallhaven|https://wallhaven.cc/api/v1/search?categories=010&purity=100&sorting=toplist&topRange=3M&atleast=1920x1080&ratios=16x9,16x10&q=-ai%20art&page={{PAGE:10}}|.data[{{RANDOM}}].path"
     "wallhaven-hot|https://wallhaven.cc/api/v1/search?categories=010&purity=100&sorting=toplist&topRange=1M&atleast=1920x1080&ratios=16x9,16x10&q=-ai%20art&page={{PAGE:3}}|.data[{{RANDOM}}].path"
@@ -31,11 +36,14 @@ RECENT_EXCLUDE_COUNT=3
 # 自动清理时保留最近多少张图片
 KEEP_COUNT=1000
 
-# 阈值: 宽度小于此值(即1080P及以下)才进行超分,2K/4K 原图直出
-UPSCALE_THRESHOLD=2200
-
 # 最小宽度: 低于此宽度的图片直接丢弃 (防低清图)
 MIN_WIDTH=1280
+
+# 超分判断基准宽度: 取不到显示器分辨率时的 fallback 值
+FALLBACK_TARGET_WIDTH=2200
+
+# 图片宽度达到目标宽度的多少百分比才免于超分 (留余量避免小幅放大浪费 GPU)
+UPSCALE_RATIO=90
 
 # 失败降级: 最多尝试多少个源
 MAX_SOURCE_ATTEMPTS=3
@@ -45,6 +53,32 @@ ENABLE_CLEANUP=true   # 默认清理旧图片
 ENABLE_UPSCALE=true   # 默认开启智能超分
 SILENT_MODE=false     # 默认开启通知
 FORCED_SOURCE=""      # 默认随机; 用 -S <name> 指定
+
+# ================= 公共库 =================
+# 经 stow symlink 调用时解析到 dotfiles 仓库内的真实目录
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
+# shellcheck source=wallpaper-lib.sh
+source "$SCRIPT_DIR/wallpaper-lib.sh"
+WALLPAPER_SILENT=$SILENT_MODE
+
+# ImageMagick 7 优先, 回退 ImageMagick 6
+if command -v magick &> /dev/null; then
+    MAGICK_CMD="magick"
+elif command -v convert &> /dev/null; then
+    MAGICK_CMD="convert"
+else
+    MAGICK_CMD=""
+fi
+
+# 超分工具: 优先 Real-ESRGAN (realesr-animevideov3 为二次元图优化, 且速度更快),
+# waifu2x 仅作后备
+if command -v realesrgan-ncnn-vulkan &> /dev/null; then
+    UPSCALE_TOOL="realesrgan"
+elif command -v waifu2x-ncnn-vulkan &> /dev/null; then
+    UPSCALE_TOOL="waifu2x"
+else
+    UPSCALE_TOOL=""
+fi
 
 # ================= 参数解析 =================
 usage() {
@@ -61,7 +95,7 @@ while getopts "knS:sh" opt; do
   case $opt in
     k) ENABLE_CLEANUP=false ;;
     n) ENABLE_UPSCALE=false ;;
-    s) SILENT_MODE=true ;;
+    s) SILENT_MODE=true; WALLPAPER_SILENT=true ;;
     S) FORCED_SOURCE="$OPTARG" ;;
     h) usage ;;
     *) usage ;;
@@ -69,15 +103,6 @@ while getopts "knS:sh" opt; do
 done
 
 # ================= 辅助函数 =================
-
-send_notify() {
-    # $1: Title, $2: Body, 其余参数: 透传给 notify-send
-    if [ "$SILENT_MODE" = false ]; then
-        local title="$1" body="$2"
-        shift 2
-        notify-send "$title" "$body" "$@"
-    fi
-}
 
 # 校验下载结果: 文件存在 + 大小 >= 20KB + MIME 是 image/*
 # 用法: validate_image <path>  -> 返回 0 成功 / 1 失败
@@ -103,6 +128,32 @@ validate_geometry() {
     [ "$h" -le "$w" ] || return 1
     [ "$w" -ge "$MIN_WIDTH" ] || return 1
     return 0
+}
+
+# 统一转 JPG: 非 JPEG 内容用 ImageMagick 重编码 (quality 93, auto-orient 纠正 EXIF 旋转),
+# 保证下游 (超分/waypaper/清理/随机切换) 只处理一种格式。转换失败返回 1, 由调用方丢弃。
+# 用法: normalize_to_jpg <path>  -> 返回 0 成功 / 1 失败
+normalize_to_jpg() {
+    local f="$1"
+    [ "$(file --mime-type -b "$f" 2>/dev/null)" = image/jpeg ] && return 0
+    [ -n "$MAGICK_CMD" ] || return 1
+    local tmp="${f%.jpg}.norm.jpg"
+    "$MAGICK_CMD" "$f" -auto-orient -quality 93 "$tmp" 2>/dev/null || return 1
+    mv -f "$tmp" "$f"
+    return 0
+}
+
+# 目标宽度: 优先取当前会话所有显示器的最大物理分辨率 (niri),
+# 取不到时退回 FALLBACK_TARGET_WIDTH
+get_target_width() {
+    local w
+    w=$(niri msg -j outputs 2>/dev/null \
+        | jq -r '[.[] | .modes[.current_mode].width] | max // empty' 2>/dev/null)
+    if [ -n "$w" ] && [ "$w" -gt 0 ] 2>/dev/null; then
+        printf '%s' "$w"
+    else
+        printf '%s' "$FALLBACK_TARGET_WIDTH"
+    fi
 }
 
 # 从源池构造本次尝试顺序 (随机打乱,或把指定源放最前,保底源永远最后)
@@ -163,27 +214,18 @@ record_source() {
 
 mkdir -p "$SAVE_DIR"
 
-# 单实例锁: timer 与手动调用并发时, 防止互踩下载文件与 waypaper 配置。
-# mkdir+PID 自愈锁 (flock 的 fd 可能被外部进程继承导致永久占用)
-LOCK_DIR="$SAVE_DIR/.lock"
-if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-    LOCK_PID=$(cat "$LOCK_DIR/pid" 2>/dev/null)
-    if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
-        exit 0
-    fi
-    rm -rf "$LOCK_DIR" 2>/dev/null
-    mkdir "$LOCK_DIR" 2>/dev/null || exit 0
+# 单实例锁: timer 与手动调用并发时, 防止互踩下载文件与 waypaper 配置 (公共库 flock)
+if ! wallpaper_lock_acquire "anime-wallpaper"; then
+    exit 0
 fi
-echo "$$" > "$LOCK_DIR/pid"
-trap 'rm -rf "$LOCK_DIR"; [ -n "$EXISTING_HASHES" ] && rm -f "$EXISTING_HASHES"' EXIT
+EXISTING_HASHES=$(mktemp)
+trap 'rm -f "$EXISTING_HASHES"' EXIT
 
 # 预计算已存在文件的哈希集合, 用于下载去重
-EXISTING_HASHES=$(mktemp)
 find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -exec sha256sum {} + 2>/dev/null | cut -d' ' -f1 > "$EXISTING_HASHES"
 
-# 纳秒+PID 保证同秒多次调用也不冲突
-RAW_FILENAME="wall_$(date +%s%N)_$$.jpg"
-RAW_PATH="${SAVE_DIR}/${RAW_FILENAME}"
+# 统一 JPG: 下载内容先重编码, 文件名后缀与真实格式始终一致
+RAW_PATH="${SAVE_DIR}/wall_$(date +%s%N)_$$.jpg"
 
 USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
@@ -202,14 +244,14 @@ else
     NOTIFY_PID=""
 fi
 
-send_notify "壁纸" "正在下载壁纸..." "--expire-time=5000"
+wallpaper_notify "壁纸" "正在下载壁纸..." "--expire-time=5000"
 
 # 构造源尝试顺序
 SOURCE_ORDER=$(build_source_order)
 if [ $? -ne 0 ]; then
     echo "错误: 未知源 '$FORCED_SOURCE'" >&2
     echo "可用源: ${SOURCES[*]//|*/ }" >&2
-    send_notify "壁纸错误" "未知图源: $FORCED_SOURCE" "--urgency=critical"
+    wallpaper_notify "壁纸错误" "未知图源: $FORCED_SOURCE" "--urgency=critical"
     exit 1
 fi
 ATTEMPT_COUNT=0
@@ -230,7 +272,7 @@ while IFS= read -r entry; do
     SRC_EXTRACT=""
     [ "$SRC_REST" != "$SRC_URL" ] && SRC_EXTRACT="${SRC_REST#*|}"
 
-    send_notify "壁纸" "正在尝试 [$SRC_NAME] ($ATTEMPT_COUNT/$MAX_SOURCE_ATTEMPTS)..." "--expire-time=3000"
+    wallpaper_notify "壁纸" "正在尝试 [$SRC_NAME] ($ATTEMPT_COUNT/$MAX_SOURCE_ATTEMPTS)..." "--expire-time=3000"
 
     DOWNLOAD_URL="$SRC_URL"
     if [ -n "$SRC_EXTRACT" ]; then
@@ -239,7 +281,7 @@ while IFS= read -r entry; do
             rm -f "$RAW_PATH"
             continue
         fi
-        send_notify "壁纸" "正在查询 [$SRC_NAME] API..." "--expire-time=3000"
+        wallpaper_notify "壁纸" "正在查询 [$SRC_NAME] API..." "--expire-time=3000"
         API_URL="$SRC_URL"
         P_SPEC=$(printf '%s' "$API_URL" | sed -n 's/.*{{PAGE:\([0-9]*\)}}.*/\1/p')
         [ -n "$P_SPEC" ] && API_URL=$(printf '%s' "$API_URL" | sed "s|{{PAGE:$P_SPEC}}|$((RANDOM % P_SPEC + 1))|")
@@ -257,7 +299,8 @@ while IFS= read -r entry; do
     curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$DOWNLOAD_URL"
     CURL_EXIT=$?
 
-    if [ $CURL_EXIT -eq 0 ] && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
+    if [ $CURL_EXIT -eq 0 ] && normalize_to_jpg "$RAW_PATH" \
+        && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
         HASH=$(sha256sum "$RAW_PATH" | cut -d' ' -f1)
         if grep -qFx -- "$HASH" "$EXISTING_HASHES"; then
             rm -f "$RAW_PATH"
@@ -278,12 +321,13 @@ if [ "$DOWNLOAD_OK" = false ] && [ -n "$FALLBACK_SOURCE" ]; then
     FALLBACK_NAME="${FALLBACK_SOURCE%%|*}"
     FALLBACK_REST="${FALLBACK_SOURCE#*|}"
     FALLBACK_URL="${FALLBACK_REST%%|*}"
-    send_notify "壁纸" "正在尝试保底源 [$FALLBACK_NAME]..." "--expire-time=3000"
+    wallpaper_notify "壁纸" "正在尝试保底源 [$FALLBACK_NAME]..." "--expire-time=3000"
 
     curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$FALLBACK_URL"
     CURL_EXIT=$?
 
-    if [ $CURL_EXIT -eq 0 ] && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
+    if [ $CURL_EXIT -eq 0 ] && normalize_to_jpg "$RAW_PATH" \
+        && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
         DOWNLOAD_OK=true
         USED_SOURCE_NAME="$FALLBACK_NAME"
     else
@@ -298,25 +342,17 @@ if [ -n "$NOTIFY_PID" ]; then
 fi
 
 if [ "$DOWNLOAD_OK" = false ]; then
-    send_notify "壁纸错误" "所有图源在 $MAX_SOURCE_ATTEMPTS 次尝试后均失败" "--urgency=critical"
+    wallpaper_notify "壁纸错误" "所有图源在 $MAX_SOURCE_ATTEMPTS 次尝试后均失败" "--urgency=critical"
     rm -f "$RAW_PATH"
     exit 1
 fi
 
-# 按实际内容修正扩展名 (部分源返回 PNG/WEBP, .jpg 后缀会导致解码失败)
-case "$(file --mime-type -b "$RAW_PATH" 2>/dev/null)" in
-    image/png)
-        [ "${RAW_PATH##*.}" = "png" ] || { mv "$RAW_PATH" "${RAW_PATH%.jpg}.png" && RAW_PATH="${RAW_PATH%.jpg}.png"; } ;;
-    image/webp)
-        [ "${RAW_PATH##*.}" = "webp" ] || { mv "$RAW_PATH" "${RAW_PATH%.jpg}.webp" && RAW_PATH="${RAW_PATH%.jpg}.webp"; } ;;
-esac
-
-# --- 2. 智能超分模块 ---
+# --- 2. 智能超分模块 (目标宽度 = 显示器实际分辨率) ---
 
 FINAL_PATH="$RAW_PATH"
 MSG_EXTRA="来自 $USED_SOURCE_NAME"
 
-if [ "$ENABLE_UPSCALE" = true ]; then
+if [ "$ENABLE_UPSCALE" = true ] && [ -n "$UPSCALE_TOOL" ]; then
     IMG_WIDTH=0
     IMG_HEIGHT=0
     if command -v identify &> /dev/null; then
@@ -324,28 +360,45 @@ if [ "$ENABLE_UPSCALE" = true ]; then
         IMG_HEIGHT=$(identify -format "%h" "$RAW_PATH")
     fi
 
-    # 仅对横屏且宽度不足的图超分 (竖图已被 validate_geometry 拦截, 此处双保险)
+    TARGET_WIDTH=$(get_target_width)
+    # 仅对横屏且宽度不足目标宽度 UPSCALE_RATIO% 的图超分 (竖图已被 validate_geometry 拦截)
     if [ "$IMG_WIDTH" -gt 0 ] && [ "$IMG_HEIGHT" -gt 0 ] \
-        && [ "$IMG_WIDTH" -lt "$UPSCALE_THRESHOLD" ] \
         && [ "$IMG_HEIGHT" -le "$IMG_WIDTH" ] \
-        && command -v waifu2x-ncnn-vulkan &> /dev/null; then
-        send_notify "壁纸" "正在超分放大图片..." "--expire-time=2000"
-        UPSCALED_PATH="${RAW_PATH%.*}.png"
+        && [ $((IMG_WIDTH * 100)) -lt $((TARGET_WIDTH * UPSCALE_RATIO)) ]; then
+        wallpaper_notify "壁纸" "正在超分放大图片 (目标宽度 $TARGET_WIDTH)..." "--expire-time=2000"
+        UPSCALED_PATH="${RAW_PATH%.jpg}.upscaled.png"
 
-        if waifu2x-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" -n 1 -s 2; then
-            FINAL_PATH="$UPSCALED_PATH"
+        if [ "$UPSCALE_TOOL" = realesrgan ]; then
+            # realesr-animevideov3: 二次元模型, -s 2 输出 2x; 显式 -f png
+            UPSCALE_OK=false
+            realesrgan-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" \
+                -n realesr-animevideov3 -s 2 -f png && UPSCALE_OK=true
+        else
+            UPSCALE_OK=false
+            waifu2x-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" -n 1 -s 2 && UPSCALE_OK=true
+        fi
+
+        if [ "$UPSCALE_OK" = true ]; then
+            # 超分输出 PNG 体积大, 统一转回 JPG; 转换失败则退回 PNG
+            if [ -n "$MAGICK_CMD" ] && "$MAGICK_CMD" "$UPSCALED_PATH" -quality 93 "$RAW_PATH" 2>/dev/null; then
+                rm -f "$UPSCALED_PATH"
+                FINAL_PATH="$RAW_PATH"
+            else
+                FINAL_PATH="$UPSCALED_PATH"
+            fi
             MSG_EXTRA="$MSG_EXTRA (已超分 2x)"
-            rm "$RAW_PATH"
         else
             MSG_EXTRA="$MSG_EXTRA (超分失败)"
         fi
-    else
-        if [ "$IMG_WIDTH" -ge "$UPSCALE_THRESHOLD" ]; then
+    elif [ "$IMG_WIDTH" -gt 0 ]; then
+        if [ "$IMG_WIDTH" -ge "$TARGET_WIDTH" ]; then
             MSG_EXTRA="$MSG_EXTRA (原图高分辨率)"
         else
             MSG_EXTRA="$MSG_EXTRA (原图)"
         fi
     fi
+elif [ "$ENABLE_UPSCALE" = true ]; then
+    MSG_EXTRA="$MSG_EXTRA (超分已禁用: 缺少 realesrgan/waifu2x)"
 else
     MSG_EXTRA="$MSG_EXTRA (超分已禁用)"
 fi
@@ -353,33 +406,23 @@ fi
 # --- 3. 应用模块 ---
 
 if ! awww img "$FINAL_PATH" --transition-duration 2 --transition-type center --transition-fps 60; then
-    send_notify "壁纸错误" "awww 应用壁纸失败" "--urgency=critical"
+    wallpaper_notify "壁纸错误" "awww 应用壁纸失败" "--urgency=critical"
     # 清理本次下载的文件, 避免残留
     rm -f "$RAW_PATH"
     [ "$FINAL_PATH" != "$RAW_PATH" ] && rm -f "$FINAL_PATH"
     exit 1
 fi
 
-# 同步 waypaper 状态: 本脚本绕过 waypaper 直接调用 awww, 需手动更新 waypaper 的
-# 当前壁纸记录, 否则 waypaper GUI 显示的"当前壁纸"会过期, matugen-update.sh /
-# niri_set_overview_blur_dark_bg.sh 的 fallback 分支也会读到错误的壁纸路径.
-WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
-if [ -f "$WAYPAPER_CONFIG" ]; then
-    # 把绝对路径转成 ~ 形式, 与 waypaper 配置风格保持一致
-    WALLPAPER_TILDE="${FINAL_PATH/#$HOME/\~}"
-    # 路径中的 & | \ 会破坏 sed 替换 (& 展开为匹配文本, | 终止分隔符, \ 是转义符)
-    WALLPAPER_TILDE_ESCAPED=$(printf '%s' "$WALLPAPER_TILDE" | sed 's/[&|\\]/\\&/g')
-    sed -i "s|^wallpaper[[:space:]]*=.*|wallpaper = $WALLPAPER_TILDE_ESCAPED|" "$WAYPAPER_CONFIG"
-fi
+# 同步 waypaper 状态 (公共库): 本脚本绕过 waypaper 直接调用 awww,
+# 需手动更新 waypaper 的当前壁纸记录, 否则 waypaper GUI 显示的"当前壁纸"会过期,
+# matugen-update.sh / niri_set_overview_blur_dark_bg.sh 的 fallback 分支也会读到错误的壁纸路径.
+wallpaper_sync_waypaper "$FINAL_PATH"
 
 # --- 4. 钩子与清理 ---
 
-# 颜色提取和模糊背景生成统一交给异步 worker，避免切换快捷键等待
+# 颜色提取和模糊背景生成统一交给异步 worker (公共库)，避免切换快捷键等待
 # ImageMagick，也避免与 waypaper 的 post_command 重复执行。
-POST_UPDATE="$HOME/.config/scripts/wallpaper-post-command.sh"
-if [ -x "$POST_UPDATE" ]; then
-    nohup "$POST_UPDATE" >/dev/null 2>&1 </dev/null &
-fi
+wallpaper_run_post_command
 
 (
     # 动态清理逻辑: 保留最近 KEEP_COUNT 张,按修改时间倒序
@@ -397,4 +440,4 @@ fi
     fi
 ) &
 
-send_notify "壁纸已更新" "Enjoy! $MSG_EXTRA"
+wallpaper_notify "壁纸已更新" "Enjoy! $MSG_EXTRA"

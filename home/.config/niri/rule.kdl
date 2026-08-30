@@ -52,13 +52,15 @@ window-rule {
     open-floating true
 }
 
-// niri-clip 剪贴板 - 浮动，大小与之前一致
+// niri-clip 剪贴板 - 左上浮层（复刻旧 cliphist-tui 位置）
+// 焦点环保持系统默认：打开剪贴板时 niri 高亮描边窗口便于定位
 window-rule{
-	match app-id="niri-clip"
-	default-column-width { fixed 500; }
-    default-window-height { fixed 675; }
+	match app-id="niri-clip-gui"
 	open-floating true
 	default-floating-position x=50 y=100 relative-to="top"
+	shadow {
+		off
+	}
 }
 
 // 旧 shorinclip/cliphist 浮动规则已废弃，保留注释
