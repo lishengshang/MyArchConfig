@@ -169,6 +169,16 @@
 - `[ ]` 增加 setup/uninstall 的 dry-run 测试。
 - `[ ]` 增加没有 Wayland、没有可选依赖时的降级测试。
 
+### P2-5：壁纸脚本模块化重构
+
+~~[x] 拆分 `random-anime-wallpaper.sh` 公共逻辑为 `wallpaper-lib.sh`（锁/通知/waypaper 同步/post-command），`random-api-wallpaper.sh` 同步复用；超分判断改为对比显示器实际分辨率（`niri msg -j outputs`，fallback 2200，90% 余量）；下载壁纸经 ImageMagick 统一转 JPG（quality 93 + auto-orient）。 — Owner: TraeCode / trae-glm, 日期: 2026-08-28；验证: `bash -n`、`shellcheck -S error`、lib 冒烟测试（flock 互斥、waypaper 读写含 `&` 转义、PNG→JPEG 转换）、niri jq 表达式实测 2560；修复初版 jq 表达式顶层结构错误~~
+
+~~[x] 壁纸源池巡检：实测 11 个既有源全部存活；新增 zhuqiy / horosama / 98qy 三个实测可用的二次元壁纸源（moelm、btstu、seovx、vvhan、yimian、oick 等候选实测不可用已排除）。 — Owner: TraeCode / trae-glm, 日期: 2026-08-28；验证: curl 实测各源返回有效图片（≥20KB image/*）、`bash -n`、`shellcheck -S error`~~
+
+~~[x] 修复 overview 模糊背景与当前壁纸不一致：timer 路径（random-api-wallpaper.service, Type=oneshot）中 nohup 异步拉起的 post-command 子进程被 KillMode=control-group 连坐杀死，请求文件不更新导致 matugen/模糊背景停留在旧壁纸（timer 历史选图全部无模糊缓存佐证）；wallpaper-lib.sh 的 wallpaper_run_post_command 改为同步前台调用（post 脚本仅写请求文件，重活在常驻 wallpaper-theme.service，同步代价毫秒级）。 — Owner: TraeCode / trae-glm, 日期: 2026-08-28；验证: 请求文件更新为当前壁纸、colors.kdl 与当前壁纸模糊缓存生成、`bash -n`、`shellcheck -S error`~~
+
+~~[x] 壁纸脚本性能优化：(1) 下载脚本去重改增量哈希缓存 `.wall_hashes`（size:mtime 签名，变更自愈，消除随图库增长的每次全库 sha256 扫描）；(2) 下载/本地随机两脚本统一 `wallpaper-switch` 锁，消除并发互踩 waypaper 记录与壁纸文件的竞态；(3) realesrgan 超分改 `-f jpg` 直出（失败自动回退 PNG+转码）；(4) 合并重复 identify 调用（validate_geometry 一次取宽高回填全局，matugen-update 同样合并）；(5) 自动切换优先直调 awww img + waypaper 记录同步，失败回退 waypaper --no-post-command，单次切换 0.71s→0.25s；(6) 清理循环改 sed -z + xargs -0，blur 脚本 awww query 单次调用 + 纯 bash 解析。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: `bash -n`、`shellcheck -S error`、端到端真实下载（直出 JPG 超分生效、缓存登记 130 条）、哈希缓存增量冒烟（首轮建档/变更重算/重复识别）、清理管道特殊文件名测试、awww query 新旧解析等价测试、CodeReview 无阻塞问题（建议项已修复）~~
+
 ### P0-7：剪贴板 TUI 快捷键显示和交互修复
 
 ~~[x] 修复四项问题 + 两个行为调整：(1) 星标与内容间距过大 — `--tabstop=1`；(2) 快捷键显示不全 — 双行 header + `^` 符号；(3) Enter 后窗口卡住空白 — `wl-copy 2>/dev/null` 防止 daemon 持有 PTY；(4) Ctrl-F 粘贴功能（已在 header 中宣传但未实现）；(5) 星标条目置顶 — `build_menu` 两遍扫描，先输出星标再输出普通；(6) 星标删除需确认，普通直接删 — `Ctrl+X` 检查 `is_pinned`。注意：`--no-clear` 尝试修复 Enter 后空白但导致箭头键/Esc 无法使用，已回退。 — Agent: ZCode / zcode-agent, 日期: 2026-08-20；验证: `bash -n`、`shellcheck -S error`、kitty 窗口关闭测试~~
