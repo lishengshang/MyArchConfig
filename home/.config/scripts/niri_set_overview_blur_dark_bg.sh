@@ -71,18 +71,23 @@ done
 declare -A MONITOR_WALLPAPERS
 
 if [ -z "$1" ]; then
-    # 策略 1: 尝试从 awww query 获取多屏信息
-    if command -v awww &> /dev/null && awww query &> /dev/null; then
+    # 策略 1: 尝试从 awww query 获取多屏信息。
+    # query 结果只取一次存变量, 避免重复调用; 行解析用纯 bash 参数展开,
+    # 不再逐行 fork grep/cut/sed 子进程。
+    if command -v awww &> /dev/null; then
+        AWWW_QUERY_OUTPUT=$(awww query 2>/dev/null || true)
         while read -r line; do
-            # 匹配包含 image: 的行，提取显示器名和壁纸路径
-            if echo "$line" | grep -q "image:"; then
-                monitor=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
-                img=$(echo "$line" | sed 's/.*image: //')
-                if [[ -n "$monitor" && -n "$img" ]]; then
-                    MONITOR_WALLPAPERS["$monitor"]="$img"
-                fi
+            [[ "$line" == *"image: "* ]] || continue
+            # 行格式例: ": DP-2: ... image: /path/to/img"; 取第一个冒号后、
+            # 第二个冒号前的字段并去空格, 与原 cut -d':' -f2 | tr -d ' ' 行为一致。
+            rest="${line#*:}"
+            monitor="${rest%%:*}"
+            monitor="${monitor// /}"
+            img="${line##*image: }"
+            if [[ -n "$monitor" && -n "$img" ]]; then
+                MONITOR_WALLPAPERS["$monitor"]="$img"
             fi
-        done < <(awww query 2>/dev/null)
+        done <<< "$AWWW_QUERY_OUTPUT"
     fi
 
     # 策略 2: 如果上述没拿到(或未使用 awww)，尝试读取 waypaper 配置

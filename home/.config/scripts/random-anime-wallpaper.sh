@@ -45,6 +45,10 @@ FALLBACK_TARGET_WIDTH=2200
 # 图片宽度达到目标宽度的多少百分比才免于超分 (留余量避免小幅放大浪费 GPU)
 UPSCALE_RATIO=90
 
+# 增量哈希去重缓存: "hash  size:mtime  path" 三元组按行存储。
+# 只对 size/mtime 变化的文件重新计算哈希, 避免每次下载前全库扫描 (随图库增长线性变贵)。
+HASH_CACHE_FILE="$SAVE_DIR/.wall_hashes"
+
 # 失败降级: 最多尝试多少个源
 MAX_SOURCE_ATTEMPTS=3
 
@@ -117,14 +121,19 @@ validate_image() {
 }
 
 # 校验几何: 拒绝竖图与过小图片 (identify 不可用时跳过, 交给下游)
-# 用法: validate_geometry <path>  -> 返回 0 通过 / 1 拒绝
+# 用法: validate_geometry <path>  -> 返回 0 通过 / 1 拒绝; 同时回填全局 IMG_WIDTH/IMG_HEIGHT
+# (供超分判断复用, 避免对同一文件重复调 identify)
 validate_geometry() {
-    local f="$1"
+    local f="$1" dims w h
+    IMG_WIDTH=0
+    IMG_HEIGHT=0
     command -v identify &> /dev/null || return 0
-    local w h
-    w=$(identify -format "%w" "$f" 2>/dev/null)
-    h=$(identify -format "%h" "$f" 2>/dev/null)
-    [ -n "$w" ] && [ -n "$h" ] || return 0
+    dims=$(identify -format "%w %h" "$f" 2>/dev/null)
+    w="${dims%% *}"
+    h="${dims##* }"
+    [[ "$w" =~ ^[0-9]+$ && "$h" =~ ^[0-9]+$ ]] || return 0
+    IMG_WIDTH="$w"
+    IMG_HEIGHT="$h"
     [ "$h" -le "$w" ] || return 1
     [ "$w" -ge "$MIN_WIDTH" ] || return 1
     return 0
@@ -215,14 +224,54 @@ record_source() {
 mkdir -p "$SAVE_DIR"
 
 # 单实例锁: timer 与手动调用并发时, 防止互踩下载文件与 waypaper 配置 (公共库 flock)
-if ! wallpaper_lock_acquire "anime-wallpaper"; then
+if ! wallpaper_lock_acquire "wallpaper-switch"; then
     exit 0
 fi
-EXISTING_HASHES=$(mktemp)
-trap 'rm -f "$EXISTING_HASHES"' EXIT
 
-# 预计算已存在文件的哈希集合, 用于下载去重
-find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -exec sha256sum {} + 2>/dev/null | cut -d' ' -f1 > "$EXISTING_HASHES"
+# 预加载去重哈希缓存 (增量维护), 用于下载去重。
+# 全局关联数组: HASH_CACHE[path]=hash, SIG_CACHE[path]="size:mtime"。
+# mktemp 失败 (极少见) 时降级为空缓存, 本次对所有文件重算哈希。
+declare -A HASH_CACHE=() SIG_CACHE=()
+NEW_ENTRIES=$(mktemp 2>/dev/null || true)
+load_hash_cache() {
+    local line f sig hash rest
+    [ -f "$HASH_CACHE_FILE" ] || return 0
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        hash="${line%% *}"
+        rest="${line#* }"
+        sig="${rest%% *}"
+        f="${rest#* }"
+        HASH_CACHE["$f"]="$hash"
+        SIG_CACHE["$f"]="$sig"
+    done < "$HASH_CACHE_FILE"
+}
+# 刷新缓存: 对当前每个文件复用旧哈希或重算 (仅 size/mtime 变化才重算),
+# 被清理/删除的文件自然淘汰。结果原子替换缓存文件。
+refresh_hash_cache() {
+    local f sig old hash
+    # 首次调用后临时文件已消耗, 后续调用重新建一个 (结尾还要补登新文件)
+    [ -n "$NEW_ENTRIES" ] || NEW_ENTRIES=$(mktemp 2>/dev/null || true)
+    [ -n "$NEW_ENTRIES" ] || return 0
+    : > "$NEW_ENTRIES"
+    while IFS= read -r -d '' f; do
+        sig=$(stat -c '%s:%Y' "$f" 2>/dev/null) || continue
+        old="${SIG_CACHE[$f]:-}"
+        if [ "$old" = "$sig" ] && [ -n "${HASH_CACHE[$f]:-}" ]; then
+            printf '%s %s %s\n' "${HASH_CACHE[$f]}" "$sig" "$f" >> "$NEW_ENTRIES"
+        else
+            hash=$(sha256sum "$f" | cut -d' ' -f1)
+            printf '%s %s %s\n' "$hash" "$sig" "$f" >> "$NEW_ENTRIES"
+            HASH_CACHE["$f"]="$hash"
+            SIG_CACHE["$f"]="$sig"
+        fi
+    done < <(find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -print0 2>/dev/null)
+    mv -f "$NEW_ENTRIES" "$HASH_CACHE_FILE" 2>/dev/null || rm -f "$NEW_ENTRIES"
+    NEW_ENTRIES=""
+}
+trap 'rm -f "$NEW_ENTRIES"' EXIT
+load_hash_cache
+refresh_hash_cache
 
 # 统一 JPG: 下载内容先重编码, 文件名后缀与真实格式始终一致
 RAW_PATH="${SAVE_DIR}/wall_$(date +%s%N)_$$.jpg"
@@ -302,7 +351,7 @@ while IFS= read -r entry; do
     if [ $CURL_EXIT -eq 0 ] && normalize_to_jpg "$RAW_PATH" \
         && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
         HASH=$(sha256sum "$RAW_PATH" | cut -d' ' -f1)
-        if grep -qFx -- "$HASH" "$EXISTING_HASHES"; then
+        if printf '%s\n' "${HASH_CACHE[@]}" | grep -qFx -- "$HASH"; then
             rm -f "$RAW_PATH"
             continue
         fi
@@ -353,12 +402,7 @@ FINAL_PATH="$RAW_PATH"
 MSG_EXTRA="来自 $USED_SOURCE_NAME"
 
 if [ "$ENABLE_UPSCALE" = true ] && [ -n "$UPSCALE_TOOL" ]; then
-    IMG_WIDTH=0
-    IMG_HEIGHT=0
-    if command -v identify &> /dev/null; then
-        IMG_WIDTH=$(identify -format "%w" "$RAW_PATH")
-        IMG_HEIGHT=$(identify -format "%h" "$RAW_PATH")
-    fi
+    # IMG_WIDTH/IMG_HEIGHT 已由 validate_geometry 回填, 无需再次 identify
 
     TARGET_WIDTH=$(get_target_width)
     # 仅对横屏且宽度不足目标宽度 UPSCALE_RATIO% 的图超分 (竖图已被 validate_geometry 拦截)
@@ -366,26 +410,41 @@ if [ "$ENABLE_UPSCALE" = true ] && [ -n "$UPSCALE_TOOL" ]; then
         && [ "$IMG_HEIGHT" -le "$IMG_WIDTH" ] \
         && [ $((IMG_WIDTH * 100)) -lt $((TARGET_WIDTH * UPSCALE_RATIO)) ]; then
         wallpaper_notify "壁纸" "正在超分放大图片 (目标宽度 $TARGET_WIDTH)..." "--expire-time=2000"
-        UPSCALED_PATH="${RAW_PATH%.jpg}.upscaled.png"
 
         if [ "$UPSCALE_TOOL" = realesrgan ]; then
-            # realesr-animevideov3: 二次元模型, -s 2 输出 2x; 显式 -f png
+            # realesr-animevideov3: 二次元模型, -s 2 输出 2x; 直出 jpg 省掉大体积 PNG 中转的读写与重编码;
+            # 失败则退回 PNG + 转码路径, 保证可用性不降级。
+            UPSCALED_PATH="${RAW_PATH%.jpg}.upscaled.jpg"
             UPSCALE_OK=false
-            realesrgan-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" \
-                -n realesr-animevideov3 -s 2 -f png && UPSCALE_OK=true
+            if realesrgan-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" \
+                -n realesr-animevideov3 -s 2 -f jpg; then
+                UPSCALE_OK=true
+                FINAL_PATH="$UPSCALED_PATH"
+            fi
+            if [ "$UPSCALE_OK" = false ]; then
+                rm -f "$UPSCALED_PATH"
+                UPSCALED_PATH="${RAW_PATH%.jpg}.upscaled.png"
+                realesrgan-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" \
+                    -n realesr-animevideov3 -s 2 -f png && UPSCALE_OK=true
+            fi
         else
+            UPSCALED_PATH="${RAW_PATH%.jpg}.upscaled.png"
             UPSCALE_OK=false
             waifu2x-ncnn-vulkan -i "$RAW_PATH" -o "$UPSCALED_PATH" -n 1 -s 2 && UPSCALE_OK=true
         fi
 
-        if [ "$UPSCALE_OK" = true ]; then
-            # 超分输出 PNG 体积大, 统一转回 JPG; 转换失败则退回 PNG
+        if [ "$UPSCALE_OK" = true ] && [ "$UPSCALED_PATH" != "$FINAL_PATH" ]; then
+            # PNG 路径: 体积大, 统一转回 JPG; 转换失败则退回 PNG。
+            # (realesrgan 直出 jpg 成功时 FINAL_PATH 已是最终文件, 跳过此步)
             if [ -n "$MAGICK_CMD" ] && "$MAGICK_CMD" "$UPSCALED_PATH" -quality 93 "$RAW_PATH" 2>/dev/null; then
                 rm -f "$UPSCALED_PATH"
                 FINAL_PATH="$RAW_PATH"
             else
                 FINAL_PATH="$UPSCALED_PATH"
             fi
+        fi
+
+        if [ "$UPSCALE_OK" = true ]; then
             MSG_EXTRA="$MSG_EXTRA (已超分 2x)"
         else
             MSG_EXTRA="$MSG_EXTRA (超分失败)"
@@ -424,19 +483,21 @@ wallpaper_sync_waypaper "$FINAL_PATH"
 # ImageMagick，也避免与 waypaper 的 post_command 重复执行。
 wallpaper_run_post_command
 
+# 超分产物是新文件, 补登到哈希缓存, 下次下载去重时不再重算全库。
+refresh_hash_cache
+
 (
     # 动态清理逻辑: 保留最近 KEEP_COUNT 张,按修改时间倒序
-    # 用 find -printf + NUL 分隔处理文件名特殊字符;${line#* } 跳过 mtime 字段
+    # 用 find -printf + NUL 分隔处理文件名特殊字符;${line#* } 跳过 mtime 字段;
+    # xargs 批量 rm 避免逐文件 fork
     if [ "$ENABLE_CLEANUP" = true ]; then
         DELETE_START=$((KEEP_COUNT + 1))
         # 只清理脚本下载的 wall_* 文件, 豁免手动放入的精选图 (如 01-alcy-pc_*.webp)
         find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -printf '%T@ %p\0' \
             | sort -z -k1,1 -rn \
-            | tail -z -n +$DELETE_START \
-            | while IFS= read -r -d '' line; do
-                f="${line#* }"
-                rm -- "$f" 2>/dev/null
-            done
+            | tail -z -n +"$DELETE_START" \
+            | sed -z 's/^[^ ]* //' \
+            | xargs -0 -r rm -f --
     fi
 ) &
 

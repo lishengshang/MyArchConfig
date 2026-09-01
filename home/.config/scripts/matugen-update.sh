@@ -176,8 +176,10 @@ NEED_CONVERT=false
 if [[ "$FILE_MIME" == image/webp ]]; then
     NEED_CONVERT=true
 elif command -v identify &>/dev/null; then
-    IMAGE_WIDTH=$(identify -format '%w' "${WALLPAPER}[0]" 2>/dev/null || printf '0')
-    IMAGE_HEIGHT=$(identify -format '%h' "${WALLPAPER}[0]" 2>/dev/null || printf '0')
+    # 一次 identify 同时取宽高, 避免对同一文件重复解码头信息
+    IMAGE_DIMS=$(identify -format '%w %h' "${WALLPAPER}[0]" 2>/dev/null || printf '0 0')
+    IMAGE_WIDTH=${IMAGE_DIMS%% *}
+    IMAGE_HEIGHT=${IMAGE_DIMS##* }
     if [[ "$IMAGE_WIDTH" =~ ^[0-9]+$ && "$IMAGE_HEIGHT" =~ ^[0-9]+$ ]] \
         && { [ "$IMAGE_WIDTH" -gt 1600 ] || [ "$IMAGE_HEIGHT" -gt 1600 ]; }; then
         NEED_CONVERT=true

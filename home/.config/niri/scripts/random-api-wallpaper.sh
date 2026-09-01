@@ -11,9 +11,9 @@ if ! pgrep -u "${UID:-$(id -u)}" -x niri >/dev/null 2>&1; then
     exit 0
 fi
 
-# timer、快捷键和 waypaper post-command 可能同时触发；公共库的 flock 保证
-# “选图 -> 写 waypaper -> Matugen -> overview 背景”是单实例的。
-if ! wallpaper_lock_acquire "api-wallpaper"; then
+# timer、快捷键和下载脚本 (random-anime-wallpaper.sh) 可能同时触发；统一使用同一把
+# 公共库 flock，保证 “选图/下载 -> 写 waypaper -> awww -> post-command” 全程单实例。
+if ! wallpaper_lock_acquire "wallpaper-switch"; then
     echo "random wallpaper update already running; skip" >&2
     exit 0
 fi
@@ -28,8 +28,8 @@ if [ ! -d "$WALLPAPER_DIR" ]; then
     exit 1
 fi
 
-if ! command -v waypaper >/dev/null 2>&1; then
-    echo "Error: waypaper is not installed" >&2
+if ! command -v awww >/dev/null 2>&1 && ! command -v waypaper >/dev/null 2>&1; then
+    echo "Error: neither awww nor waypaper is installed" >&2
     exit 1
 fi
 
@@ -59,9 +59,20 @@ if [ -z "$SELECTED" ] || [ ! -f "$SELECTED" ]; then
     exit 1
 fi
 
-# 3. 应用壁纸。随机脚本自己安排异步主题更新，禁止 waypaper 再执行
-# 同一个 post_command，否则会重复跑 Matugen 并再次生成模糊背景。
-waypaper --no-post-command --wallpaper "$SELECTED"
+# 3. 应用壁纸。优先直调 awww，省去每 8 分钟拉起一次完整 waypaper 进程的开销
+# (与 random-anime-wallpaper.sh 同一范式)。awww 不可用/失败时回退 waypaper。
+# stderr 保留进 journal 便于排障; 短过渡与下载脚本观感对齐。
+if command -v awww >/dev/null 2>&1 && awww img "$SELECTED" --transition-duration 0.3 --transition-type fade; then
+    # 绕过 waypaper 时手动同步其当前壁纸记录 (公共库)，保证 GUI 与 fallback 读取一致。
+    wallpaper_sync_waypaper "$SELECTED"
+elif command -v waypaper >/dev/null 2>&1; then
+    # 随机脚本自己安排主题更新，禁止 waypaper 再执行同一个 post_command，
+    # 否则会重复跑 Matugen 并再次生成模糊背景。
+    waypaper --no-post-command --wallpaper "$SELECTED"
+else
+    echo "Error: failed to apply wallpaper with awww and waypaper is unavailable" >&2
+    exit 1
+fi
 
 # 4. 记录历史 (只保留最近 NO_REPEAT 条)
 echo "$SELECTED" >> "$HISTORY_FILE"
