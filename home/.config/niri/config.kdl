@@ -206,7 +206,8 @@ spawn-at-startup "~/.local/bin/niri-sidebar" "listen"
 // spawn-at-startup "xhost" "+si:localuser:root"
 
 // 音频调整程序，easyeffects，-w可以在后台启动
-spawn-at-startup "easyeffects" "-w"
+// 未配置任何效果预设，纯占内存，已禁用。需要时手动运行 easyeffects 并在 GUI 里配预设
+// spawn-at-startup "easyeffects" "-w"
 // nirius
 spawn-at-startup "niriusd"
 // nirinit 会话保存：开机只保存不恢复，手动恢复用 ~/.config/niri/scripts/nirinit-restore.sh
