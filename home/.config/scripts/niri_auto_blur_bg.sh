@@ -1,1 +1,0 @@
-niri_set_overview_blur_dark_bg.sh

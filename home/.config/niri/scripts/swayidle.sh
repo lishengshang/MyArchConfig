@@ -2,7 +2,7 @@
 #
 # swayidle 守护进程包装器
 #
-# 实现：8 分钟锁屏 / 15 分钟熄屏 / 25 分钟休眠
+# 实现：8 分钟锁屏 / 10 分钟熄屏 / 20 分钟挂起 (suspend-then-hibernate)
 # 任何途径的休眠都会先锁屏（before-sleep 兜底），唤醒后自动点亮屏幕。
 #
 # 设计要点：
@@ -81,12 +81,12 @@ fi
 #   │ 触发          │ 执行动作                          │ resume (用户恢复输入)      │
 #   ├──────────────┼──────────────────────────────────┼────────────────────────────┤
 #   │ 8 分钟空闲    │ lock-screen.sh（hyprlock 锁屏）    │ power-on-monitors         │
-#   │ 15 分钟空闲   │ lock-screen.sh 兜底 + 熄屏         │ power-on-monitors         │
+#   │ 10 分钟空闲   │ lock-screen.sh 兜底 + 熄屏         │ power-on-monitors         │
 #   │ 20 分钟空闲   │ 亮屏+suspend-then-hibernate        │ power-on-monitors         │
 #   │ 任意休眠      │ lock-screen.sh（before-sleep 兜底）│ power-on-monitors         │
 #   │                │                                  │   (after-resume)          │
 #   └──────────────┴──────────────────────────────────┴────────────────────────────┘
-#   说明：15 分钟熄屏时若 8 分钟锁屏仍生效（正常路径），lock-screen.sh 会因
+#   说明：10 分钟熄屏时若 8 分钟锁屏仍生效（正常路径），lock-screen.sh 会因
 #   pgrep 已检测到 hyprlock 而直接跳过，不会叠加锁屏实例。
 
 exec swayidle -w \

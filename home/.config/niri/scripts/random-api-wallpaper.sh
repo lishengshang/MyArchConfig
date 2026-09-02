@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+#
+# random-api-wallpaper.sh — 从本地壁纸库随机挑一张并应用 (不联网)。
+#
+# 功能: 在 ~/Pictures/Wallpapers/api-random-download 里随机选图 (排除最近 5 张与当前壁纸)，
+#   优先直调 awww 应用，失败回退 waypaper；同步 waypaper 记录与历史文件，
+#   最后触发主题后处理 (matugen 取色/模糊背景，由常驻 wallpaper-theme.service 异步执行)。
+# 依赖: awww 或 waypaper、wallpaper-lib.sh；壁纸库由 random-anime-wallpaper.sh (Mod+Shift+F10) 下载积累。
+# 调用方: random-api-wallpaper.timer (每 8 分钟)、快捷键 (Mod+F10)；无命令行参数。
+# 并发: 与下载脚本共用公共库的 "wallpaper-switch" flock，全程单实例。
 
 # 经 stow symlink 调用时解析到 dotfiles 仓库内的真实目录
 SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"

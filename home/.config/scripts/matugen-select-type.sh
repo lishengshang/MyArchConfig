@@ -1,4 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# matugen-select-type.sh — fuzzel 交互菜单，切换 Matugen 配色策略/明暗模式/主色索引。
+#
+# 功能: 弹出菜单选择后写入 ~/.cache/matugen-strategy/ 状态文件
+#   (type/mode/index_mode，与 matugen-update.sh 读取的路径一致)，
+#   再异步触发 wallpaper-post-command.sh --force，由常驻的
+#   wallpaper-theme.service 低优先级完成取色与主题应用。
+# 依赖: fuzzel、notify-send、wallpaper-post-command.sh
+# 调用方: binds.kdl Mod+Alt+T、waybar matugen 模块中键；无命令行参数。
+# 并发: 状态文件写入在共享 flock (matugen-strategy-write.lock) 内原子替换，
+#   避免 matugen-update.sh 读到半截内容；不阻塞菜单交互本身。
 
 CACHE_DIR="$HOME/.cache/matugen-strategy"
 TYPE_FILE="$CACHE_DIR/type"
@@ -97,7 +108,14 @@ if ! command -v fuzzel &>/dev/null; then
     exit 1
 fi
 SELECTED_LINE=$(echo "$OPTIONS" | fuzzel -d --prompt="$PROMPT_TEXT" --lines=14)
+FUZZEL_EXIT=$?
 
+# fuzzel 退出码: 实测无 Wayland 显示等启动失败与用户取消 (Esc) 都返回 1,
+# 两者无法可靠区分, 统一静默退出; 仅对 ≥2 的异常退出码报错 (比原实现严格)。
+if [ "$FUZZEL_EXIT" -ne 0 ] && [ "$FUZZEL_EXIT" -ne 1 ]; then
+    notify-send -u critical "Matugen" "fuzzel 异常退出 (退出码 $FUZZEL_EXIT)" 2>/dev/null || true
+    exit "$FUZZEL_EXIT"
+fi
 if [ -z "$SELECTED_LINE" ]; then
     exit 0
 fi
@@ -120,6 +138,9 @@ if [[ "$SELECTED_LINE" == *">>"* ]]; then
         REAL_VALUE="random"
     elif [[ "$SELECTED_LINE" == *"重新生成"* ]] || [[ "$SELECTED_LINE" == *"Regenerate"* ]]; then
         REAL_VALUE="regenerate"
+    else
+        # 防御: 未知 >> 选项不当作有效值, 避免后续误写状态文件
+        REAL_VALUE=""
     fi
 else
     # 否则是具体策略，继续提取括号里的内容
@@ -127,22 +148,39 @@ else
 fi
 
 # --- 6. 执行逻辑 ---
+
+# 状态文件原子写: tmp + mv 避免读方 (matugen-update.sh) 读到半截内容;
+# 与写锁配合, 多实例/与读方交错时状态文件始终完整。
+write_state() {
+    local file="$1" value="$2" tmp
+    tmp="${file}.tmp.$$"
+    printf '%s\n' "$value" > "$tmp" && mv -f "$tmp" "$file"
+}
+
 if [ -n "$REAL_VALUE" ]; then
-    
+
+    # 共享写锁: 串行化状态文件写入 (锁文件与 matugen-update 锁目录分离,
+    # 不与它的 mkdir+PID 锁互斥; 仅保护本脚本写的三个状态文件)。
+    STATE_LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/matugen-strategy-write-${UID:-$(id -u)}.lock"
+    exec 8>"$STATE_LOCK_FILE"
+    flock 8
+
     # 根据 REAL_VALUE 保存对应的状态文件
     if [[ "$REAL_VALUE" == "regenerate" ]]; then
         # 仅触发更新，不修改任何文件状态
         if [ "$IS_CN" = true ]; then NOTIFY_MSG="正在重新生成颜色..."; else NOTIFY_MSG="Regenerating colors..."; fi
     elif [[ "$REAL_VALUE" == "dark" ]] || [[ "$REAL_VALUE" == "light" ]]; then
-        echo "$REAL_VALUE" > "$MODE_FILE"
+        write_state "$MODE_FILE" "$REAL_VALUE"
         if [ "$IS_CN" = true ]; then NOTIFY_MSG="已切换为: $REAL_VALUE"; else NOTIFY_MSG="Mode updated to: $REAL_VALUE"; fi
     elif [[ "$REAL_VALUE" == "0" ]] || [[ "$REAL_VALUE" == "random" ]]; then
-        echo "$REAL_VALUE" > "$INDEX_MODE_FILE"
+        write_state "$INDEX_MODE_FILE" "$REAL_VALUE"
         if [ "$IS_CN" = true ]; then NOTIFY_MSG="颜色模式更新为: $REAL_VALUE"; else NOTIFY_MSG="Color strategy updated to: $REAL_VALUE"; fi
     else
-        echo "$REAL_VALUE" > "$TYPE_FILE"
+        write_state "$TYPE_FILE" "$REAL_VALUE"
         if [ "$IS_CN" = true ]; then NOTIFY_MSG="色彩策略更新为: $REAL_VALUE"; else NOTIFY_MSG="Scheme updated to: $REAL_VALUE"; fi
     fi
+
+    flock -u 8
 
     # 发送通知
     notify-send "Matugen" "$NOTIFY_MSG"
