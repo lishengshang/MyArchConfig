@@ -1,88 +1,68 @@
 {
 	/*-------------------
-		left dividers
+		powerline 分隔符。
+		实例名后缀必须以字母开头 (p = powerline)：waybar 会把实例名注册为
+		CSS class，GTK 拒绝数字开头的 class 选择器，数字后缀会导致
+		style.css 中对应规则整条失效。
+		只保留 config.jsonc 实际引用的实例。
 	-------------------*/
-	"custom/left_div#1": {
+	"custom/left_div#p1": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#11": {
+	"custom/left_div#p11": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#2": {
+	"custom/left_div#p2": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#3": {
+	"custom/left_div#p3": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#4": {
+	"custom/left_div#p4": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#5": {
+	"custom/left_div#p5": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#6": {
+	"custom/left_div#p7": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#7": {
+	"custom/left_div#p8": {
 		"format": "",
-		"tooltip": false
-	},
-	"custom/left_div#8": {
-		"format": "",
-		"tooltip": false
-	},
-	"custom/left_div#9": {
-		"format": "",
-		"tooltip": false
-	},
-	"custom/left_inv#1": {
-		"format": "",
-		"tooltip": false
-	},
-	"custom/left_inv#2": {
-		"format": "",
 		"tooltip": false
 	},
 	/*--------------------
 		right dividers
 	--------------------*/
-	"custom/right_div#1": {
+	"custom/right_div#p1": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#11": {
+	"custom/right_div#p11": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#2": {
+	"custom/right_div#p2": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#3": {
+	"custom/right_div#p3": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#4": {
+	"custom/right_div#p5": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#5": {
+	"custom/right_div#p6": {
 		"format": "",
-		"tooltip": false
-	},
-	"custom/right_div#6": {
-		"format": "",
-		"tooltip": false
-	},
-	"custom/right_inv#1": {
-		"format": "",
 		"tooltip": false
 	}
 }

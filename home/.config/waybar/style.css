@@ -56,14 +56,15 @@ tooltip label {
     color:@tertiary;
 }
 
-#custom-right_div.5 {
+#custom-right_div.p5 {
     background: @surface_container_high;
     color: @surface;
     font-size: 1.39em; /* 25px */
     padding: 0px;
 }
 
-/* waybar niri taskbar */
+/* waybar niri taskbar —— 模块定义已随 cffi/niri-taskbar 一并删除;
+   样式保留备用, 安装 waybar-niri-taskbar-git 并恢复模块定义后自动生效 */
 .niri-taskbar {
     background: @surface_container_high;
     padding: 0 0 0 0.28em; /* 5px */
@@ -107,7 +108,7 @@ window#waybar.empty #window {
     background-color: @surface_container_high;
 }
 
-#custom-right_div.6 {
+#custom-right_div.p6 {
     color: @surface_container_high;
     font-size: 1.39em; /* 25px */
     padding: 0px;
@@ -120,7 +121,7 @@ window#waybar.empty #window {
 
 /* 中间 */
 
-#custom-left_div.3 {
+#custom-left_div.p3 {
     color: @surface_container_high;
     /* 调节这里的padding可以移动中心的模块位置 */
     padding: 0px 0em 0em 0.1em;
@@ -155,7 +156,6 @@ window#waybar.empty #window {
 
 #custom-actions:hover,
 #custom-wallpapers:hover,
-#custom-settings:hover,
 #custom-screenshot:hover,
 #custom-wfrec:not(.recording):hover,
 #custom-clipboard:hover {
@@ -169,7 +169,6 @@ window#waybar.empty #window {
 #custom-actions,
 #custom-wallpapers,
 #custom-clipboard,
-#custom-settings,
 #custom-screenshot {
     background-color: @surface_container_high;
     color: @secondary;
@@ -184,7 +183,7 @@ window#waybar.empty #window {
     color: @secondary;
 } */
 
-#custom-left_div.2 {
+#custom-left_div.p2 {
     background-color: @surface_container_high;
     color: @tertiary;
     padding: 0px 0px;
@@ -220,7 +219,7 @@ window#waybar.empty #window {
 }
 
 /* 菜单 */
-#custom-left_div.11 {
+#custom-left_div.p11 {
     background-color: @tertiary;
     color: @surface_container
 }
@@ -232,24 +231,24 @@ window#waybar.empty #window {
     color: @on_primary;
 
 }
-#custom-right_div.1,
-#custom-left_div.1 {
+#custom-right_div.p1,
+#custom-left_div.p1 {
     background-color: @surface_container;
     color: @primary;
 }
-#custom-left_div.1,
-#custom-right_div.1 {
+#custom-left_div.p1,
+#custom-right_div.p1 {
     padding: 0px;
     margin: 0px;
     font-size: 1.39em; /* 25px */
 }
-#custom-left_div.11,
-#custom-right_div.11 {
+#custom-left_div.p11,
+#custom-right_div.p11 {
     margin: 0px;
     padding: 0px;
     font-size: 1.39em; /* 25px */
 }
-#custom-right_div.11 {
+#custom-right_div.p11 {
 
     background-color: @secondary;
     color: @surface_container;
@@ -266,7 +265,7 @@ window#waybar.empty #window {
     color: @on_secondary;
 }
 
-#custom-right_div.2 {
+#custom-right_div.p2 {
     background-color: @surface_container_high;
     color: @secondary;
     padding: 0px;
@@ -285,19 +284,14 @@ window#waybar.empty #window {
     padding: 0px 0.39em 0px 0px; /* 7px 0 0 */
 }
 
-#custom-right_div.3 {
+#custom-right_div.p3 {
 
     color: @surface_container_high;
     /* 调节这里的padding可以移动中心的模块位置 */
     padding: 0px 0em 0px 0px ;
     font-size: 1.39em; /* 25px */
 }
-#custom-right_div.4 {
-    /* background-color: @surface_container_high; */
-    color: @on_secondary;
-    padding: 0px;
-    font-size: 1.39em; /* 25px */
-}
+
 /* —————————————————————————————————————————————————————————————————————————— */
 /* —————————————————————————————————————————————————————————————————————————— */
 /* —————————————————————————————————————————————————————————————————————————— */
@@ -307,7 +301,7 @@ window#waybar.empty #window {
 /* 右侧 */
 
 
-#custom-left_div.7 {
+#custom-left_div.p7 {
     /* background-color: @surface_container_high; */
     color: @surface_bright;
     font-size: 1.39em; /* 25px */
@@ -330,7 +324,7 @@ window#waybar.empty #window {
 }
 
 
-#custom-left_div.4 {
+#custom-left_div.p4 {
     background-color: @surface_bright;
     color: @surface_container_high;
     padding: 0px;
@@ -340,7 +334,7 @@ window#waybar.empty #window {
 #custom-ddcutil-day,
 #custom-ddcutil-night,
 #custom-ddcutil-sleep,
-#custom-separator.1 {
+#custom-separator.p1 {
     background-color: @surface_container_high;
     color: @tertiary;
     padding: 0px 0.33em; /* 5px */
@@ -428,7 +422,7 @@ window#waybar.empty #window {
     background-color: @tertiary;
 }
 
-#custom-left_div.8 {
+#custom-left_div.p8 {
     background-color: @surface_container_high;
     color: @surface_container;
     font-size: 1.39em; /* 25px */
@@ -482,7 +476,7 @@ window#waybar.empty #window {
 
 
 /* powermenu电源菜单 */
-#custom-left_div.5 {
+#custom-left_div.p5 {
     background-color: @surface_container;
     color: @surface;
     padding: 0px;
@@ -506,30 +500,11 @@ window#waybar.empty #window {
 
 
 
-#clock.date {
-    padding: 0px 0.39em; /* 7px */
-}
-#custom-datelogo,
-#clock.date {
-    background-color: @secondary_container;
-    color: @on_secondary_container;
-}
 
-#custom-swaync {
-    background-color: @surface_container_high;
-    color: @on_surface_container;
-    padding: 0px 0.83em; /* 15px */
-}
 
-#custom-mako {
-    background-color: @surface_container_high;
-    color: @on_surface_container;
-    padding: 0px 0.83em; /* 15px */
-}
 
-#custom-left_div.6 {
-    background-color: @surface;
-    color: @surface_container_high;
-    padding: 0px;
-    font-size: 1.39em; /* 25px */
-}
+
+
+
+
+

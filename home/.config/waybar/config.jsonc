@@ -1,5 +1,7 @@
 {
-    //这个waybar因为大改过一次布局，所以箭头的位置和名字已经完全对不上了，从左到右看吧。
+    // powerline 分隔符实例名带 p 前缀：waybar 把实例名注册为 CSS class，
+    // GTK 拒绝数字开头的 class，数字后缀会让 style.css 对应规则整条失效。
+    // 历史布局大改后箭头名与位置早已不对应，从左到右看。
     "include": [
         "modules.jsonc",
         "modules-dividers.jsonc"
@@ -12,54 +14,47 @@
     // "height": 30,
     "reload_style_on_change": true,
     "modules-left": [
-        // "ext/workspaces",
         "niri/workspaces",
-        "custom/right_div#5",
+        "custom/right_div#p5",
         //"cffi/niri-taskbar", //需要安装waybar-niri-taskbar-git
         "niri/window",
-        //"dwl/window",
-        // "hyprland/window",
-        "custom/right_div#6"
+        "custom/right_div#p6"
     ],
     "modules-center": [
-        "custom/left_div#3",
+        "custom/left_div#p3",
 	// 这个模块是shorinNiri相关的常用命令
 	"custom/actions",
         "custom/wfrec",
         "custom/screenshot",
 	"custom/wallpapers",
 	"custom/clipboard",
-        "custom/left_div#2",
+        "custom/left_div#p2",
         "idle_inhibitor",
         "custom/colorpicker",
         "power-profiles-daemon",
-        "custom/left_div#11",
-        "custom/left_div#1",
+        "custom/left_div#p11",
+        "custom/left_div#p1",
         "custom/applauncher",
-        "custom/right_div#1",
-        "custom/right_div#11",
+        "custom/right_div#p1",
+        "custom/right_div#p11",
         "clock",
-        "custom/right_div#2",
-        //"clock#date",
+        "custom/right_div#p2",
         "custom/cava",
-        //  "mpris",
-        "custom/right_div#3"
-        //"custom/right_div#4",
+        "custom/right_div#p3"
     ],
     "modules-right": [
-        // "group/backlight",
-        "custom/left_div#7",
+        "custom/left_div#p7",
         "custom/updates",
         "tray",
-        "custom/left_div#4",
+        "custom/left_div#p4",
         "group/ddcutil",
         "privacy",
-        "pulseaudio",
-        "custom/left_div#8",
+        "group/audio",
+        "custom/left_div#p8",
         "bluetooth",
         "network",
         "battery",
-        "custom/left_div#5",
+        "custom/left_div#p5",
         "group/powermenu"
     ]
 }
