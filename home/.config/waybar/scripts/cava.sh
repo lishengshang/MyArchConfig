@@ -1,4 +1,14 @@
 #!/bin/bash
+#
+# cava.sh — waybar 音频可视化条 (cava 频谱字符动画)。
+#
+# 功能: 有未暂停的音频流时驱动 cava 输出频谱; 静默时输出静态条并用
+#   pactl subscribe 被动唤醒, 空闲零轮询开销。
+# 依赖: cava、pactl (pulseaudio/pipewire-pulse)、sed、flock
+# 调用方: modules.jsonc custom/cava (exec 模式, 启动一次常驻读 stdout,
+#   无 interval; 每个显示器一个 bar 实例)。
+# 并发: flock 单例, 仅一个实例真正启动 cava, 其余实例输出静态条;
+#   锁被孤儿/旧实例占住时低频重试接管, 避免模块永久失效。
 
 # 配置
 CHARS="▁▂▃▄▅▆▇█"
@@ -25,12 +35,22 @@ ascii_max_range = $len
 EOF
 
 # 单例锁：waybar 在多个显示器上各起一个 bar 时会执行两次本脚本，
-# 用 flock 保证只有一个实例真正启动 cava，其余实例输出静态条后退出。
+# 用 flock 保证只有一个实例真正启动 cava，其余实例输出静态条。
 # fd 200 在脚本退出时自动关闭，锁随之释放，无需手动清理。
 exec 200>/tmp/cava.sh.lock
 if ! flock -n 200; then
+    # 锁被占: 可能是双 bar 的另一实例 (正常), 也可能是 waybar 重启
+    # (Mod+F2) 留下的孤儿 (它握着锁但可能永不输出, 靠 SIGPIPE 自愈不可靠)。
+    # 先输出静态条, 再低频重试接管 ~30s; 孤儿被 binds.kdl 的 pkill 清理后
+    # 新实例即可接管, 模块不会永久停在静态条。
     echo "$idle_output"
-    exit 0
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+        sleep 2
+        if flock -n 200; then
+            break
+        fi
+    done
+    flock -n 200 || exit 0
 fi
 
 cleanup() {

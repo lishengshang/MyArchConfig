@@ -226,10 +226,14 @@ binds {
     // Mod+Alt+M hotkey-overlay-title="切换颜色策略 Change color strategy" { spawn "~/.config/scripts/matugen-select-type.sh"; }
     Mod+Alt+T hotkey-overlay-title="切换颜色策略 Change color strategy" { spawn "~/.config/scripts/matugen-select-type.sh"; }
 
-    // 任务栏
-    Mod+F4 hotkey-overlay-title="开关任务栏 Toggle bar" { spawn-sh "pgrep -x waybar >/dev/null && { pkill waybar; pkill cava; } || { ~/.config/scripts/waybar-reload-colors.sh; GTK_THEME=Breeze-Dark waybar -s ~/.config/waybar/style.runtime.css; }"; }
+
+    // 任务栏。pkill waybar 时必须连 cava.sh 包装脚本一起杀, 否则旧实例
+    // 存活持 flock, 新 bar 的 cava.sh 拿不到锁会永久停在静态条。
+    // pkill 模式锚定运行时绝对路径 + 行尾, 避免误杀正在编辑
+    // dotfiles 仓库内同名文件的进程 (仓库路径含 /dotfiles/ 前缀)。
+    Mod+F4 hotkey-overlay-title="开关任务栏 Toggle bar" { spawn-sh "pgrep -x waybar >/dev/null && { pkill waybar; pkill cava; pkill -f \"$HOME/[.]config/waybar/scripts/cava[.]sh$\"; } || { ~/.config/scripts/waybar-reload-colors.sh; GTK_THEME=Breeze-Dark waybar -s ~/.config/waybar/style.runtime.css; }"; }
     Mod+Shift+F4 hotkey-overlay-title="隐藏任务栏 Hide bar" { spawn-sh "killall -SIGUSR1 waybar"; }
-    Mod+F2 hotkey-overlay-title="重启任务栏 Restart waybar" { spawn-sh "pkill cava || true && pkill waybar || true && ~/.config/scripts/waybar-reload-colors.sh && GTK_THEME=Breeze-Dark waybar -c $HOME/.config/waybar/config.jsonc -s $HOME/.config/waybar/style.runtime.css"; }
+    Mod+F2 hotkey-overlay-title="重启任务栏 Restart waybar" { spawn-sh "pkill cava || true; pkill -f \"$HOME/[.]config/waybar/scripts/cava[.]sh$\" || true; pkill waybar || true; ~/.config/scripts/waybar-reload-colors.sh && GTK_THEME=Breeze-Dark waybar -c $HOME/.config/waybar/config.jsonc -s $HOME/.config/waybar/style.runtime.css"; }
 
     // 输入法
     Mod+F1 hotkey-overlay-title="开关输入法 Toggle fcitx" { spawn-sh "pkill fcitx5 || fcitx5"; }

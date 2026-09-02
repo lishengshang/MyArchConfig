@@ -64,23 +64,38 @@ GIF_FPS=30
 GIF_DITHER_MODE="bayer:bayer_scale=5"
 GIF_STATS_MODE="diff"
 
-engine_from_file=$(cat "$CFG_ENGINE" 2>/dev/null || true)
-codec_wl_from_file=$(cat "$CFG_CODEC_WL" 2>/dev/null || true)
-codec_wf_from_file=$(cat "$CFG_CODEC_WF" 2>/dev/null || true)
-fps_from_file=$(cat "$CFG_FPS" 2>/dev/null || true)
-audio_from_file=$(cat "$CFG_AUDIO" 2>/dev/null || true)
-audio_dev_from_file=$(cat "$CFG_AUDIO_DEVICE" 2>/dev/null || true)
-drm_from_file=$(cat "$CFG_DRM" 2>/dev/null || true)
-ext_from_file=$(cat "$CFG_EXT" 2>/dev/null || true)
+# 用户配置按需加载: status-json 由 tick 每秒触发 (×显示器数),
+# 而状态查询只需要 PIDFILE/STARTFILE 等运行时文件, 不需要这 8 个配置读取;
+# 仅 start/stop/settings/toggle 等真正使用配置的命令路径才加载,
+# 可把录制中的刷新开销省去 ~60%。
+load_user_config() {
+  local engine_from_file codec_wl_from_file codec_wf_from_file fps_from_file
+  local audio_from_file audio_dev_from_file drm_from_file ext_from_file
+  engine_from_file=$(cat "$CFG_ENGINE" 2>/dev/null || true)
+  codec_wl_from_file=$(cat "$CFG_CODEC_WL" 2>/dev/null || true)
+  codec_wf_from_file=$(cat "$CFG_CODEC_WF" 2>/dev/null || true)
+  fps_from_file=$(cat "$CFG_FPS" 2>/dev/null || true)
+  audio_from_file=$(cat "$CFG_AUDIO" 2>/dev/null || true)
+  audio_dev_from_file=$(cat "$CFG_AUDIO_DEVICE" 2>/dev/null || true)
+  drm_from_file=$(cat "$CFG_DRM" 2>/dev/null || true)
+  ext_from_file=$(cat "$CFG_EXT" 2>/dev/null || true)
 
-ENGINE="${ENGINE:-${engine_from_file:-$_DEFAULT_ENGINE}}"
-CODEC_WL="${CODEC_WL:-${codec_wl_from_file:-$_DEFAULT_CODEC_WL}}"
-CODEC_WF="${CODEC_WF:-${codec_wf_from_file:-$_DEFAULT_CODEC_WF}}"
-FRAMERATE="${FRAMERATE:-${fps_from_file:-$_DEFAULT_FRAMERATE}}"
-AUDIO="${AUDIO:-${audio_from_file:-$_DEFAULT_AUDIO}}"
-AUDIO_DEVICE="${AUDIO_DEVICE:-${audio_dev_from_file:-}}"
-DRM_DEVICE="${DRM_DEVICE:-${drm_from_file:-}}"
-SAVE_EXT="${SAVE_EXT:-${ext_from_file:-$_DEFAULT_SAVE_EXT}}"
+  ENGINE="${ENGINE:-${engine_from_file:-$_DEFAULT_ENGINE}}"
+  CODEC_WL="${CODEC_WL:-${codec_wl_from_file:-$_DEFAULT_CODEC_WL}}"
+  CODEC_WF="${CODEC_WF:-${codec_wf_from_file:-$_DEFAULT_CODEC_WF}}"
+  FRAMERATE="${FRAMERATE:-${fps_from_file:-$_DEFAULT_FRAMERATE}}"
+  AUDIO="${AUDIO:-${audio_from_file:-$_DEFAULT_AUDIO}}"
+  AUDIO_DEVICE="${AUDIO_DEVICE:-${audio_dev_from_file:-}}"
+  DRM_DEVICE="${DRM_DEVICE:-${drm_from_file:-}}"
+  SAVE_EXT="${SAVE_EXT:-${ext_from_file:-$_DEFAULT_SAVE_EXT}}"
+}
+
+# status-json 路径的 tooltip 只需要引擎名, 不值得为它加载全部 8 个配置文件
+ensure_engine_for_tooltip() {
+  [[ -n "${ENGINE:-}" ]] && return 0
+  local engine_from_file; engine_from_file=$(cat "$CFG_ENGINE" 2>/dev/null || true)
+  ENGINE="${engine_from_file:-$_DEFAULT_ENGINE}"
+}
 
 TITLE="${TITLE:-}"
 SAVE_DIR_ENV="${SAVE_DIR:-}"
@@ -273,7 +288,20 @@ start_tick() {
     while :; do
       [[ -r "$PIDFILE" ]] || break
       local p; read -r p <"$PIDFILE" 2>/dev/null || p=""
-      [[ -n "$p" ]] && kill -0 "$p" 2>/dev/null || break
+      # 空内容只可能是 start_rec 正在重写 PIDFILE (截断后未写入的毫秒窗口),
+      # 下个 tick 自会读到新 PID; 此时绝不能删, 否则会抹掉活跃录制的状态。
+      [[ -z "$p" ]] && break
+      if ! kill -0 "$p" 2>/dev/null; then
+        # 引擎自行崩溃时 PIDFILE 尚在 (正常 stop 由 stop_rec 清理并自己
+        # 发信号)。二次确认内容未被重写后清理并归位 waybar 图标, 防止
+        # 图标永远停在“录制中”。
+        local cur; cur="$(cat "$PIDFILE" 2>/dev/null || true)"
+        if [[ "$cur" == "$p" ]]; then
+          rm -f "$PIDFILE"
+          signal_waybar
+        fi
+        break
+      fi
       signal_waybar
       sleep 1
     done
@@ -810,6 +838,7 @@ tooltip_recording_text() {
 }
 pretty_status_json() {
   local text tooltip class alt
+  ensure_engine_for_tooltip
   if is_running; then
     local start=0; [[ -r "$STARTFILE" ]] && read -r start <"$STARTFILE" || true
     [[ "$start" =~ ^[0-9]+$ ]] || start=0
@@ -904,6 +933,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 3. 执行分发
+# 纯状态查询路径不加载用户配置 (见 load_user_config 注释)
+case "$COMMAND" in
+  start|stop|toggle|settings) load_user_config ;;
+esac
 case "$COMMAND" in
   start)          start_rec ;;
   stop)           stop_rec ;;

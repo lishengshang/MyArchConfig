@@ -58,13 +58,13 @@ generate_json() {
     fi
 
     local tooltip_text=""
+    # JSON 字符串转义: 反斜杠必须最先转义, 再转双引号 (包名/描述理论上可含两者)
     if [[ "$count" -gt "$MAX_LINES" ]]; then
         local remainder=$((count - MAX_LINES))
-        local top_list=$(echo "$updates" | head -n "$MAX_LINES")
-        local escaped_list=$(echo "$top_list" | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}' )
-        tooltip_text="${escaped_list}----------------\\n<b>⚠️ ... and ${remainder} more updates</b>"
+        local top_list=$(echo "$updates" | head -n "$MAX_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | awk '{printf "%s\\n", $0}' )
+        tooltip_text="${top_list}----------------\\n<b>⚠️ ... and ${remainder} more updates</b>"
     else
-        tooltip_text=$(echo "$updates" | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}' | head -c -2 || true)
+        tooltip_text=$(echo "$updates" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | awk '{printf "%s\\n", $0}' | head -c -2 || true)
     fi
 
     printf '{"text": "%s", "alt": "has-updates", "tooltip": "%s"}\n' "$count" "$tooltip_text"
@@ -91,9 +91,14 @@ perform_update_check() {
             ALL_UPDATES="$AUR_UPDATES"
         fi
         
-        echo "$REPO_UPDATES" > "${CACHE_FILE%.json}-repo.txt"
-        echo "$AUR_UPDATES" > "${CACHE_FILE%.json}-aur.txt"
-        generate_json "$ALL_UPDATES" > "$CACHE_FILE"
+        # 原子写: JSON 缓存由 waybar 模块在锁外直读, 截断写会被另一实例
+        # 的 cat 读到半截 JSON 导致模块空白; tmp+mv 保证读方只见完整文件。
+        echo "$REPO_UPDATES" > "${CACHE_FILE%.json}-repo.txt.tmp.$$"
+        mv -f "${CACHE_FILE%.json}-repo.txt.tmp.$$" "${CACHE_FILE%.json}-repo.txt"
+        echo "$AUR_UPDATES" > "${CACHE_FILE%.json}-aur.txt.tmp.$$"
+        mv -f "${CACHE_FILE%.json}-aur.txt.tmp.$$" "${CACHE_FILE%.json}-aur.txt"
+        generate_json "$ALL_UPDATES" > "${CACHE_FILE}.tmp.$$"
+        mv -f "${CACHE_FILE}.tmp.$$" "$CACHE_FILE"
     else
         return 1
     fi

@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+#
+# power-screenshot.sh — 截图菜单: Niri 原生动作 / Grim+Slurp 双后端。
+#
+# 功能: 弹出多级 fuzzel 菜单选择全屏/窗口/区域截图与编辑模式, 自动探测
+#   后端 (niri 优先, 回退 grim); 编辑器 satty/swappy, 设置持久化到缓存目录。
+# 依赖: fuzzel、niri 或 grim+slurp、wl-copy、satty 或 swappy、xdg-user-dir
+# 调用方: modules.jsonc 自定义模块 on-click-right (仅点击, 无轮询)。
+# 注意: 截图是交互式的, 等待完成的所有循环都有超时上限 (防孤儿进程)。
+
 set -euo pipefail
 
 ########################
@@ -387,13 +396,15 @@ niri_capture_and_maybe_edit() {
 
     # 不编辑：用目录里的最新文件判断 screenshot 完成
     if [[ "$need_edit" != "yes" ]]; then
-        local before shot
+        local before shot i
         before="$(latest_in_dir "$NIRI_SHOT_DIR" || true)"
 
         niri msg action "$action"
 
-        # 循环等待文件生成
-        while :; do
+        # 循环等待文件生成。必须有超时: region 模式用户按 Esc 取消时 niri
+        # 不会写新文件, 无限轮询会以 20 forks/s 永久空转成孤儿进程。
+        # 上限 90s (用户拖选选区可能较慢); 超时则放弃本次等待。
+        for i in {1..1800}; do
             shot="$(latest_in_dir "$NIRI_SHOT_DIR" || true)"
             if [[ -z "$before" && -n "$shot" ]] || \
                [[ -n "$before" && -n "$shot" && "$shot" != "$before" ]]; then

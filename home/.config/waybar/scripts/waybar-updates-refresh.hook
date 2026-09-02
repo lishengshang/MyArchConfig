@@ -8,4 +8,10 @@ Target = *
 [Action]
 Description = Notifying Waybar update checker to refresh...
 When = PostTransaction
-Exec = /bin/sh -c 'pkill -SIGUSR1 -f check-updates.sh 2>/dev/null || true'
+# 注意: -f 匹配整条命令行, 必须锚定运行时绝对路径并限定结尾 ($):
+# 编辑 dotfiles 仓库中同名文件的 vim/less 路径含 /dotfiles/ 前缀, 不会命中;
+# [.] 让模式中的点号按字面匹配, 同时模式自身文本 (含方括号) 不会自匹配,
+# 避免 pkill 误杀自身/父 shell。
+# 路径必须硬编码: hook 以 root 运行 (sudo pacman 下 $HOME=/root),
+# 不能用 $HOME; 若换用户名请同步修改此行。
+Exec = /bin/sh -c 'pkill -SIGUSR1 -f "/home/mio/[.]config/waybar/scripts/check-updates[.]sh$" 2>/dev/null || true'
