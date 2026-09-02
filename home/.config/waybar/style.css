@@ -56,7 +56,7 @@ tooltip label {
     color:@tertiary;
 }
 
-#custom-right_div.p5 {
+#custom-right_div.5 {
     background: @surface_container_high;
     color: @surface;
     font-size: 1.39em; /* 25px */
@@ -108,7 +108,7 @@ window#waybar.empty #window {
     background-color: @surface_container_high;
 }
 
-#custom-right_div.p6 {
+#custom-right_div.6 {
     color: @surface_container_high;
     font-size: 1.39em; /* 25px */
     padding: 0px;
@@ -121,7 +121,7 @@ window#waybar.empty #window {
 
 /* 中间 */
 
-#custom-left_div.p3 {
+#custom-left_div.3 {
     color: @surface_container_high;
     /* 调节这里的padding可以移动中心的模块位置 */
     padding: 0px 0em 0em 0.1em;
@@ -183,7 +183,7 @@ window#waybar.empty #window {
     color: @secondary;
 } */
 
-#custom-left_div.p2 {
+#custom-left_div.2 {
     background-color: @surface_container_high;
     color: @tertiary;
     padding: 0px 0px;
@@ -219,7 +219,7 @@ window#waybar.empty #window {
 }
 
 /* 菜单 */
-#custom-left_div.p11 {
+#custom-left_div.11 {
     background-color: @tertiary;
     color: @surface_container
 }
@@ -231,24 +231,24 @@ window#waybar.empty #window {
     color: @on_primary;
 
 }
-#custom-right_div.p1,
-#custom-left_div.p1 {
+#custom-right_div.1,
+#custom-left_div.1 {
     background-color: @surface_container;
     color: @primary;
 }
-#custom-left_div.p1,
-#custom-right_div.p1 {
+#custom-left_div.1,
+#custom-right_div.1 {
     padding: 0px;
     margin: 0px;
     font-size: 1.39em; /* 25px */
 }
-#custom-left_div.p11,
-#custom-right_div.p11 {
+#custom-left_div.11,
+#custom-right_div.11 {
     margin: 0px;
     padding: 0px;
     font-size: 1.39em; /* 25px */
 }
-#custom-right_div.p11 {
+#custom-right_div.11 {
 
     background-color: @secondary;
     color: @surface_container;
@@ -265,7 +265,7 @@ window#waybar.empty #window {
     color: @on_secondary;
 }
 
-#custom-right_div.p2 {
+#custom-right_div.2 {
     background-color: @surface_container_high;
     color: @secondary;
     padding: 0px;
@@ -284,7 +284,7 @@ window#waybar.empty #window {
     padding: 0px 0.39em 0px 0px; /* 7px 0 0 */
 }
 
-#custom-right_div.p3 {
+#custom-right_div.3 {
 
     color: @surface_container_high;
     /* 调节这里的padding可以移动中心的模块位置 */
@@ -301,7 +301,7 @@ window#waybar.empty #window {
 /* 右侧 */
 
 
-#custom-left_div.p7 {
+#custom-left_div.7 {
     /* background-color: @surface_container_high; */
     color: @surface_bright;
     font-size: 1.39em; /* 25px */
@@ -324,7 +324,7 @@ window#waybar.empty #window {
 }
 
 
-#custom-left_div.p4 {
+#custom-left_div.4 {
     background-color: @surface_bright;
     color: @surface_container_high;
     padding: 0px;
@@ -334,7 +334,7 @@ window#waybar.empty #window {
 #custom-ddcutil-day,
 #custom-ddcutil-night,
 #custom-ddcutil-sleep,
-#custom-separator.p1 {
+#custom-separator.1 {
     background-color: @surface_container_high;
     color: @tertiary;
     padding: 0px 0.33em; /* 5px */
@@ -422,7 +422,7 @@ window#waybar.empty #window {
     background-color: @tertiary;
 }
 
-#custom-left_div.p8 {
+#custom-left_div.8 {
     background-color: @surface_container_high;
     color: @surface_container;
     font-size: 1.39em; /* 25px */
@@ -476,7 +476,7 @@ window#waybar.empty #window {
 
 
 /* powermenu电源菜单 */
-#custom-left_div.p5 {
+#custom-left_div.5 {
     background-color: @surface_container;
     color: @surface;
     padding: 0px;
