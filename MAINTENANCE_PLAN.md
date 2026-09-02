@@ -195,7 +195,7 @@
 
 ### P2-8：waybar 配置全面修复与重构
 
-~~[x] (1) divider 实例名数字后缀全部改 p 前缀（waybar 把实例名注册为 CSS class，GTK4 拒绝数字开头选择器——GTK4 实测旧版 19 个 parser error、修复后 0），config.jsonc 14 处引用与 style.css 17 处选择器三方同步，powerline 配色首次真正生效；(2) modules-right 接入 group/audio 音量滑块抽屉；(3) dead config 清理 8 个未引用模块定义 + 6 个未引用 divider + style.css 死样式（swaync/mako/settings/clock.date/datelogo 等）；(4) updates 中键 pkill 锚定运行时绝对路径+行尾（与 pacman hook 一致）；(5) battery format-icons 补齐官方 11 元素（修复 90-99% 显示满电图标）；(6) mpris tooltip 类型修正、applauncher || 链精简、旧用户名注释清理、niri-taskbar 样式保留备用并注明；(7) modules.jsonc 滚轮音量 wpctl 加 -l 1.0 限幅。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: 三文件 JSONC 解析+引用一致性（36 引用无缺失、唯一未引用为有意保留的 mpris）、GTK4 CssProvider 加载（0 parser error）、waybar 实启动日志无相关错误、CodeReview 无阻塞问题~~
+~~[x] 【注：divider 重命名已于同日应用户要求整体回滚——数字 class 规则此前虽被 GTK 丢弃，但用户已习惯该默认观感，规则生效反而改变显示效果；选择器同步回滚，仅保留死样式清理，见 revert 提交 769cf62】(1) divider 实例名数字后缀全部改 p 前缀（waybar 把实例名注册为 CSS class，GTK4 拒绝数字开头选择器——GTK4 实测旧版 19 个 parser error、修复后 0），config.jsonc 14 处引用与 style.css 17 处选择器三方同步，powerline 配色首次真正生效；(2) modules-right 接入 group/audio 音量滑块抽屉；(3) dead config 清理 8 个未引用模块定义 + 6 个未引用 divider + style.css 死样式（swaync/mako/settings/clock.date/datelogo 等）；(4) updates 中键 pkill 锚定运行时绝对路径+行尾（与 pacman hook 一致）；(5) battery format-icons 补齐官方 11 元素（修复 90-99% 显示满电图标）；(6) mpris tooltip 类型修正、applauncher || 链精简、旧用户名注释清理、niri-taskbar 样式保留备用并注明；(7) modules.jsonc 滚轮音量 wpctl 加 -l 1.0 限幅。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: 三文件 JSONC 解析+引用一致性（36 引用无缺失、唯一未引用为有意保留的 mpris）、GTK4 CssProvider 加载（0 parser error）、waybar 实启动日志无相关错误、CodeReview 无阻塞问题~~
 
 ## 已知但暂不处理的问题
 
