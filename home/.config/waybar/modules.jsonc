@@ -154,12 +154,14 @@
     "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
     "on-click-middle": "pavucontrol --tab=3",
-    "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+",
-    "on-scroll-down": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%-"
+    // -l 1.5: 允许滚轮最高推到 150% (WirePlumber 软件放大, 音量不够时可用),
+    // 同时防止无限上调导致严重失真; 与 pulseaudio/slider 的 max 保持一致
+    "on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 2%+",
+    "on-scroll-down": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 2%-"
   },
   "pulseaudio/slider": {
     "min": 0,
-    "max": 100,
+    "max": 150,
     "orientation": "horizontal"
   },
   //多媒体
