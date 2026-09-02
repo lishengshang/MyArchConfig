@@ -9,7 +9,6 @@
 #   占位符 (仅 extractor/url 内有效): {{PAGE:N}} = 随机页 1..N, {{RANDOM}} = 随机索引 0..23
 SOURCES=(
     "dmoe|https://www.dmoe.cc/random.php|"
-    "moejue|https://random.MoeJue.cn/randbg?type=pc|"
     "paugram|https://api.paugram.com/wallpaper/?source=sina|"
     "paiii|https://t.paiii.cn/api/random|"
     "yppp|https://api.yppp.net/pc.php|"
@@ -17,8 +16,15 @@ SOURCES=(
     "touhou|https://img.paulzzh.com/touhou/random?size=pc|"
     "anosu|https://api.anosu.top/img|"
     "zhuqiy|https://rimg.zhuqiy.top/api/random?type=pc|"
-    "horosama|https://api.horosama.com/random.php|"
+    "horosama|https://api.horosama.com/random.php?type=pc|"
     "98qy|https://www.98qy.com/sjbz/api.php?method=pc&lx=dongman|"
+    "mwm-pc|https://t.mwm.moe/pc|"
+    "mwm-fj|https://t.mwm.moe/fj|"
+    "xl0408|https://imgapi.xl0408.top/index.php|"
+    "r10086|https://api.r10086.com/%E6%A8%B1%E9%81%93%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87api%E6%8E%A5%E5%8F%A3.php?%E5%9B%BE%E7%89%87%E7%B3%BB%E5%88%97=%E5%8A%A8%E6%BC%AB%E7%BB%BC%E5%90%881|"
+    "loliapi|https://www.loliapi.com/acg/?type=pc|"
+    "suyanw|https://api.suyanw.cn/api/comic/api.php|"
+    "jitsu|https://moe.jitsu.top/api/?size=pc|"
     "yande|https://yande.re/post.json?tags=rating:safe+width:%3E=1920+score:%3E=15+order:random&limit=1|.[0].file_url"
     "wallhaven|https://wallhaven.cc/api/v1/search?categories=010&purity=100&sorting=toplist&topRange=3M&atleast=1920x1080&ratios=16x9,16x10&q=-ai%20art&page={{PAGE:10}}|.data[{{RANDOM}}].path"
     "wallhaven-hot|https://wallhaven.cc/api/v1/search?categories=010&purity=100&sorting=toplist&topRange=1M&atleast=1920x1080&ratios=16x9,16x10&q=-ai%20art&page={{PAGE:3}}|.data[{{RANDOM}}].path"
@@ -384,6 +390,15 @@ if [ "$DOWNLOAD_OK" = false ] && [ -n "$FALLBACK_SOURCE" ]; then
     fi
 fi
 
+# 文件名附带源名 (wall_<source>_<ts>.jpg): 日后从文件名即可判断哪些图源产出可用壁纸。
+# 后续超分/去重/清理均基于 RAW_PATH 变量与 wall_* 通配符, 重命名不影响它们。
+if [ "$DOWNLOAD_OK" = true ] && [ -n "$USED_SOURCE_NAME" ]; then
+    NAMED_PATH="${SAVE_DIR}/wall_${USED_SOURCE_NAME}_$(date +%s%N)_$$.jpg"
+    if mv -f "$RAW_PATH" "$NAMED_PATH" 2>/dev/null; then
+        RAW_PATH="$NAMED_PATH"
+    fi
+fi
+
 # 下载结束,杀掉心跳通知进程
 if [ -n "$NOTIFY_PID" ]; then
     kill "$NOTIFY_PID" 2>/dev/null
@@ -445,6 +460,12 @@ if [ "$ENABLE_UPSCALE" = true ] && [ -n "$UPSCALE_TOOL" ]; then
         fi
 
         if [ "$UPSCALE_OK" = true ]; then
+            # 超分产物替代原图时必须删除原图, 否则库里会同时留下
+            # 原图与超分版两张内容相同的照片 (用户视角即“重复壁纸”)。
+            # 覆盖两种路径: 直出 jpg / PNG 转码失败退回 PNG。
+            if [ "$FINAL_PATH" != "$RAW_PATH" ]; then
+                rm -f "$RAW_PATH"
+            fi
             MSG_EXTRA="$MSG_EXTRA (已超分 2x)"
         else
             MSG_EXTRA="$MSG_EXTRA (超分失败)"
