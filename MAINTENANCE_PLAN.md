@@ -179,9 +179,19 @@
 
 ~~[x] 壁纸脚本性能优化：(1) 下载脚本去重改增量哈希缓存 `.wall_hashes`（size:mtime 签名，变更自愈，消除随图库增长的每次全库 sha256 扫描）；(2) 下载/本地随机两脚本统一 `wallpaper-switch` 锁，消除并发互踩 waypaper 记录与壁纸文件的竞态；(3) realesrgan 超分改 `-f jpg` 直出（失败自动回退 PNG+转码）；(4) 合并重复 identify 调用（validate_geometry 一次取宽高回填全局，matugen-update 同样合并）；(5) 自动切换优先直调 awww img + waypaper 记录同步，失败回退 waypaper --no-post-command，单次切换 0.71s→0.25s；(6) 清理循环改 sed -z + xargs -0，blur 脚本 awww query 单次调用 + 纯 bash 解析。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: `bash -n`、`shellcheck -S error`、端到端真实下载（直出 JPG 超分生效、缓存登记 130 条）、哈希缓存增量冒烟（首轮建档/变更重算/重复识别）、清理管道特殊文件名测试、awww query 新旧解析等价测试、CodeReview 无阻塞问题（建议项已修复）~~
 
+### P2-6：niri/scripts 与 scripts 目录脚本健康度修复（性能/健壮性/头部注释）
+
+~~[x] 脚本健康度修复：(1) hyprlock-music 每 2 秒 N+1 个 playerctl 子进程合并为单次 --ignore-player 调用（保持只认 Playing 语义）；(2) screenshot 等待超时 10s→60s 并改为防挂死兜底、保存路径加文件存在性校验、旧版分支补超时、补头部注释；(3) auto-update-cache 补 close_write/moved_to 事件（编辑器原子保存与 sed -i 均为 rename）+ flock 多实例锁 + 通知失败不再杀链；(4) toggle-touchpad 加状态检测函数与 sed 前后校验（失败如实报错）、正则容忍 // 后任意空格、消除行尾注释重复累积；(5) swayidle 头部 15/25 分钟过期数值修正为实际 10/20；(6) 删除 niri_auto_blur_bg.sh 死链接（现役脚本符号链接，零调用方）；(7) matugen-select-type 补中文头部+状态文件原子写+共享写锁+fuzzel 失败与取消区分；(8) random-api-wallpaper 补头部；(9) waybar-reload-colors 加 flock 防 4 处调用方并发写；(10) gtk-theme-by-time writable 检查实效化+幂等写入+仅变更时重启 fcitx5；(11) nirinit-restore 补二进制检查/探活防假成功、pkill 后等真正退出；(12) toggle-overview-blur 删冗余 sleep 1+结果校验；(13) fcitx5-session-theme 仅变更时重启+tmp 清理 trap+XDG 路径一致。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: `bash -n`、`shellcheck -S error`、hyprlock-music 实测、toggle-touchpad 往返冒烟（完全还原）、锁互斥冒烟、waybar/fcitx5/gtk 幂等冒烟、CodeReview~~
+
+~~[x] 修复超分直出 JPG 引入的重复壁纸回归：realesrgan 直出 jpg 成功（及 PNG 转码失败退回 PNG）时未删除原始下载文件，库内同时留下原图与 2x 超分版两张内容相同照片（实测 3 对，均为 2026-09-02 优化后产生）；修复为超分产物替代原图时删除原图，并清理现存重复对（保留高分辨率超分版）。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: `bash -n`、`shellcheck -S error`、库内成对检查归零、awww/哈希缓存一致性不受影响~~
+
 ### P0-7：剪贴板 TUI 快捷键显示和交互修复
 
 ~~[x] 修复四项问题 + 两个行为调整：(1) 星标与内容间距过大 — `--tabstop=1`；(2) 快捷键显示不全 — 双行 header + `^` 符号；(3) Enter 后窗口卡住空白 — `wl-copy 2>/dev/null` 防止 daemon 持有 PTY；(4) Ctrl-F 粘贴功能（已在 header 中宣传但未实现）；(5) 星标条目置顶 — `build_menu` 两遍扫描，先输出星标再输出普通；(6) 星标删除需确认，普通直接删 — `Ctrl+X` 检查 `is_pinned`。注意：`--no-clear` 尝试修复 Enter 后空白但导致箭头键/Esc 无法使用，已回退。 — Agent: ZCode / zcode-agent, 日期: 2026-08-20；验证: `bash -n`、`shellcheck -S error`、kitty 窗口关闭测试~~
+
+### P2-7：waybar 脚本健康度修复
+
+~~[x] (1) power-screenshot 截图完成检测无限轮询改 90s 超时防孤儿；补头部注释；(2) cava.sh 锁失败改 30s 低频重试接管，binds.kdl Mod+F2/F4 连杀 cava.sh 包装（pkill 模式锚定运行时绝对路径+行尾防误杀编辑仓库同名文件的进程），消除孤儿锁致模块永久失效；(3) check-updates JSON 缓存 tmp+mv 原子写（waybar 锁外直读）、tooltip 转义补反斜杠（实测修正双重转义回归）、>50 条分支恢复 head 截断；(4) pacman hook pkill 收紧为 /home/mio 绝对路径+行尾（hook 以 root 运行不能用 $HOME）；(5) screenrec tick 引擎崩溃时二次确认后清理 PIDFILE 并归位 waybar 图标（含 start_rec 重写毫秒窗口防误删）、8 个配置读取改 load_user_config 按需加载（status-json 每秒刷新省 ~60% forks）；(6) screenshot.sh grim 失败时先落盘校验再写剪贴板，不再覆盖为空；(7) 删除零调用方死代码 old-longshot.sh（中键实际用 wl-longshot）。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: `bash -n`、`shellcheck -S error`、`niri validate`、generate_json 函数级冒烟（80 条截断/特殊字符转义/JSON 合法）、screenrec status-json/is-active/help 实测、hook Exec sh 语法实测、CodeReview 5 项发现全部修复并复测~~
 
 ## 已知但暂不处理的问题
 
@@ -194,7 +204,7 @@
 - `[ ]` 简化 Shell 工具链：在 Zsh/Fish、Zinit/Fisher、fzf/Atuin、carapace、Starship 等重复能力中明确主方案，减少启动时网络访问和运行时初始化。
 - `[ ]` 将 `packages/pkglist.generated.txt` 与 foreign 快照明确标记为当前机器快照；默认 bootstrap 应优先使用精简 profile，避免新机器安装当前机器的全部软件。
 - `[ ]` 审查 Matugen、动态壁纸、GTK/Fcitx5 定时主题和 Niri/Systemd 双重生命周期，明确基础功能与可选增强功能的边界。
-- `[ ]` 清理未使用或疑似遗留脚本，例如 `home/.config/waybar/scripts/old-longshot.sh`、`home/.config/scripts/niri_auto_blur_bg.sh`，删除前需确认无外部调用。
+- `[ ]` 清理未使用或疑似遗留脚本（`niri_auto_blur_bg.sh` 与 `waybar/scripts/old-longshot.sh` 均已确认零调用方并于 2026-09-02 删除）
 - `[ ]` 复核 `home/.gitconfig` 中当前工作区新增的 `safe.directory = *`；通用配置不应默认信任所有 Git 仓库。
 - `[ ]` 扩充真实 HOME 场景的 Stow/Setup/Uninstall 测试，覆盖普通文件冲突、断链、动态生成文件和无 Wayland/可选依赖场景。
 
