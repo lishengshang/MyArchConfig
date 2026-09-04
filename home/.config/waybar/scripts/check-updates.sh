@@ -5,6 +5,11 @@
 # 修复：引入动态信号屏蔽与 FORCE_UPDATE 标志，完美解决高频触发导致的并发地狱。
 # 增强：监听 pacman 本地数据库 mtime，包变更后下一轮（≤SLEEP_INTERVAL）自动刷新；
 #       配合 pacman hook（PostTransaction 发 SIGUSR1）可实现即时刷新。
+#       同时监听本地自建仓库 (aur-local) 的 repo db mtime：repo-add 入库不会
+#       触发 pacman hook，不监听的话本地包更新最长要等 CHECK_INTERVAL 才显示。
+#       (repo db 更新后 checkupdates 的 fake-root -Sy 会拉到新版本并列出
+#        aur-local/pkg old -> new，无需额外解析 PKGBUILD：构建失败时
+#        autoupdate.sh 会回滚 pkgver，不存在持久的中间态。)
 # ==============================================================================
 
 set -euo pipefail
@@ -17,6 +22,9 @@ MAX_LINES=50
 CHECK_INTERVAL=3600
 SLEEP_INTERVAL=60
 PACMAN_DB="/var/lib/pacman/local"
+# 本地自建仓库 (pacman.conf 的 [aur-local] file:// 仓库) 的 repo db。
+# 不存在时自动跳过监听 (其他机器无此仓库也不受影响); 可用环境变量覆盖。
+LOCAL_REPO_DB="${LOCAL_REPO_DB:-$HOME/Projects/aur-local/repo/aur-local.db.tar.zst}"
 
 # 确保缓存目录存在
 mkdir -p "$CACHE_DIR"
@@ -117,8 +125,13 @@ run_check() {
         local pacman_db_time=0
         [[ -d "$PACMAN_DB" ]] && pacman_db_time=$(stat -c %Y "$PACMAN_DB" 2>/dev/null || echo 0)
 
-        # 缓存未过期 且 数据库无变化 → 直接输出缓存
-        if [[ $age -lt $((CHECK_INTERVAL - 10)) ]] && [[ $pacman_db_time -le $file_time ]]; then
+        # 检查本地自建仓库的 repo db 是否在缓存之后发生变动 (repo-add 入库)。
+        # 不触发 pacman hook 的变动靠这里捕获, 下一轮 (≤60s) 即可显示本地包更新。
+        local local_repo_time=0
+        [[ -f "$LOCAL_REPO_DB" ]] && local_repo_time=$(stat -c %Y "$LOCAL_REPO_DB" 2>/dev/null || echo 0)
+
+        # 缓存未过期 且 两个数据库均无变化 → 直接输出缓存
+        if [[ $age -lt $((CHECK_INTERVAL - 10)) ]] && [[ $pacman_db_time -le $file_time ]] && [[ $local_repo_time -le $file_time ]]; then
             cat "$CACHE_FILE"
             return
         fi
