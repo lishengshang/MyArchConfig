@@ -1,5 +1,5 @@
 # Ghostty 基础配置
-# 该文件通过 ~/.config/ghostty/config.ghostty 链接使用。
+# 经 GNU Stow 链接为 ~/.config/ghostty/config（Ghostty 默认只读取该文件名）。
 
 # ─── 窗口 ────────────────────────────────────────────────────────────────────
 # 单位是终端字符格，不是像素。

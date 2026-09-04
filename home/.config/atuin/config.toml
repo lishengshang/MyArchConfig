@@ -1,0 +1,59 @@
+# =============================================================================
+# atuin/config.toml — 精简美化版
+# =============================================================================
+# 默认完整配置可通过 `atuin default-config` 查看；本文件只覆盖与外观/手感
+# 相关的关键项。同步、daemon、统计等保持上游默认。
+# =============================================================================
+
+# ----- 搜索行为 -----
+search_mode = "fuzzy"               # 模糊匹配（输入顺序无关）
+filter_mode = "global"              # 默认查全局历史
+filter_mode_shell_up_key_binding = "session"  # ↑ 时只查当前 session（直觉）
+enter_accept = true                 # Enter 直接执行，Tab 进入命令行编辑
+exit_mode = "return-original"       # Esc 还原原始输入
+show_preview = true                 # 显示命令完整内容（长命令折行预览）
+max_preview_height = 4
+keymap_mode = "emacs"
+ctrl_n_shortcuts = false
+show_numeric_shortcuts = false      # 不显示左侧 1..9 标号，更干净
+show_help = false                   # 隐藏底部 help 栏（你已熟悉，省一行）
+show_tabs = false                   # 隐藏顶部 search/inspect 标签
+
+# ----- 外观（关键）-----
+style = "compact"                   # compact = 紧凑无装饰；另可 "full"
+inline_height = 18                  # ← 不全屏！只占终端底部 18 行（类似 fzf 高度）
+invert = true                       # 搜索框放顶部（光标自然在输入处）
+
+[theme]
+# 内置主题：default / autumn / marine
+# autumn 偏暖橙红；marine 偏蓝青冷色；这里走自定义 tokyonight 风格
+# 配色与 fzf (env.zsh FZF_DEFAULT_OPTS) / p10k 完全同步，调色板见 themes/tokyonight.toml
+name = "tokyonight"
+debug = false
+
+# ----- 列布局（左到右）-----
+[ui]
+# 默认 ["duration", "time", "command"]
+# 这里把 directory 加进来（在哪里跑的命令往往很关键），duration 省略以让位
+columns = [
+    { type = "time", width = 8 },
+    { type = "directory", width = 22 },
+    { type = "command", expand = true },
+]
+
+# ----- 搜索过滤器顺序（Ctrl+T 在 atuin 内切换）-----
+[search]
+filters = ["global", "session", "directory", "workspace"]
+
+# ----- 预览策略 -----
+[preview]
+strategy = "auto"
+
+# ----- 同步：默认关闭（如果你没注册 atuin 账号）-----
+[sync]
+records = true
+
+# ----- 统计：常见子命令打散 -----
+[stats]
+common_prefix = ["sudo", "doas", "time"]
+ignored_commands = ["cd", "ls", "ll", "la", "c", "q"]

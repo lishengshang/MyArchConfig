@@ -1,0 +1,11 @@
+# niri-clip v0.2 配置
+# 复制到 ~/.config/niri-clip/config.toml 后生效
+
+max_items = 750
+preview_width = 100
+min_store_length = 1
+enable_image_preview = true
+ignore_regex = "(?i)password|secret|token|otp|auth"
+pinned_on_top = true
+tui_backend = "auto"      # auto | fzf | fuzzel
+enable_preview = true

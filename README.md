@@ -133,18 +133,12 @@ Niri 会话中的 `gtk-theme-by-time.timer` 会按本地时间在每天 07:00 �
 
 ### Niri 可选功能
 
-剪贴板历史默认关闭，避免密码和 Token 被持久化保存。需要启用时执行：
-
-```bash
-touch ~/.config/niri/clipboard-history.enabled
-nohup ~/.config/niri/scripts/clipboard-history.sh >/dev/null 2>&1 &
-```
-
-关闭并清理已有历史：
-
-```bash
-rm -f ~/.config/niri/clipboard-history.enabled ~/.cache/cliphist/db
-```
+剪贴板由 [niri-clip](https://github.com/lishengshang/niri-clip) 提供：daemon 由 systemd user `niri-clip.service` 常驻管理，会话启动即运行（无需旧方案的 opt-in 标记文件）；
+二进制经 `cargo install` 安装在 `~/.cargo/bin`，服务定义与配置 `~/.config/niri-clip/config.toml` 均已入库。
+配置中的 `ignore_regex` 默认过滤含 password/secret/token/otp/auth 的内容，避免敏感信息进入历史。
+`Mod+V` 调用 `niri-clip tui`（`tui_backend = "auto"` 时优先原生 GUI，回退 fzf/fuzzel）；
+waybar 剪贴板模块通过 `systemctl --user restart niri-clip` 重启服务。
+旧 cliphist 自研 TUI 方案已于 2026-08-27 整体移除。
 
 锁屏使用 Matugen 主题，但缺少动态颜色文件时会自动使用仓库内的静态回退颜色。
 
@@ -152,17 +146,6 @@ Fcitx5 会按桌面会话切换配置：Niri 使用 Matugen-Light/Matugen-Dark�
 
 `nirinit` 由 `cargo install --locked nirinit` 管理；`clipsync-git` 不属于仓库包 profile，
 仅在你明确需要 Wayland/X11 剪贴板同步时单独安装。
-
-剪贴板 TUI 的默认快捷键是 `Mod+V`（通常为 Super+V）。自定义 TUI 支持：
-
-```text
-Enter/Ctrl-F  粘贴
-Ctrl-P        固定/取消固定当前记录
-Ctrl-X        删除当前记录（需要确认）
-Alt-X         清空全部记录（需要确认）
-Ctrl-R        返回列表后刷新
-```
-固定状态只保存 cliphist ID，不额外复制正文。
 
 ### 日常使用
 

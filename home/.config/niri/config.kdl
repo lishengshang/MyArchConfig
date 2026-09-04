@@ -197,8 +197,8 @@ spawn-sh-at-startup "sleep 3 && swayosd-server"
 // 自动开启护眼模式,经纬度设置位置
 // spawn-at-startup "~/.local/bin/toggle-wlsunset"
 
-// niri-siderbar
-spawn-at-startup "~/.local/bin/niri-sidebar" "listen"
+// niri-siderbar（AUR 包安装在 /usr/bin，走 PATH；勿写死 ~/.local/bin 旧手工安装路径）
+spawn-at-startup "niri-sidebar" "listen"
 
 // 允许root通过用户的xwayland打开窗口
 // xhost 未安装，Wayland 环境下通常不需要，已禁用

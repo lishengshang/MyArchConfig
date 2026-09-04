@@ -8,3 +8,6 @@ random-api-wallpaper.service
 awww-overview-daemon.service
 wallpaper-theme.service
 swayidle.service
+niri-clip.service
+aur-local-check.timer
+aur-local-check.service

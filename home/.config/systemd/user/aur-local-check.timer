@@ -1,0 +1,11 @@
+[Unit]
+Description=每日检查 aur-local 本地仓库所有包的上游更新
+
+[Timer]
+# 每天 10:00 左右检查（随机延迟 30 分钟内），错过时间（关机）开机后补跑
+OnCalendar=*-*-* 10:00:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,38 @@
+# =============================================================================
+# Tokyonight 主题 — 与 fzf / p10k 配色保持一致
+# =============================================================================
+# 放置位置：~/.config/atuin/themes/tokyonight.toml
+# 调色板参考: https://github.com/folke/tokyonight.nvim
+#   bg          #1a1b26
+#   fg          #c0caf5
+#   blue        #7aa2f7
+#   cyan        #7dcfff
+#   green       #9ece6a
+#   yellow      #e0af68
+#   orange      #ff9e64
+#   red         #f7768e
+#   magenta     #bb9af7
+#   comment     #565f89
+# =============================================================================
+
+[theme]
+name = "tokyonight"
+parent = "default"
+
+[colors]
+# 基础前景色
+Base       = "#c0caf5"
+# 提示文字（"search:" 等）
+Guidance   = "#7dcfff"
+# 标题（搜索框边框、视图标题）
+Title      = "#7aa2f7"
+# 重要高亮（当前选中行）
+Important  = "#9ece6a"
+# 次要文字（时间戳、目录等）
+Annotation = "#565f89"
+# 静音对比色（统计数字、灰色文本）
+Muted      = "#565f89"
+# 三级 alert
+AlertInfo  = "#7aa2f7"
+AlertWarn  = "#e0af68"
+AlertError = "#f7768e"

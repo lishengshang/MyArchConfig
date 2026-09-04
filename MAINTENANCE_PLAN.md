@@ -197,6 +197,32 @@
 
 ~~[x] 【注：divider 重命名已于同日应用户要求整体回滚——数字 class 规则此前虽被 GTK 丢弃，但用户已习惯该默认观感，规则生效反而改变显示效果；选择器同步回滚，仅保留死样式清理，见 revert 提交 769cf62】(1) divider 实例名数字后缀全部改 p 前缀（waybar 把实例名注册为 CSS class，GTK4 拒绝数字开头选择器——GTK4 实测旧版 19 个 parser error、修复后 0），config.jsonc 14 处引用与 style.css 17 处选择器三方同步，powerline 配色首次真正生效；(2) modules-right 接入 group/audio 音量滑块抽屉；(3) dead config 清理 8 个未引用模块定义 + 6 个未引用 divider + style.css 死样式（swaync/mako/settings/clock.date/datelogo 等）；(4) updates 中键 pkill 锚定运行时绝对路径+行尾（与 pacman hook 一致）；(5) battery format-icons 补齐官方 11 元素（修复 90-99% 显示满电图标）；(6) mpris tooltip 类型修正、applauncher || 链精简、旧用户名注释清理、niri-taskbar 样式保留备用并注明；(7) modules.jsonc 滚轮音量 wpctl 加 -l 1.0 限幅。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: 三文件 JSONC 解析+引用一致性（36 引用无缺失、唯一未引用为有意保留的 mpris）、GTK4 CssProvider 加载（0 parser error）、waybar 实启动日志无相关错误、CodeReview 无阻塞问题~~
 
+## P3 任务：历史遗留清理与缺失配置补全（2026-09-05 全库审查）
+
+来源：2026-09-05 全方位审查（迁移考古 + 引用完整性 + 系统/仓库差距对比）。处理原则经仓库负责人确认：matugen 未安装软件的休眠模板全部保留（保持注释态，装软件后取消注释即可取色），只清理真正死代码。
+
+~~[x] P3-1 修复 niri-sidebar 自启动路径~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: `home/.config/niri/config.kdl`（`~/.local/bin/` 硬编码 → PATH 解析）；验证: `niri validate` config is valid。注意：spawn-at-startup 需下次会话生效，本会话可按 `binds.kdl` 中的侧边栏快捷键手动拉起
+
+~~[x] P3-2 修复 mimeapps.list 中 clash:// 协议指向不存在的 `clash-verge.desktop`~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: `home/.config/mimeapps.list`（[Added Associations] 与 [Default Applications] 两处均改为 `clash-verge-handler.desktop`，该 handler 显式声明两个 clash scheme 且为合法 desktop ID；`Clash Verge.desktop` 文件名带空格不是合法 ID）；验证: `xdg-mime query default x-scheme-handler/clash{,-verge}` 均返回 clash-verge-handler.desktop
+
+~~[x] P3-3 清理 `.gitconfig` 的 `safe.directory = *` 与注释 gh-proxy 残留~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；验证: `git config --global --list` 无 safe.directory、解析正常
+
+~~[x] P3-4 matugen 清理：删除 waybar post_hook 的 Win11Like 死代码、注释停用 swaylock-effects 模板块（模板文件保留）、为休眠模板块补充启用说明~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: `home/.config/matugen/config.toml`（post_hook 仅保留 waybar-reload-colors.sh；swaylock-effects 注释并注明「被 hyprlock 取代」；wlogout/qt5ct/qt6ct/color-scheme/niriswitcher 补「未安装：装 XXX 后取消注释启用」说明）；live 清理 `~/.config/waybar-niri-Win11Like/` 与 `~/.config/swaylock/config`；验证: tomllib 解析 OK、18 个活跃模板、swaylock-effects 不再生成
+
+~~[x] P3-5 删除 vim 配置包~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: `git rm -r home/.config/vim`（11 文件，git 历史可找回）；live 清理 `~/.config/vim/`（含空目录残留）；验证: EDITOR 全链为 nvim（environment.d/10-shell.conf、zsh/env.zsh）、全仓库 grep 无 `.config/vim` 引用
+
+- `[?]` P3-6 卸载遗留包 cliphist-tui-git、swaylock-effects 并刷新包快照 — 阻塞：Agent 运行环境无 sudo 权限。需仓库负责人执行：`sudo pacman -Rns cliphist-tui-git swaylock-effects` 后运行 `bash update-pkglist.sh` 刷新两份包快照。前置复核已完成：全仓库无脚本活跃引用 swaylock/cliphist-tui（rule.kdl 仅注释提及），`cliphist.service`（随包的系统 unit）本就处于 disabled — Owner: 待负责人
+
+~~[x] P3-7 清理仓库改名遗留的 live 悬空软链与全注释占位文件 im.conf~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: rm `~/.config/scripts/niri_auto_blur_bg.sh`、`~/.config/waybar/scripts/old-longshot.sh`（均确认悬空）；`git rm home/.config/environment.d/im.conf`；核实 `~/.local/bin/env` 为 uv 产物且被 `home/.config/bash/bashrc:35` source（保留）、`env.fish` 为 fish PATH 兜底（保留）；验证: `tests/stow/integration.sh` STOW_PASS
+
+~~[x] P3-8 ghostty 配置 `config.ghostty` 改名为 `config` 使其生效~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: `git mv` + 文件头注释更正 + live 软链重建（`~/.config/ghostty/config` → 仓库）；验证: 软链可解析、全仓库无 `config.ghostty` 残留引用
+
+~~[x] P3-9 入库游离配置：niri-clip.service + niri-clip/config.toml、aur-local-check.service/timer、xdg-desktop-portal/niri-portals.conf、xdg-terminals.list~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: 8 个文件从 live 复制入库并转 stow 软链（内容经 cmp 校验一致），`systemd-user-units.txt` 补登 3 个 unit，README 剪贴板章节由已废弃的 cliphist TUI 改写为 niri-clip；验证: `systemd-analyze verify` 通过、`systemctl --user daemon-reload` 后 niri-clip active/enabled、aur-local-check.timer enabled、TOML 解析 OK
+
+~~[x] P3-10 入库 atuin 配置（config.toml + 主题）~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；验证: tomllib 解析 OK、无同步密钥类敏感字段、live 已转 stow 软链
+
+~~[x] P3-11 增补 .gitignore 生成物规则~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；结果: 实证核验后零增补——候选生成物（starship.toml、kitty/current-theme.conf、zsh-abbr、wl-longshot 等）经 `readlink -f` 验证均为 live 独立文件而非 stow 软链路径，不会落入仓库工作树，现有黑名单已覆盖全部实际入库路径；工作区中的 `.zcode/` 忽略行系 ZCode 客户端会话开始时自行写入（非本 Agent 添加），予以保留
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
@@ -208,8 +234,8 @@
 - `[ ]` 简化 Shell 工具链：在 Zsh/Fish、Zinit/Fisher、fzf/Atuin、carapace、Starship 等重复能力中明确主方案，减少启动时网络访问和运行时初始化。
 - `[ ]` 将 `packages/pkglist.generated.txt` 与 foreign 快照明确标记为当前机器快照；默认 bootstrap 应优先使用精简 profile，避免新机器安装当前机器的全部软件。
 - `[ ]` 审查 Matugen、动态壁纸、GTK/Fcitx5 定时主题和 Niri/Systemd 双重生命周期，明确基础功能与可选增强功能的边界。
-- `[ ]` 清理未使用或疑似遗留脚本（`niri_auto_blur_bg.sh` 与 `waybar/scripts/old-longshot.sh` 均已确认零调用方并于 2026-09-02 删除）
-- `[ ]` 复核 `home/.gitconfig` 中当前工作区新增的 `safe.directory = *`；通用配置不应默认信任所有 Git 仓库。
+~~[x] 清理未使用或疑似遗留脚本（`niri_auto_blur_bg.sh` 与 `waybar/scripts/old-longshot.sh` 均已确认零调用方并于 2026-09-02 删除）~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 补充清理 live 侧悬空软链后闭环；验证: `tests/stow/integration.sh`
+~~[x] 复核 `home/.gitconfig` 中当前工作区新增的 `safe.directory = *`；通用配置不应默认信任所有 Git 仓库。~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；已实际删除（P3-3）；验证: `git config --global --list`
 - `[ ]` 扩充真实 HOME 场景的 Stow/Setup/Uninstall 测试，覆盖普通文件冲突、断链、动态生成文件和无 Wayland/可选依赖场景。
 
 ## 协作前置检查

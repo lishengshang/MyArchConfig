@@ -1,0 +1,8 @@
+[Unit]
+Description=aur-local 本地仓库：遍历检查所有包的上游更新
+
+[Service]
+Type=oneshot
+ExecStart=%h/Projects/aur-local/check-all.sh
+# 多包同时有新版时构建耗时可能较长
+TimeoutStartSec=30min

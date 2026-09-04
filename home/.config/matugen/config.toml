@@ -20,7 +20,7 @@ post_hook = "cat ~/.config/starship/base.toml ~/.config/starship/colors.toml > ~
 [templates.waybar]
 input_path = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/waybar/colors.css'
-post_hook = 'mkdir -p ~/.config/waybar-niri-Win11Like && rm -f ~/.config/waybar-niri-Win11Like/colors.css && ln -s ~/.config/waybar/colors.css ~/.config/waybar-niri-Win11Like/colors.css; ~/.config/scripts/waybar-reload-colors.sh'
+post_hook = '~/.config/scripts/waybar-reload-colors.sh'
 
 # pywalfox 未安装，先禁用
 # [templates.pywalfox]
@@ -61,6 +61,7 @@ output_path = '~/.config/cava/themes/matugen'
 input_path = '~/.config/matugen/templates/yazi-theme.toml'
 output_path = '~/.config/yazi/theme.toml'
 
+# wlogout 未安装：安装后取消注释即可启用取色
 #[templates.wlogout]
 #input_path = '~/.config/matugen/templates/colors.css'
 #output_path = '~/.config/wlogout/colors.css'
@@ -91,6 +92,7 @@ output_path ='~/.config/ghostty/themes/Matugen'
 input_path = '~/.config/matugen/templates/fish-pager.fish'
 output_path = '~/.config/fish/conf.d/35-pager-matugen.fish'
 
+# qt5ct/qt6ct 未安装：安装后取消注释即可启用取色
 #[templates.qt5ct]
 #input_path = '~/.config/matugen/templates/qtct-colors.conf'
 #output_path = '~/.config/qt5ct/colors/matugen.conf'
@@ -99,6 +101,7 @@ output_path = '~/.config/fish/conf.d/35-pager-matugen.fish'
 #input_path = '~/.config/matugen/templates/qtct-colors.conf'
 #output_path = '~/.config/qt6ct/colors/matugen.conf'
 
+# KDE 色彩方案未启用：需要生成 Matugen.colors 时取消注释
 #[templates.color-scheme]
 #input_path = '~/.config/matugen/templates/Matugen.colors'
 #output_path = '~/.local/share/color-schemes/Matugen.colors'
@@ -108,6 +111,7 @@ output_path = '~/.config/fish/conf.d/35-pager-matugen.fish'
 #output_path = '~/.config/hypr/colors.conf'
 #post_hook = 'hyprctl reload &'
 
+# niriswitcher 未安装：安装后取消注释即可启用取色
 #[templates.niriswitcher]
 #input_path = '~/.config/matugen/templates/niriswitcher-colors.css'
 #output_path = '~/.config/niriswitcher/style.css'
@@ -132,9 +136,11 @@ output_path = '~/.config/swayosd/colors.css'
 # Do not kill/restart swayosd on every wallpaper.  The server keeps running;
 # its colors are refreshed on the next service start.
 
-[templates.swaylock-effects]
-input_path = '~/.config/matugen/templates/swaylock-colors'
-output_path = '~/.config/swaylock/config'
+# swaylock 已被 hyprlock 取代（swayidle.sh / lock-screen.sh 均走 hyprlock）；
+# 如重新启用 swaylock，取消注释即可恢复取色生成
+#[templates.swaylock-effects]
+#input_path = '~/.config/matugen/templates/swaylock-colors'
+#output_path = '~/.config/swaylock/config'
 
 [templates.fastfetch]
 input_path = '~/.config/matugen/templates/fastfetch-config.jsonc'
