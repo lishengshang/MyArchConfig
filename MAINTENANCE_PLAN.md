@@ -223,6 +223,8 @@
 
 ~~[x] P3-11 增补 .gitignore 生成物规则~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；结果: 实证核验后零增补——候选生成物（starship.toml、kitty/current-theme.conf、zsh-abbr、wl-longshot 等）经 `readlink -f` 验证均为 live 独立文件而非 stow 软链路径，不会落入仓库工作树，现有黑名单已覆盖全部实际入库路径；工作区中的 `.zcode/` 忽略行系 ZCode 客户端会话开始时自行写入（非本 Agent 添加），予以保留
 
+~~[x] P3-12 系统侧残留清理与游离配置收编（同日追加，仓库负责人逐项指定）~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: ① `home/.config/waypaper/config.ini` 入库并转 stow 软链，按负责人要求删除 5 个 `swww_transition_*` 字段（注意：waypaper 2.8 `config.py save()` 无条件写回全部 schema 字段，下次保存会原样写回，且换壁纸会持续改动此文件——已入库意味着这些变化会出现在 git diff/自动提交中）；② `home/.local/share/applications/clash-verge-handler.desktop` 入库并转软链（手写的 clash:// 协议处理器，此前换机即失，P3-2 的 mimeapps 修复依赖它）；③ 删除 `~/.config/Code - OSS/`（inject_vscode.sh 旧版 `pacman -Q code` 正则误匹配 visual-studio-code-bin 的化石，脚本现已用 grep -Fx 精确匹配）、`~/.config/bottom/`（bottom 已卸载）、仓库内 `.omo/` 会话垃圾（gitignored，删除后该工具运行仍会再生）；④ 更正 P3 审查中的两处误报：`~/.config/fcitx/dbus/*` 为运行中 fcitx5 的活跃运行时文件（勿删），`.omo` 实际仅 1 处 4 文件；验证: waypaper INI configparser 解析 0 个 swww 字段、两个软链 `readlink -f` 可解析、`xdg-mime query default x-scheme-handler/clash` 经新软链仍返回 handler、fcitx5 运行未受影响
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
