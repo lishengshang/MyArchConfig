@@ -71,6 +71,20 @@ git checkout -- .
 6. 对 systemd、Niri、Wayland 配置修改后，尽量运行本机可用的 validate/verify 命令。
 7. 如果发现超出任务范围的问题，写入维护计划的“已知但暂不处理的问题”，不要顺手扩大改动范围。
 
+## Commit 规范
+
+Commit 信息使用中英结合：type/scope 用英文，描述用中文。例如：
+
+```text
+feat(waybar): 音量调节上限放宽至 150%
+docs(maintenance): P2-8 补充 divider 重命名回滚说明
+```
+
+- type 使用约定俗成的英文前缀：feat / fix / docs / chore / refactor / perf / revert；
+- scope 用主要影响范围的英文目录或模块名；
+- 描述用中文一句话概括；改动较多时，在正文中用中文 bullet 列出要点；
+- 自动提交 timer 产生的 `auto: <日期>` 格式不属于本规范。
+
 ## 完成报告格式
 
 每个 Agent 完成任务时，应在最终回复中说明：
