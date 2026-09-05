@@ -19,6 +19,41 @@ jobs:
       - name: Install interpreters and validators
         run: sudo apt-get update && sudo apt-get install -y shellcheck fish zsh stow
 
+      - name: Run config static checks (TOML / JSONC / systemd units)
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail=0
+
+          # TOML + JSONC：与本地共用同一脚本（零第三方依赖，Python >= 3.11）
+          if ! python3 tests/config/check_toml_jsonc.py; then
+            echo "TOML/JSONC checks FAILED"
+            fail=1
+          fi
+
+          # systemd user units：systemd-analyze verify 语法校验。
+          # CI 的 $HOME 下没有 ExecStart 指向的用户脚本/二进制（niri-clip、
+          # 各 wrapper 等），"is not executable" 属预期噪音——已在 Arch
+          # (systemd 257) 上验证仓库全部 units 输出为空，故仅过滤该模式，
+          # 其余任何输出（语法错误、未知键等）都视为失败。
+          systemd_fail=0
+          for u in home/.config/systemd/user/*.service home/.config/systemd/user/*.timer; do
+            [[ -e "$u" ]] || continue
+            out=$(systemd-analyze verify --man=no "$u" 2>&1) || true
+            [[ -z "$out" ]] && { echo "  systemd ok: $u"; continue; }
+            filtered=$(printf '%s\n' "$out" | grep -v 'is not executable' || true)
+            if [[ -n "$filtered" ]]; then
+              echo "  systemd verify FAIL: $u"
+              printf '%s\n' "$filtered"
+              systemd_fail=1
+            else
+              echo "  systemd ok (ExecStart 在 CI 上不可执行, 属预期): $u"
+            fi
+          done
+          [[ "$systemd_fail" -eq 0 ]] || fail=1
+
+          exit "$fail"
+
       - name: Run language-aware static checks
         shell: bash
         run: |
@@ -99,6 +134,22 @@ jobs:
 
       - name: Run Stow temporary HOME integration test
         run: tests/stow/integration.sh
+
+  niri-kdl-validate:
+    # niri 官方 release 不提供预编译二进制，ubuntu 也无包；
+    # 用 Arch 容器（niri 配置的"原生产地"，版本与作者机器同源）做 KDL 校验。
+    name: niri config KDL validation
+    runs-on: ubuntu-latest
+    container: archlinux/archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install niri
+        run: pacman -Sy --noconfirm niri
+
+      - name: Validate niri config
+        run: niri validate -c home/.config/niri/config.kdl
+        # 缺少 matugen 生成的 colors.kdl 只是 optional include 的 WARN，不阻断。
 
   secret-scan:
     name: gitleaks secret scan
