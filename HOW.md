@@ -1,5 +1,7 @@
 # HOW - 使用手册
 
+> 本文件是完整操作手册。仓库概览、布局说明与文档导航见 [README.md](README.md)。
+
 ## 新机器恢复流程
 
 ### 完整流程（新装 Arch 后）
@@ -109,12 +111,10 @@ dot checkout -b feature/x
 ```bash
 # 比如要跟踪 ~/.config/foo/config.toml
 # 1) 把文件放到 ~/dotfiles/home/.config/foo/config.toml
-# 2) 如果是新目录，在 ~/dotfiles/home/.config/foo/ 下创建文件
-# 3) stow 会自动创建软链（如果之前没 stow 过这个路径，需要重新 stow）
-# 4) 提交
+# 2) 在 $HOME 下把原文件替换为指向仓库的软链（见下面「从 live 收编」）
+# 3) 提交（commit 信息规范见 AGENTS.md：type(scope): 中文描述）
 dot add home/.config/foo/config.toml
-dot commit -m "add foo config"
-dot push
+dot commit -m "feat(foo): 添加 foo 配置"
 ```
 
 ### 2. 整个目录
@@ -126,11 +126,28 @@ dot push
 stow -d ~/dotfiles -t "$HOME" --adopt home
 # 3) 提交
 dot add home/.config/bar
-dot commit -m "add bar config"
-dot push
+dot commit -m "feat(bar): 纳入 bar 配置"
 ```
 
-### 3. 用 stow --adopt 接管已有文件
+### 3. 从 live 收编已有文件（推荐手法）
+
+`$HOME` 下已存在的真实文件（游离在 stow 体系外）按此收编，换机才不会丢：
+
+```bash
+# 1) 复制进仓库（先 diff 确认无敏感内容）
+cp ~/.config/foo/config.toml ~/dotfiles/home/.config/foo/
+
+# 2) 替换为软链（相对路径格式参照现有链接，如 ../../dotfiles/...）
+rm ~/.config/foo/config.toml
+ln -s ../../dotfiles/home/.config/foo/config.toml ~/.config/foo/config.toml
+
+# 3) 验证后提交
+readlink -f ~/.config/foo/config.toml   # 应解析到 ~/dotfiles/home/ 下
+dot add home/.config/foo
+dot commit -m "feat(foo): 收编 foo 配置入库"
+```
+
+### 4. 用 stow --adopt 接管已有文件
 
 如果 `$HOME` 下已有同名文件，stow 会报冲突。用 `--adopt` 让 stow 接管：
 
@@ -140,9 +157,11 @@ stow -d ~/dotfiles -t "$HOME" --adopt home
 
 # 然后检查 diff 确认内容正确
 dot diff
-dot commit -m "adopt existing config files"
-dot push
+dot commit -m "chore(stow): adopt 已有配置文件"
 ```
+
+> 注意：仓库改名/删除文件后，`$HOME` 下可能残留悬空软链。可用
+> `find ~/.config -xtype l` 定位后删除，或重新 stow 清理。
 
 ## 更新包列表
 
@@ -153,7 +172,7 @@ bash ~/dotfiles/update-pkglist.sh
 
 # 提交
 git -C ~/dotfiles add packages pkglist.txt foreign-pkglist.txt
-git -C ~/dotfiles commit -m "update pkglist: add foo"
+git -C ~/dotfiles commit -m "chore(packages): 更新本机包快照"
 git -C ~/dotfiles push
 ```
 
@@ -218,12 +237,15 @@ dot stash pop       # 恢复
 | 文件 | 说明 | 重新生成方式 |
 |---|---|---|
 | `.config/zsh/.zcompdump*` | zsh 补全缓存 | 启动 zsh 时自动 |
-| `.config/fish/completions/*.fish` | 手写 Fish 补全源文件 | 随仓库恢复 |
 | `.local/share/fish/generated-completions/*.fish` | 工具运行时生成的补全 | `fish-update-completions --force` |
 | `.config/fish/fish_variables` | Fish universal 变量 | Fish 自己重新生成 |
 | `.config/fcitx5/conf/cached_layouts` | fcitx5 键盘布局缓存 | fcitx5 启动时扫描 |
 | `.config/fcitx5/cache/` | fcitx5 其他缓存 | fcitx5 启动时 |
 | `.config/mpv/` | mpv 是独立 git 仓库 | 单独 clone mpv 仓库 |
+
+> 注意区分：`~/.config/fish/completions/` 下的手写补全**是跟踪的**（仓库源文件）；
+> 不跟踪的是上面表里运行时生成的部分。matugen 生成的 `colors.*` 系列同样
+> 不跟踪，由换壁纸时自动重新生成。
 
 如果你发现某个文件被错误跟踪了:
 
@@ -236,7 +258,7 @@ dot commit -m "untrack cache file"
 
 ## 多机器差异（未来需求）
 
-目前不支持多机器差异。如果以后有需要:
+目前不支持多机器差异。2026-08 拍板（P1-4-D）：暂时只维护当前机器，不做 host overlay 抽象。如果以后有需要:
 
 - **简单方案**: 用分支 `dot checkout laptop` / `dot checkout desktop`
 - **中等方案**: 迁移到 yadm，它支持 `##hostname.laptop` 这样的差异文件
@@ -333,10 +355,11 @@ bash ~/dotfiles/uninstall.sh --help
 
 ### 彻底清理（手动）
 
-卸载脚本保留的文件，想彻底清掉：
+卸载脚本保留的文件，想彻底清掉（unit 清单以 `systemd-user-units.txt` 为准）：
 
 ```bash
-rm -f ~/.config/systemd/user/dotfiles-autocommit.{service,timer}
+# stow -D 已随卸载撤销全部软链；如仍有残留 unit 链接，手动删除：
+rm -f ~/.config/systemd/user/{dotfiles-autocommit,niri-clip}.service
 systemctl --user daemon-reload
 ```
 
