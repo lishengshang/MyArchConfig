@@ -60,11 +60,8 @@ if status is-interactive
     # --- uv shell 补全 ---
     _cached_init uv uv generate-shell-completion fish
 
-    # --- mise：继续管理 Python/Ruby/Go 等非 Node 工具 ---
-    _cached_init mise mise activate fish
-
     # --- fnm：统一管理 Node/npm/pi，并按目录自动切换 ---
-    # fnm 必须在 mise shims 之后初始化，让 fnm 的 multishell 路径优先。
+    # 2026-09-05 拍板：Node 版本管理统一 fnm，mise 已移出 shell 初始化。
     if command -q fnm
         fnm env --use-on-cd --shell fish | source
         fnm use default --silent-if-unchanged >/dev/null 2>&1
@@ -91,10 +88,8 @@ if status is-interactive
     #
     # 只预加载"工具自带补全比 carapace 更准"的关键命令，避免全量 source
     # 拖慢启动。其他命令让 carapace 兜底即可。
-    # mise 必须预加载: carapace 的 mise spec 有 bug (unsupported cmd prop
-    # effect), 补全返回空, 只有自带补全 mise.fish 可用
     for cmd in opencode gh uv niri starship bat procs delta fd lazygit \
-               git apt dot dota y zoxide eza rg mise
+               git apt dot dota y zoxide eza rg
         # 手写补全优先，其次使用 ~/.local/share 下运行时生成的补全。
         for completions_dir in \
             ~/.config/fish/completions \

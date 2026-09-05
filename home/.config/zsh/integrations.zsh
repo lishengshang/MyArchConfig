@@ -26,14 +26,8 @@ _zsh_cached_init() {
 # --- Zoxide（智能 cd，--cmd cd 接管原生 cd）---
 (( $+commands[zoxide] )) && _zsh_cached_init zoxide "${commands[zoxide]}" zoxide init zsh --cmd cd
 
-# --- mise（Python/Ruby/Go 等工具版本管理；Node 由 fnm 负责）---
-# shims 模式：启动零 hook 开销（-13ms），工具按调用经 shim 解析版本。
-# 实测 shim 单次调用开销 ~0ms（usage 1-2ms 级工具无感）。
-# 注意：失去 precmd hook-env 自动重载（无 .mise.toml 项目时无影响）。
-(( $+commands[mise] )) && eval "$(mise activate zsh --shims)"
-
 # --- fnm（Node/npm/pi 版本管理；按目录读取 .node-version/.nvmrc）---
-# fnm 放在 mise shims 之后初始化，确保 Node 由 fnm 而不是 mise/system node 接管。
+# 2026-09-05 拍板：Node 版本管理统一 fnm，mise 已移出 shell 初始化。
 if (( $+commands[fnm] )); then
     eval "$(fnm env --use-on-cd --shell zsh)"
     fnm use default --silent-if-unchanged >/dev/null 2>&1
@@ -79,7 +73,7 @@ fi
 [[ -s "$HOME/.bun/_bun" ]] && source "$HOME/.bun/_bun"
 
 # --- Conda/Mamba（如果存在）---
-# mise 已接管多语言版本管理，conda 仅作为遗留环境兼容。
+# conda 仅作为遗留环境兼容；语言版本管理已统一由 fnm（Node）负责。
 # 用 -d 提前过滤，避免每次启动都跑三次 [[ -r ]] 判定。
 for _conda_init in \
     "$HOME/miniconda3/etc/profile.d/conda.sh" \

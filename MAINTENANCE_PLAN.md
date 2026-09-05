@@ -86,6 +86,7 @@
 ~~[x] 决定 Zsh 使用 `mise`，不再同时使用 fnm/mise/手写 PATH。~~ — Agent: user + pi / audit-fix, 日期: 2026-08-19；验证: `home/.config/zsh/integrations.zsh`、`home/.config/fish/conf.d/50-tools.fish`
 ~~[x] 移除 `/home/mio` 和具体 Node 版本号等机器私有硬编码。~~ — Agent: pi / audit-fix, 日期: 2026-08-19；验证: `rg -n -i 'fnm|node-versions' home`
 ~~[x] 审查并删除当前未跟踪文件 `home/.config/fish/conf.d/fnm.fish`。~~ — Agent: user + pi / audit-fix, 日期: 2026-08-19；结果: 采用 mise 方案，不保留 fnm 文件
+> 2026-09-05 补记（ZCode CLI / zcode-20260905）：P0-6 当时只完成了 zsh 侧收敛，fish 侧 50-tools.fish 仍 mise+fnm 并存（任务记录与实况不一致的来源）。负责人已改拍板为「统一 fnm、mise 移出初始化」，由 P3-13 完成闭环。
 
 ## P1 任务：可靠性和可迁移性
 
@@ -225,15 +226,20 @@
 
 ~~[x] P3-12 系统侧残留清理与游离配置收编（同日追加，仓库负责人逐项指定）~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: ① `home/.config/waypaper/config.ini` 入库并转 stow 软链，按负责人要求删除 5 个 `swww_transition_*` 字段（注意：waypaper 2.8 `config.py save()` 无条件写回全部 schema 字段，下次保存会原样写回，且换壁纸会持续改动此文件——已入库意味着这些变化会出现在 git diff/自动提交中）；② `home/.local/share/applications/clash-verge-handler.desktop` 入库并转软链（手写的 clash:// 协议处理器，此前换机即失，P3-2 的 mimeapps 修复依赖它）；③ 删除 `~/.config/Code - OSS/`（inject_vscode.sh 旧版 `pacman -Q code` 正则误匹配 visual-studio-code-bin 的化石，脚本现已用 grep -Fx 精确匹配）、`~/.config/bottom/`（bottom 已卸载）、仓库内 `.omo/` 会话垃圾（gitignored，删除后该工具运行仍会再生）；④ 更正 P3 审查中的两处误报：`~/.config/fcitx/dbus/*` 为运行中 fcitx5 的活跃运行时文件（勿删），`.omo` 实际仅 1 处 4 文件；验证: waypaper INI configparser 解析 0 个 swww 字段、两个软链 `readlink -f` 可解析、`xdg-mime query default x-scheme-handler/clash` 经新软链仍返回 handler、fcitx5 运行未受影响
 
+~~[x] P3-13 双 shell 初始化统一 fnm、移出 mise~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；拍板: zsh/fish 并列主力（有意设计），Node 统一 fnm，mise 目前用不上；修改: `zsh/integrations.zsh`（删 mise 段）、`zsh/.zshrc` 头注释、`zsh/README.md` 4 处、`fish/conf.d/50-tools.fish`（init+预加载列表）、`fish/functions/fish-update-completions.fish`（映射表/managed_cmds/特殊处理块）、`fish/functions/fish-comp-doctor.fish`（2 列表，mise→zoxide）、`fish/README.md` 3 处；live 清理 `~/.cache/fish/init/mise.fish` 死缓存；mise 包本体保留不卸载。影响评估: mise installs 仅含 usage 组件、无语言工具链，fnm 有 Node v24.19.0；验证: `fish -n`/`zsh -n` 全部通过、`fish -c` 实测 conf.d 加载后 fnm 1.39.0/node v24.19.0 可用、全仓库 grep 无活跃 mise 引用（仅存历史记录注释）
+- `[>]` P3-14 P2-4 静态检查进 CI：systemd-analyze verify、TOML、JSONC、KDL（niri validate） — Owner: ZCode CLI / zcode-20260905
+- `[>]` P3-15 README.md / HOW.md 对齐现状并结构规范化（拍板：对齐+结构规范化档） — Owner: ZCode CLI / zcode-20260905
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
 
-- `[ ]` 统一 Node 版本管理器：`home/.config/zsh/integrations.zsh` 和 `home/.config/fish/conf.d/50-tools.fish` 仍同时初始化 `mise` 与 `fnm`，且文档与维护记录声明不一致；建议统一采用 mise。
+~~[x] 统一 Node 版本管理器：`home/.config/zsh/integrations.zsh` 和 `home/.config/fish/conf.d/50-tools.fish` 仍同时初始化 `mise` 与 `fnm`，且文档与维护记录声明不一致。~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 经 P3-13 闭环；最终拍板为统一 fnm（与本条目原建议的 mise 相反，负责人确认目前用不上 mise）；验证: fish -c 实测 + grep 无活跃 mise 初始化
 - `[ ]` 统一脚本扩展名与解释器：`home/.config/niri/scripts/kbd-backlight-color.sh` 实际是 Fish 脚本；建议改名为 `.fish` 并同步调用方，避免 Bash/ShellCheck 误报。
 - `[ ]` 拆分 Stow 包：当前 `home/` 一次部署全部 Shell、Niri、主题和可选功能；建议拆分 `home-core`、`home-niri`、`home-dev`、`home-theme` 等按需部署的包。
 - `[ ]` 分离通用配置与主机配置：审查 `output.kdl` 的显示器参数、NVIDIA/Clevo/触控板配置，以及 `autostart/stop-niri-session-services.desktop` 中的 `/home/mio` 绝对路径。
-- `[ ]` 简化 Shell 工具链：在 Zsh/Fish、Zinit/Fisher、fzf/Atuin、carapace、Starship 等重复能力中明确主方案，减少启动时网络访问和运行时初始化。
+- `[ ]` 简化 Shell 工具链：在 Zinit/Fisher、fzf/Atuin、carapace、Starship 等重复能力中明确主方案，减少启动时网络访问和运行时初始化。
+  > 2026-09-05 拍板（仓库负责人）：zsh 与 fish 为并列主力 shell，双 shell 是有意设计，不作为遗留移除；Node 版本管理统一 fnm、mise 移出 shell 初始化（P3-13 执行，Node 子项就此闭环，本条目其余重复能力收敛继续保留）。
 - `[ ]` 将 `packages/pkglist.generated.txt` 与 foreign 快照明确标记为当前机器快照；默认 bootstrap 应优先使用精简 profile，避免新机器安装当前机器的全部软件。
 - `[ ]` 审查 Matugen、动态壁纸、GTK/Fcitx5 定时主题和 Niri/Systemd 双重生命周期，明确基础功能与可选增强功能的边界。
 ~~[x] 清理未使用或疑似遗留脚本（`niri_auto_blur_bg.sh` 与 `waybar/scripts/old-longshot.sh` 均已确认零调用方并于 2026-09-02 删除）~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 补充清理 live 侧悬空软链后闭环；验证: `tests/stow/integration.sh`

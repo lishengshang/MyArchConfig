@@ -295,7 +295,7 @@ fish-update-completions --clean   # 删除孤儿补全（工具已卸载的）
 
 ### 预加载关键命令补全
 
-`50-tools.fish` 启动时会显式 source 一批关键命令的自带补全（opencode/gh/uv/niri/starship/bat/procs/delta/fd/lazygit/git/apt/dot/dota/y/zoxide/eza/rg/mise）。工具生成的补全写入 `~/.local/share/fish/generated-completions/`，手写补全仍放在 `~/.config/fish/completions/`，避免 carapace 占位阻止更准确的补全。
+`50-tools.fish` 启动时会显式 source 一批关键命令的自带补全（opencode/gh/uv/niri/starship/bat/procs/delta/fd/lazygit/git/apt/dot/dota/y/zoxide/eza/rg）。工具生成的补全写入 `~/.local/share/fish/generated-completions/`，手写补全仍放在 `~/.config/fish/completions/`，避免 carapace 占位阻止更准确的补全。
 
 ---
 
@@ -312,8 +312,7 @@ fish-update-completions --clean   # 删除孤儿补全（工具已卸载的）
 | atuin | 历史搜索（Ctrl-R） | `~/.config/atuin/` |
 | carapace | 通用补全兜底 | `CARAPACE_BRIDGES=zsh,fish,bash,inshellisense` |
 | uv | Python 包管理 | |
-| fnm | Node/npm/pi 版本管理；按目录自动切换 | |
-| mise | 管理 Python/Ruby/Go 等工具版本 | |
+| fnm | Node/npm/pi 版本管理；按目录自动切换（2026-09-05 拍板：Node 统一 fnm，mise 已移出初始化） | |
 | direnv | 项目环境 | |
 
 缓存目录：`~/.cache/fish/init/`。补全目录：`~/.local/share/fish/generated-completions/`。**重建 init 缓存**：`rm -rf ~/.cache/fish/init/`。**重建补全**：`fish-update-completions --force`。
@@ -459,10 +458,7 @@ sudo pkgfile --update       # 更新数据库
 
 3. **carapace 与自带补全冲突**：carapace 注册后会"占位"。已在 `50-tools.fish` 对关键命令预 source 自带补全解决，新工具可能需要手动 `fish-update-completions <cmd>`。
 
-4. **mise 补全依赖 usage ≥ 4.0**：mise 生成的 usage spec 用了 `effect=` 新语法，
-   Arch 仓库的 usage 3.5.5 解析失败（`unsupported cmd prop effect`）。
-   已通过 `~/.local/bin/usage` → mise 内置 usage 5.1.0 的 symlink 解决。
-   若重装 usage 系统包后补全报错，检查：`~/.local/bin/usage --version` 应为 5.x。
+4. **~~mise 补全依赖 usage ≥ 4.0~~（已失效）**：mise 已于 2026-09-05 移出 shell 工具链、不再生成其补全，此条仅作历史记录。`~/.local/bin/usage` symlink 保留，与 fish 补全不再相关。
 
 5. **键绑定覆盖**：fish 4.x 在第一个 prompt 时通过 `fish_user_key_bindings` 应用自定义绑定
    （`__fish_config_interactive.fish:100-101`），它在 conf.d 之后执行，因此能覆盖插件绑定。

@@ -14,7 +14,7 @@
 #   6. aliases.zsh           （传统别名）
 #   7. functions.zsh         （shell 函数）
 #   8. bindings.zsh          （键绑定）
-#   9. integrations.zsh      （starship/direnv/mise/carapace/zoxide/cnf）
+#   9. integrations.zsh      （starship/direnv/fnm/carapace/zoxide/cnf）
 # =============================================================================
 
 # ---------------------------------------------------------------------------

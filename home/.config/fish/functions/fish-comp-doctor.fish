@@ -109,7 +109,7 @@ function fish-comp-doctor -d "Fish completion system health check"
 
     # --- 工具自带补全覆盖检查 ---
     echo "$c_label[3] 工具自带补全覆盖$c_rst"
-    set -l managed_cmds niri starship uv gh bat delta fd lazygit procs mise
+    set -l managed_cmds niri starship uv gh bat delta fd lazygit procs
     set -l has_native 0
     set -l missing_native
     for cmd in $managed_cmds
@@ -132,7 +132,7 @@ function fish-comp-doctor -d "Fish completion system health check"
 
     # --- 实测常见命令补全 ---
     echo "$c_label[4] 实测补全（关键命令）$c_rst"
-    set -l test_cmds git gh uv niri starship mise procs
+    set -l test_cmds git gh uv niri starship zoxide procs
     for cmd in $test_cmds
         if command -q $cmd
             set -l result (complete -C "$cmd " 2>/dev/null | head -1)

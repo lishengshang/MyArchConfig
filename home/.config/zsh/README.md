@@ -22,7 +22,7 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 ├── aliases.zsh             # 传统别名（透明替换 / 安全标志 / 颜色）
 ├── functions.zsh          # Shell 函数（mkcd / groot / y ...）
 ├── bindings.zsh           # 键绑定
-├── integrations.zsh       # starship / direnv / mise / carapace / zoxide / atuin / cnf
+├── integrations.zsh       # starship / direnv / fnm / carapace / zoxide / atuin / cnf
 ├── local.zsh              # （可选）本地未跟踪覆盖，不进 git
 └── completions/           # 手写补全脚本（fpath 优先位置）
 ```
@@ -46,7 +46,7 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 6. `aliases.zsh` - 传统别名
 7. `functions.zsh` - Shell 函数
 8. `bindings.zsh` - 键绑定
-9. `integrations.zsh` - starship / direnv / mise / carapace / zoxide / atuin（starship 必须最后加载，覆盖 PROMPT）
+9. `integrations.zsh` - starship / direnv / fnm / carapace / zoxide / atuin（starship 必须最后加载，覆盖 PROMPT）
 10. `local.zsh` - 本地覆盖（如果存在）
 
 ---
@@ -81,15 +81,14 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | ----------- | ----------------------------------------------- |
 | `starship`  | 提示符主题（跨 shell，Rust 实现，配置在 `~/.config/starship.toml`） |
 | `zoxide`    | 智能 cd，通过 `--cmd cd` 接管原生 `cd`          |
-| `fnm`       | Node/npm/pi 版本管理；按目录读取 `.node-version`/`.nvmrc` |                          |
-| `mise`      | 管理 Python/Ruby/Go 等工具版本；shims 模式（`activate --shims`，零启动 hook 开销） |
+| `fnm`       | Node/npm/pi 版本管理；按目录读取 `.node-version`/`.nvmrc`（2026-09-05 拍板：Node 统一 fnm，mise 已移出初始化） |                          |
 | `direnv`    | 项目级 `.envrc` 自动加载                        |
 | `atuin`     | 神级历史搜索，接管 `Ctrl+R`（不接管 ↑）         |
 | `carapace`  | 多 shell 通用补全引擎（桥接 zsh/fish/bash/inshellisense，统一提供 opencode/uv/gh/deno 等工具补全） |
 | `pkgfile`   | command-not-found 时提示安装哪个包              |
 | `broot`     | 目录浏览（如果安装）                            |
 | `bun`       | bun 补全（如果存在 `~/.bun/_bun`）              |
-| `conda`     | Conda/Mamba（如果存在，mise 优先）              |
+| `conda`     | Conda/Mamba（如果存在；语言版本管理已统一 fnm）              |
 
 ---
 

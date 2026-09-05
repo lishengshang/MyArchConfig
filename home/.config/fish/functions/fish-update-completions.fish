@@ -47,7 +47,7 @@ function fish-update-completions -d "Generate tool-native fish completions"
     # --- 清理孤儿补全（仅清理本函数管理的工具） ---
     if test $clean -eq 1
         echo "清理孤儿补全（仅本函数生成的）..."
-        set -l managed_cmds niri starship uv gh bat delta fd lazygit procs mise
+        set -l managed_cmds niri starship uv gh bat delta fd lazygit procs
         set -l removed 0
         set -l generated_dir "$XDG_DATA_HOME/fish/generated-completions"
         for cmd in $managed_cmds
@@ -75,8 +75,9 @@ function fish-update-completions -d "Generate tool-native fish completions"
         "delta|delta --generate-completion fish|stdout" \
         "fd|fd --gen-completions fish|stdout" \
         "lazygit|lazygit completion fish|stdout" \
-        "procs|procs --gen-completion fish|file" \
-        "mise|mise completion fish|stdout"
+        "procs|procs --gen-completion fish|file"
+
+    # 注：mise 已于 2026-09-05 移出 shell 工具链（统一 fnm），不再生成其补全。
 
     # --- 遍历生成 ---
     set -l updated 0
@@ -112,15 +113,6 @@ function fish-update-completions -d "Generate tool-native fish completions"
         end
 
         echo -n "  $cmd: "
-
-        # 特殊处理：mise 需要前置（usage-cli 依赖说明）
-        if test "$cmd" = mise
-            if not command -q usage
-                echo "跳过（需要 usage-cli，未装）"
-                set skipped (math $skipped + 1)
-                continue
-            end
-        end
 
         # 特殊处理：opencode 的 yargs 补全是 zsh 格式，不能用
         # （不放入 generators 表，跳过逻辑留作记录）
