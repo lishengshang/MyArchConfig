@@ -50,7 +50,7 @@ clipboard {
     disable-primary
 }
 
-// 带缩略图的alt+tab切换窗口功能（但是我设置的是super+tab，更符合逻辑）
+// 带缩略图的alt+tab切换窗口功能
 recent-windows {
     // 取消//off的注释可以禁用
     // off
