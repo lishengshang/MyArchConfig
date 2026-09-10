@@ -186,6 +186,8 @@
 
 ~~[x] 修复超分直出 JPG 引入的重复壁纸回归：realesrgan 直出 jpg 成功（及 PNG 转码失败退回 PNG）时未删除原始下载文件，库内同时留下原图与 2x 超分版两张内容相同照片（实测 3 对，均为 2026-09-02 优化后产生）；修复为超分产物替代原图时删除原图，并清理现存重复对（保留高分辨率超分版）。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: `bash -n`、`shellcheck -S error`、库内成对检查归零、awww/哈希缓存一致性不受影响~~
 
+~~[x] 壁纸脚本统一日志：wallpaper-lib.sh 新增 `wallpaper_log` / `wallpaper_log_init`（日志 `~/.local/state/wallpaper/wallpaper.log`，超 4000 行轮转保留最近 2000 行，写失败静默不影响主流程）；random-anime-wallpaper.sh 记录运行参数、逐源尝试与具体失败原因（curl 退出码 / JPG 归一化失败 / 无效图片 / 几何不符 / 重复哈希，校验链重构为 `check_download_result` 供主循环与保底源复用）、下载成功摘要（源 / 文件 / 尺寸 / 大小 / sha256 / 最终 URL）、超分决策与结果（原图尺寸 → 2x 产物文件名）、应用成功/失败、清理数量；random-api-wallpaper.sh 记录选择与应用结果（awww / waypaper 回退）与错误分支。 — Owner: TraeCode / trae-glm, 日期: 2026-09-10；验证: `bash -n`、`shellcheck -S error`、假 HOME 沙箱端到端（horosama 1920x1080 → realesrgan 超分 3840x2160 → awww shim 应用，全链日志正确落盘）、未知源错误路径、本地随机切换冒烟（waypaper 记录同步不受影响）、4100 行轮转实测保留最近 2000 行~~
+
 ### P0-7：剪贴板 TUI 快捷键显示和交互修复
 
 ~~[x] 修复四项问题 + 两个行为调整：(1) 星标与内容间距过大 — `--tabstop=1`；(2) 快捷键显示不全 — 双行 header + `^` 符号；(3) Enter 后窗口卡住空白 — `wl-copy 2>/dev/null` 防止 daemon 持有 PTY；(4) Ctrl-F 粘贴功能（已在 header 中宣传但未实现）；(5) 星标条目置顶 — `build_menu` 两遍扫描，先输出星标再输出普通；(6) 星标删除需确认，普通直接删 — `Ctrl+X` 检查 `is_pinned`。注意：`--no-clear` 尝试修复 Enter 后空白但导致箭头键/Esc 无法使用，已回退。 — Agent: ZCode / zcode-agent, 日期: 2026-08-20；验证: `bash -n`、`shellcheck -S error`、kitty 窗口关闭测试~~

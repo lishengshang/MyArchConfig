@@ -7,6 +7,7 @@
 #   最后触发主题后处理 (matugen 取色/模糊背景，由常驻 wallpaper-theme.service 异步执行)。
 # 依赖: awww 或 waypaper、wallpaper-lib.sh；壁纸库由 random-anime-wallpaper.sh (Mod+Shift+F10) 下载积累。
 # 调用方: random-api-wallpaper.timer (每 8 分钟)、快捷键 (Mod+F10)；无命令行参数。
+# 日志: ~/.local/state/wallpaper/wallpaper.log 记录每次选择与应用结果。
 # 并发: 与下载脚本共用公共库的 "wallpaper-switch" flock，全程单实例。
 
 # 经 stow symlink 调用时解析到 dotfiles 仓库内的真实目录
@@ -27,12 +28,17 @@ if ! wallpaper_lock_acquire "wallpaper-switch"; then
     exit 0
 fi
 
+# 日志初始化 (锁内调用保证轮转无并发); 本脚本每次切换也留痕,
+# 便于与下载日志对账 (当前显示的壁纸何时被选中/应用)。
+wallpaper_log_init
+
 WALLPAPER_DIR="$HOME/Pictures/Wallpapers/api-random-download"
 # 防重复随机: 随机选择时排除最近切换过的 NO_REPEAT 张 (可按需修改)
 NO_REPEAT=5
 HISTORY_FILE="$HOME/.cache/random-wallpaper-history"
 
 if [ ! -d "$WALLPAPER_DIR" ]; then
+    wallpaper_log "switch" "错误: 壁纸目录不存在 $WALLPAPER_DIR"
     echo "Error: wallpaper directory not found: $WALLPAPER_DIR" >&2
     exit 1
 fi
@@ -64,6 +70,7 @@ if [ -z "$SELECTED" ]; then
 fi
 
 if [ -z "$SELECTED" ] || [ ! -f "$SELECTED" ]; then
+    wallpaper_log "switch" "错误: $WALLPAPER_DIR 中无可用壁纸"
     echo "Error: no wallpaper found in $WALLPAPER_DIR" >&2
     exit 1
 fi
@@ -74,11 +81,14 @@ fi
 if command -v awww >/dev/null 2>&1 && awww img "$SELECTED" --transition-duration 0.3 --transition-type fade; then
     # 绕过 waypaper 时手动同步其当前壁纸记录 (公共库)，保证 GUI 与 fallback 读取一致。
     wallpaper_sync_waypaper "$SELECTED"
+    wallpaper_log "switch" "已应用: $(basename "$SELECTED") (awww)"
 elif command -v waypaper >/dev/null 2>&1; then
     # 随机脚本自己安排主题更新，禁止 waypaper 再执行同一个 post_command，
     # 否则会重复跑 Matugen 并再次生成模糊背景。
     waypaper --no-post-command --wallpaper "$SELECTED"
+    wallpaper_log "switch" "已应用: $(basename "$SELECTED") (waypaper 回退)"
 else
+    wallpaper_log "switch" "失败: awww 应用失败且 waypaper 不可用 ($(basename "$SELECTED"))"
     echo "Error: failed to apply wallpaper with awww and waypaper is unavailable" >&2
     exit 1
 fi

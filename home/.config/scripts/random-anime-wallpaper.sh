@@ -1,6 +1,9 @@
 #!/bin/bash
 # 随机下载动漫壁纸并应用 (Mod+Shift+F10)。
-# 依赖 wallpaper-lib.sh (同目录公共库): 锁 / 通知 / waypaper 同步 / 主题后处理。
+# 依赖 wallpaper-lib.sh (同目录公共库): 锁 / 通知 / 日志 / waypaper 同步 / 主题后处理。
+# 日志: ~/.local/state/wallpaper/wallpaper.log 记录每个源的尝试与失败原因、
+#   下载摘要 (源/URL/尺寸/大小/哈希)、超分决策与结果、应用与清理 —— 查看用
+#   `tail -f ~/.local/state/wallpaper/wallpaper.log`。
 
 # ================= 默认配置 =================
 # 源池: name|url|extractor
@@ -225,6 +228,29 @@ record_source() {
     mv "$tmp" "$RECENT_SOURCES_FILE"
 }
 
+# 下载结果校验: 依次检查 curl 退出码 / JPG 归一化 / 内容 / 几何 / 重复哈希。
+# 失败时设置全局 DL_ERR (具体原因, 供日志), 成功时清空 DL_ERR 并回填全局 HASH。
+# 几何检查同时回填全局 IMG_WIDTH/IMG_HEIGHT (validate_geometry 既有行为)。
+check_download_result() {
+    local curl_exit="$1" f="$2"
+    HASH=""
+    DL_ERR=""
+    if [ "$curl_exit" -ne 0 ]; then
+        DL_ERR="curl 退出码 $curl_exit"
+    elif ! normalize_to_jpg "$f"; then
+        DL_ERR="JPG 归一化失败"
+    elif ! validate_image "$f"; then
+        DL_ERR="无效图片 (过小或非图片内容)"
+    elif ! validate_geometry "$f"; then
+        DL_ERR="几何不符 ${IMG_WIDTH}x${IMG_HEIGHT} (竖图或宽度 < $MIN_WIDTH)"
+    else
+        HASH=$(sha256sum "$f" | cut -d' ' -f1)
+        if printf '%s\n' "${HASH_CACHE[@]}" | grep -qFx -- "$HASH"; then
+            DL_ERR="重复壁纸 (sha256=${HASH:0:8})"
+        fi
+    fi
+}
+
 # ================= 主逻辑 =================
 
 mkdir -p "$SAVE_DIR"
@@ -233,6 +259,10 @@ mkdir -p "$SAVE_DIR"
 if ! wallpaper_lock_acquire "wallpaper-switch"; then
     exit 0
 fi
+
+# 日志初始化 (锁内调用保证轮转无并发), 本次运行参数留痕
+wallpaper_log_init
+wallpaper_log "run" "开始: 指定源=${FORCED_SOURCE:-随机} 超分=$ENABLE_UPSCALE 清理=$ENABLE_CLEANUP 静默=$SILENT_MODE 超分工具=${UPSCALE_TOOL:-无}"
 
 # 预加载去重哈希缓存 (增量维护), 用于下载去重。
 # 全局关联数组: HASH_CACHE[path]=hash, SIG_CACHE[path]="size:mtime"。
@@ -305,6 +335,7 @@ wallpaper_notify "壁纸" "正在下载壁纸..." "--expire-time=5000"
 SOURCE_ORDER=$(build_source_order)
 if [ $? -ne 0 ]; then
     echo "错误: 未知源 '$FORCED_SOURCE'" >&2
+    wallpaper_log "run" "失败: 未知源 '$FORCED_SOURCE'"
     echo "可用源: ${SOURCES[*]//|*/ }" >&2
     wallpaper_notify "壁纸错误" "未知图源: $FORCED_SOURCE" "--urgency=critical"
     exit 1
@@ -312,6 +343,8 @@ fi
 ATTEMPT_COUNT=0
 DOWNLOAD_OK=false
 USED_SOURCE_NAME=""
+SUCCESS_URL=""
+SUCCESS_HASH=""
 
 # 依次尝试,最多 MAX_SOURCE_ATTEMPTS 个源,首个成功即用
 while IFS= read -r entry; do
@@ -328,11 +361,13 @@ while IFS= read -r entry; do
     [ "$SRC_REST" != "$SRC_URL" ] && SRC_EXTRACT="${SRC_REST#*|}"
 
     wallpaper_notify "壁纸" "正在尝试 [$SRC_NAME] ($ATTEMPT_COUNT/$MAX_SOURCE_ATTEMPTS)..." "--expire-time=3000"
+    wallpaper_log "source" "尝试 [$SRC_NAME] ($ATTEMPT_COUNT/$MAX_SOURCE_ATTEMPTS)"
 
     DOWNLOAD_URL="$SRC_URL"
     if [ -n "$SRC_EXTRACT" ]; then
         if ! command -v jq &> /dev/null; then
             echo "跳过 [$SRC_NAME]: 缺少 jq" >&2
+            wallpaper_log "source" "[$SRC_NAME] 跳过: 缺少 jq"
             rm -f "$RAW_PATH"
             continue
         fi
@@ -347,26 +382,24 @@ while IFS= read -r entry; do
         DOWNLOAD_URL=$(curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 30 "$API_URL" | jq -r "$EXPR" 2>/dev/null)
         case "$DOWNLOAD_URL" in
             http*) ;;
-            *) rm -f "$RAW_PATH"; continue ;;
+            *) wallpaper_log "source" "[$SRC_NAME] 失败: API 未返回有效图片地址 (api=$API_URL)"; rm -f "$RAW_PATH"; continue ;;
         esac
     fi
 
     curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$DOWNLOAD_URL"
     CURL_EXIT=$?
+    check_download_result "$CURL_EXIT" "$RAW_PATH"
 
-    if [ $CURL_EXIT -eq 0 ] && normalize_to_jpg "$RAW_PATH" \
-        && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
-        HASH=$(sha256sum "$RAW_PATH" | cut -d' ' -f1)
-        if printf '%s\n' "${HASH_CACHE[@]}" | grep -qFx -- "$HASH"; then
-            rm -f "$RAW_PATH"
-            continue
-        fi
+    if [ -z "$DL_ERR" ]; then
         DOWNLOAD_OK=true
         USED_SOURCE_NAME="$SRC_NAME"
+        SUCCESS_URL="$DOWNLOAD_URL"
+        SUCCESS_HASH="$HASH"
         record_source "$SRC_NAME"
         break
     fi
 
+    wallpaper_log "source" "[$SRC_NAME] 失败: $DL_ERR; url=$DOWNLOAD_URL"
     rm -f "$RAW_PATH"
 done <<< "$SOURCE_ORDER"
 
@@ -377,15 +410,19 @@ if [ "$DOWNLOAD_OK" = false ] && [ -n "$FALLBACK_SOURCE" ]; then
     FALLBACK_REST="${FALLBACK_SOURCE#*|}"
     FALLBACK_URL="${FALLBACK_REST%%|*}"
     wallpaper_notify "壁纸" "正在尝试保底源 [$FALLBACK_NAME]..." "--expire-time=3000"
+    wallpaper_log "source" "尝试保底源 [$FALLBACK_NAME]"
 
     curl -L -f -s -A "$USER_AGENT" --connect-timeout 10 -m 120 -o "$RAW_PATH" "$FALLBACK_URL"
     CURL_EXIT=$?
+    check_download_result "$CURL_EXIT" "$RAW_PATH"
 
-    if [ $CURL_EXIT -eq 0 ] && normalize_to_jpg "$RAW_PATH" \
-        && validate_image "$RAW_PATH" && validate_geometry "$RAW_PATH"; then
+    if [ -z "$DL_ERR" ]; then
         DOWNLOAD_OK=true
         USED_SOURCE_NAME="$FALLBACK_NAME"
+        SUCCESS_URL="$FALLBACK_URL"
+        SUCCESS_HASH="$HASH"
     else
+        wallpaper_log "source" "保底源 [$FALLBACK_NAME] 失败: $DL_ERR; url=$FALLBACK_URL"
         rm -f "$RAW_PATH"
     fi
 fi
@@ -397,6 +434,10 @@ if [ "$DOWNLOAD_OK" = true ] && [ -n "$USED_SOURCE_NAME" ]; then
     if mv -f "$RAW_PATH" "$NAMED_PATH" 2>/dev/null; then
         RAW_PATH="$NAMED_PATH"
     fi
+    # 下载成功摘要: 一行回答 "哪张图 / 哪个源 / 什么参数" (尺寸取自 validate_geometry 回填)
+    wallpaper_log "source" "成功: 源=$USED_SOURCE_NAME 文件=$(basename "$RAW_PATH")" \
+        "尺寸=${IMG_WIDTH}x${IMG_HEIGHT} 大小=$(numfmt --to=iec --suffix=B "$(wc -c < "$RAW_PATH")")" \
+        "sha256=${SUCCESS_HASH:0:8} url=$SUCCESS_URL"
 fi
 
 # 下载结束,杀掉心跳通知进程
@@ -406,6 +447,7 @@ if [ -n "$NOTIFY_PID" ]; then
 fi
 
 if [ "$DOWNLOAD_OK" = false ]; then
+    wallpaper_log "run" "失败: $MAX_SOURCE_ATTEMPTS 次尝试 + 保底源均未成功"
     wallpaper_notify "壁纸错误" "所有图源在 $MAX_SOURCE_ATTEMPTS 次尝试后均失败" "--urgency=critical"
     rm -f "$RAW_PATH"
     exit 1
@@ -424,6 +466,7 @@ if [ "$ENABLE_UPSCALE" = true ] && [ -n "$UPSCALE_TOOL" ]; then
     if [ "$IMG_WIDTH" -gt 0 ] && [ "$IMG_HEIGHT" -gt 0 ] \
         && [ "$IMG_HEIGHT" -le "$IMG_WIDTH" ] \
         && [ $((IMG_WIDTH * 100)) -lt $((TARGET_WIDTH * UPSCALE_RATIO)) ]; then
+        wallpaper_log "upscale" "执行: $UPSCALE_TOOL 2x, 原图 ${IMG_WIDTH}x${IMG_HEIGHT} 宽度不足目标宽 $TARGET_WIDTH 的 $UPSCALE_RATIO%"
         wallpaper_notify "壁纸" "正在超分放大图片 (目标宽度 $TARGET_WIDTH)..." "--expire-time=2000"
 
         if [ "$UPSCALE_TOOL" = realesrgan ]; then
@@ -466,26 +509,34 @@ if [ "$ENABLE_UPSCALE" = true ] && [ -n "$UPSCALE_TOOL" ]; then
             if [ "$FINAL_PATH" != "$RAW_PATH" ]; then
                 rm -f "$RAW_PATH"
             fi
+            wallpaper_log "upscale" "成功: ${IMG_WIDTH}x${IMG_HEIGHT} → $((IMG_WIDTH * 2))x$((IMG_HEIGHT * 2)), 产物 $(basename "$FINAL_PATH")"
             MSG_EXTRA="$MSG_EXTRA (已超分 2x)"
         else
+            wallpaper_log "upscale" "失败: 保留原图 ${IMG_WIDTH}x${IMG_HEIGHT}"
             MSG_EXTRA="$MSG_EXTRA (超分失败)"
         fi
     elif [ "$IMG_WIDTH" -gt 0 ]; then
+        wallpaper_log "upscale" "跳过: 原图 ${IMG_WIDTH}x${IMG_HEIGHT} 宽度达标 (目标宽 $TARGET_WIDTH)"
         if [ "$IMG_WIDTH" -ge "$TARGET_WIDTH" ]; then
             MSG_EXTRA="$MSG_EXTRA (原图高分辨率)"
         else
             MSG_EXTRA="$MSG_EXTRA (原图)"
         fi
+    else
+        wallpaper_log "upscale" "跳过: 无法读取图片尺寸"
     fi
 elif [ "$ENABLE_UPSCALE" = true ]; then
+    wallpaper_log "upscale" "禁用: 未安装 realesrgan/waifu2x"
     MSG_EXTRA="$MSG_EXTRA (超分已禁用: 缺少 realesrgan/waifu2x)"
 else
+    wallpaper_log "upscale" "禁用: 参数 -n"
     MSG_EXTRA="$MSG_EXTRA (超分已禁用)"
 fi
 
 # --- 3. 应用模块 ---
 
 if ! awww img "$FINAL_PATH" --transition-duration 2 --transition-type center --transition-fps 60; then
+    wallpaper_log "apply" "失败: awww 错误, 已删除本次下载 ($(basename "$FINAL_PATH"))"
     wallpaper_notify "壁纸错误" "awww 应用壁纸失败" "--urgency=critical"
     # 清理本次下载的文件, 避免残留
     rm -f "$RAW_PATH"
@@ -497,6 +548,7 @@ fi
 # 需手动更新 waypaper 的当前壁纸记录, 否则 waypaper GUI 显示的"当前壁纸"会过期,
 # matugen-update.sh / niri_set_overview_blur_dark_bg.sh 的 fallback 分支也会读到错误的壁纸路径.
 wallpaper_sync_waypaper "$FINAL_PATH"
+wallpaper_log "apply" "成功: $(basename "$FINAL_PATH")"
 
 # --- 4. 钩子与清理 ---
 
@@ -510,15 +562,21 @@ refresh_hash_cache
 (
     # 动态清理逻辑: 保留最近 KEEP_COUNT 张,按修改时间倒序
     # 用 find -printf + NUL 分隔处理文件名特殊字符;${line#* } 跳过 mtime 字段;
-    # xargs 批量 rm 避免逐文件 fork
+    # 先落临时文件统计删除数量供日志, 再 xargs 批量 rm 避免逐文件 fork
     if [ "$ENABLE_CLEANUP" = true ]; then
         DELETE_START=$((KEEP_COUNT + 1))
         # 只清理脚本下载的 wall_* 文件, 豁免手动放入的精选图 (如 01-alcy-pc_*.webp)
+        VICTIMS=$(mktemp)
         find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -printf '%T@ %p\0' \
             | sort -z -k1,1 -rn \
             | tail -z -n +"$DELETE_START" \
-            | sed -z 's/^[^ ]* //' \
-            | xargs -0 -r rm -f --
+            | sed -z 's/^[^ ]* //' > "$VICTIMS"
+        DELETED=$(tr -dc '\0' < "$VICTIMS" | wc -c)
+        xargs -0 -r rm -f -- < "$VICTIMS"
+        rm -f "$VICTIMS"
+        if [ "$DELETED" -gt 0 ]; then
+            wallpaper_log "cleanup" "清理 $DELETED 张旧壁纸 (保留 $KEEP_COUNT)"
+        fi
     fi
 ) &
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # wallpaper-lib.sh — Niri 壁纸脚本公共库。
 # 由 random-anime-wallpaper.sh（下载）与 random-api-wallpaper.sh（本地随机）
-# source 复用，统一锁、通知、waypaper 记录同步与主题后处理触发。
+# source 复用，统一锁、通知、日志、waypaper 记录同步与主题后处理触发。
 # 仅定义函数与常量，source 时无副作用。
 
 WALLPAPER_WAYPAPER_CONFIG="$HOME/.config/waypaper/config.ini"
@@ -22,6 +22,37 @@ wallpaper_notify() {
     local title="$1" body="$2"
     shift 2
     notify-send "$title" "$body" "$@" 2>/dev/null
+}
+
+# ================= 日志 =================
+# 统一日志: 记录下载源 / 超分 / 应用 / 清理等关键事件,
+# 用于事后回答 "这张壁纸来自哪个源、有没有超分、为何失败"。
+# 放 XDG_STATE_HOME (日志属状态数据, 不放 .cache 以免被清理工具抹掉)。
+WALLPAPER_LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper/wallpaper.log"
+WALLPAPER_LOG_MAX_LINES=4000   # 超过此行数触发轮转
+WALLPAPER_LOG_KEEP_LINES=2000  # 轮转后保留的最近行数
+
+# 日志初始化: 建目录 + 简单轮转 (超限截断, 只留最近 KEEP 行)。
+# 在脚本取得 "wallpaper-switch" flock 后调用, 轮转天然无并发问题。
+wallpaper_log_init() {
+    local lines tmp
+    mkdir -p -- "$(dirname -- "$WALLPAPER_LOG_FILE")" 2>/dev/null || return 0
+    [ -f "$WALLPAPER_LOG_FILE" ] || return 0
+    lines=$(wc -l < "$WALLPAPER_LOG_FILE") || return 0
+    [ "$lines" -gt "$WALLPAPER_LOG_MAX_LINES" ] || return 0
+    tmp="${WALLPAPER_LOG_FILE}.tmp"
+    tail -n "$WALLPAPER_LOG_KEEP_LINES" "$WALLPAPER_LOG_FILE" > "$tmp" 2>/dev/null \
+        && mv -f "$tmp" "$WALLPAPER_LOG_FILE"
+}
+
+# 追加一行日志, 格式: "2026-09-10 21:30:01 [tag] message"。
+# 单行 write 原子追加, 持锁脚本内调用无需再加锁; 写失败静默忽略 ——
+# 日志绝不能影响壁纸主流程。
+# 用法: wallpaper_log <tag> <message...>   tag: run/source/upscale/apply/cleanup/switch
+wallpaper_log() {
+    local tag="$1"; shift
+    printf '%s [%s] %s\n' "$(date '+%F %T')" "$tag" "$*" \
+        >> "$WALLPAPER_LOG_FILE" 2>/dev/null || true
 }
 
 # 读取 waypaper 记录的当前壁纸（展开 ~ 并规范化路径），无记录时输出空串
