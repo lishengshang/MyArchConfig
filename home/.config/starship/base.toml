@@ -131,7 +131,7 @@ conflicted = "=${count}"
 untracked = "?${count}"
 stashed = "\\$${count}"
 modified = " ${count}"
-staged = "[ ${count}](fg:color_blue)"
+staged = " ${count}"
 renamed = "»${count}"
 deleted = "✘${count}"
 
