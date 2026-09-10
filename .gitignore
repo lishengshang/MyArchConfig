@@ -41,6 +41,7 @@ home/.config/niri/colors.kdl
 home/.config/waybar/colors.css
 home/.config/waybar/style.runtime.css
 home/.config/starship/colors.toml
+home/.config/starship.toml
 home/.config/fuzzel/colors.ini
 home/.config/kitty/themes/matugen.conf
 home/.config/mako/colors.conf
