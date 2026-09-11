@@ -62,3 +62,4 @@ home/.config/Code/User/settings.json
 # --- opencode / agent 工作目录 ---
 .omo/
 .zcode/
+.workbuddy/
