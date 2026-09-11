@@ -232,10 +232,59 @@
 ~~[x] P3-14 P2-4 静态检查进 CI：systemd-analyze verify、TOML、JSONC、KDL（niri validate）~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: 新增 `tests/config/check_toml_jsonc.py`（本地/CI 共用，tomllib 动态发现 TOML 但排除 matugen 模板、JSONC 显式清单，字符串感知注释剥离）；`lint.yml` static-checks job 加 config 检查步骤（systemd verify + `is not executable` 预期噪音过滤，该过滤模式已在 systemd 257 上实证）+ 新增 `niri-kdl-validate` job（`container: archlinux/archlinux:base-devel` + pacman 装 niri，因官方 release 无预编译二进制）；验证: 本机 python 脚本 9 文件全过、CI 同代码 systemd 段 12 unit 全过、坏 unit 负例（未知键）被正确拦截、`niri validate` 本机通过（colors.kdl 缺失仅 WARN）、lint.yml YAML 解析 OK；CI 首跑待 push 后 GitHub 确认
 ~~[x] P3-15 README.md / HOW.md 对齐现状并结构规范化~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: README 重写为入口页——文档导航表、CI badge、布局树按 `git ls-files` 实际清单重生成（补 atuin/niri-clip/waypaper/xdg-desktop-portal/xdg-terminals.list/pacman/autostart/.local 等 9+ 项、删 swaylock/vim/yazi/fastfetch/swayosd 等 5 项虚列、12 unit 数目落实）、fish 定位改「并列主力（有意设计）」、特性清单同步新 CI 能力、新增「休眠配置保留注释态」设计原则；HOW 更新——新增「从 live 收编已有文件」标准流程（P3-12 手法沉淀）与悬空软链排查注记、commit 示例全部改为 AGENTS.md 中英结合规范、修正缓存表中「fish 手写补全不跟踪」的事实错误（实为 41 个跟踪文件）、多机器差异补 P1-4-D 拍板注记、卸载清理引用 systemd-user-units.txt；验证: 文档引用的全部脚本 flag 与实际 `--help`/grep 输出核对一致（setup/bootstrap/uninstall）、9 个引用路径存在性检查通过、布局树 9 个目录抽查全中
 
+~~[x] P3-16 niri 会话恢复（nirinit）健壮性修复：补配置映射 + 加固恢复脚本~~ — Agent: WorkBuddy / wb-agent-0911, 日期: 2026-09-11；修改: 新增 `home/.config/nirinit/config.toml`（含 5 条 `[launch]` 映射）、重写 `home/.config/niri/scripts/nirinit-restore.sh`；验证: `bash -n`、`shellcheck -S error`、真实二进制隔离实测、假进程分支实测（详见下）
+
+背景（读 nirinit 源码 + 核对本机环境得出，两个独立问题）：
+
+1. **恢复窗口时半数会静默失败。** nirinit 恢复的做法是把 `app_id` 直接当命令 exec，而 niri 的 spawn 只做 PATH 查找（`src/utils/spawning.rs` 里就是 `Command::new(command).args(args)`），完全不解析 `.desktop`。本机 `session.json` 的 10 个窗口中有 5 个 app_id 在 PATH 里根本不存在，即这 5 类窗口此前一直被静默丢弃，只在日志留一行 `window for ... did not appear within 5s`（且用户当前日志里连这行都没有，因为恢复记录出自更早的会话）。已补映射：`org.telegram.desktop→Telegram`、`QQ→linuxqq`、`com.mitchellh.ghostty→ghostty`、`Google-chrome→google-chrome-stable`、`pdf→wpspdf`（后者的 app_id 经本机唯一 PDF 阅读器 `wpspdf` 反查确认）。
+
+2. **恢复脚本的四个缺陷。** (a) `pkill` 后只等 2s 便继续执行，旧实例仍存活时会再起一个 → 双实例同时周期写 `session.json`，本机日志第 83-91 行已实际出现交错的恢复记录。改为 SIGTERM 等 5s → 仍存活则 SIGKILL 等 3s → 仍在则中止退出，不再启动第二个实例；(b) 无防重入，连按 Mod+Shift+G 会并发跑两份恢复，补 flock（沿用 `swayidle.sh` / `auto-update-cache.sh` 的锁文件惯例，放 `$XDG_RUNTIME_DIR`）；(c) 头部注释写的快捷键是 `Mod+Alt+R`，实际绑定为 `Mod+Shift+G`，已改正；(d) `--save-interval 300` 与 `config.kdl` 的值重复硬编码，提为 `SAVE_INTERVAL` 变量；另外把单次 `sleep 0.5` 探活改为两段探活。
+
+   关键实现细节：新增的 flock **必须**给 nirinit 加 `9>&-` —— 锁挂在 fd 9 的打开文件描述上，nirinit 是长期驻留子进程，一旦继承 fd 9 就永不释放锁，之后每次调用都会抢不到锁而静默退出（该隐患已用假进程实测复现）。
+
+验证方法与结果：配置文件用真实二进制在 `XDG_DATA_HOME` 隔离环境下实测被接受（无 `failed to load config` WARN），并以"故意写错键名"作反向对照，证明该检测手段确实能发现问题；映射后 10/10 窗口的启动命令均可解析；flock 三种行为（防重入生效、继承 fd 会永久占锁、加 `9>&-` 后正常释放）与停止逻辑两条分支（正常退出 `escalated=0`、忽略 TERM 时升级 SIGKILL `escalated=1`）均用假进程隔离实测通过。过程中另查明：已安装的 nirinit 0.2.2 二进制含 `--no-restore`，但 crates.io 发布包 / git tag v0.2.2 / master 三份源码均无该参数，即该二进制是用比公开源码更新的本地源码构建的，故本次结论以二进制实测为准。
+
+剩余风险：会话恢复的语义缺陷见 P3-17（本次未修）；未做真机端到端恢复（会杀掉正在运行的 nirinit 并重开全部应用），实际恢复效果待用户下次使用时确认。
+
+~~[x] P3-17 nirinit 会话恢复的语义缺陷：恢复目标不是"上次会话"而是"当前会话"，会开出重复窗口~~ — 提出: WorkBuddy / wb-agent-0911, 日期: 2026-09-11；决定: 同日由仓库负责人采纳"方案 A 的加强版"（冻结快照 + 智能跳过），已由 P3-18 实施完毕
+
+  问题：nirinit 每 300 秒用【当前】窗口状态覆盖 `session.json`（源码 `save_session` 的 `skip_empty: false` 分支），所以开机满 5 分钟后文件里存的已经是当前会话；而 `restore_session` 对每个条目无条件 spawn（不判断"窗口是否已存在"），且随后的 `windows.iter().find(|w| w.app_id == app_id)` 会优先匹配到**已存在**的旧窗口，把那个旧窗口搬去目标工作区并改成快照里的尺寸。净效果：过了 5 分钟再按 Mod+Shift+G，会对已经在跑的应用再开一份，同时把原有窗口挪到别处 —— 行为不可预测。也就是说 `config.kdl` 里 `--no-restore` + 手动快捷键这套设计，实际只在"开机后、还没手动开窗口"这段窗口期内成立。
+
+  候选方案（当时提出；最终决定见下方）：
+  - **A. 只在开机时做一次快照**：开机阶段先把 `session.json` 复制成 `session.boot.json`，恢复脚本改从该快照恢复。语义变为"随时可恢复到上次关机时的状态"，且不再受 5 分钟窗口限制。代价是新增一个开机步骤和一份文件，需严格保证它与 nirinit 启动的先后顺序（必须在 nirinit 首次覆盖之前完成）。
+  - **B. 保留现状，只做提示**：在恢复脚本里读当前窗口数，若非空则发一条"当前已有 N 个窗口，继续恢复会产生重复"的通知，行为不变。
+  - **C. 跟随上游**：当前二进制比公开源码新且带未公开的 `--no-restore`，上游是否有相关改进需再确认。
+
+  **最终决定（2026-09-11，仓库负责人）**：采用 A 的加强版 = **冻结快照 + 智能跳过**，并在排查中发现该二进制来源不可复现（详见 P3-18），因此同时弃用 `--no-restore`。方案 B 被否决，因为它的提示只覆盖"是否重复"这一个症状，不解决"恢复到的是当前会话"这个根因。
+
+~~[x] P3-18 会话恢复重构：冻结快照 + 智能跳过；同时解除 stow 阻塞（承接 P3-17 与本文件中的 stow 冲突条目）~~ — Agent: WorkBuddy / wb-agent-0911, 日期: 2026-09-11；修改: 新增 `home/.config/niri/scripts/nirinit-start.sh`、重写 `home/.config/niri/scripts/nirinit-restore.sh`、改 `home/.config/niri/config.kdl` 的 spawn-at-startup、改 `home/.stow-local-ignore`；验证: `bash -n`、`shellcheck -S error`、`niri validate`、隔离功能测试 5 场景、stow 实跑、stow 漂移全量复核
+
+  实现要点（三项改动互相咬合，缺一不可）：
+
+  1. **冻结快照（解决"恢复的是当前会话"）**。新增 `nirinit-start.sh` 作为开机包装：把 `session.json` **移**成 `session.prev.json`（用 mv 不是 cp，移走后 nirinit 找不到会话文件才不会恢复），再 `exec nirinit --save-interval 300`。恢复脚本改从 `session.prev.json` 读取，于是"上次会话"名副其实，任何时间按都能恢复到上次关机时的状态。
+     - 只在 `session.json` 是**非空数组**时才覆盖 `prev.json`。因为 nirinit 启动时会因找不到会话文件而立刻写一份新的（开机时通常是空的），拿它去覆盖会毁掉有用的快照。
+     - 用 `$XDG_RUNTIME_DIR` 下的标记文件保证**每次登录只冻结一次**，避免 niri 重载配置时重复冻结、把"当前会话"当成"上次会话"覆盖掉真快照（`$XDG_RUNTIME_DIR` 是 tmpfs，注销即清空，重新登录自然重置）。
+     - 同时加了 flock 防重入，并给 exec 前的 fd 9 做 `exec 9>&-` 解除占用。
+  2. **智能跳过（解决"开出重复窗口"）**。恢复脚本先 `niri msg --json windows` 取当前已在跑的 `app_id`，再用一条 jq 表达式把 `session.prev.json` 过滤成只含**尚未运行**的窗口，写回 `session.json` 后重启 nirinit。于是反复按是幂等的；若快照里的应用全都已在运行，脚本直接提示"无需恢复"并**不触碰正在运行的 nirinit**。
+     - 关键顺序：**必须先确认旧 nirinit 已退出，再写 `session.json`**。旧实例收到 SIGTERM 时会做最后一次保存、把当前窗口状态写进 `session.json`，若写入在前就会被覆盖掉。
+     - 拿不到窗口列表时不静默照旧执行（那正是旧版的重复行为），降级为 fuzzel 确认。
+  3. **弃用 `--no-restore`（消除换机风险）**。两处传给 nirinit 的参数现在只剩 `--save-interval`，该参数在上游 0.2.2 中存在；而"移走会话文件即不恢复"的行为由上游 0.2.2 的 `restore_session` 早退分支保证（源码 393-401 行）。因此换机 `cargo install --locked nirinit` 装到的原版同样可用。`config.kdl` 里留了注释警告不要改回传 `--no-restore`。
+
+  顺带修掉的真实故障：`.stow-local-ignore` 增加 `\.config/waypaper/config\.ini$` 规则后，stow 不再整体中止，实跑补上了两个缺失链接 —— 其中 **`~/.config/scripts/wallpaper-lib.sh` 此前从未链接成功**，而 `random-anime-wallpaper.sh` 与 `random-api-wallpaper.sh` 都要 source 它，**壁纸脚本此前一直是坏的**（修复前实测报 `No such file or directory`，修复后 source 与 `wallpaper_log` 函数均正常）。
+
+  验证方法与结果：隔离功能测试 5 场景全过 —— A 非空 session.json 被正确冻结且原文件消失；B 同一次登录内重复触发不会覆盖快照；C 空 `session.json` 不摧毁已有快照；D 过滤逻辑正确且 JSON 字段完整保留（实测 11 个窗口、已在跑 3 个 → 待恢复 8 个）；E 全部在跑时过滤为空、走"无需恢复"分支。测试用假 HOME + 替身二进制（shebang 脚本，comm 不为 nirinit）完成，**全程未运行真实恢复脚本、未触碰用户正在运行的 nirinit**。stow 漂移全量复核：修复前 353 正常 / 3 异常，修复后仅剩 `.stow-local-ignore` 一项（它是 stow 控制文件，本就不该出现在 live，属正常）。
+
+  剩余风险：① 本次仍未做真机端到端恢复（会杀掉正在运行的 nirinit 并重开全部应用），实际效果待用户下次登录后按一次确认；② `config.kdl` 的 spawn-at-startup 改动需**重新登录或 niri 重启**才生效，在那之前按 Mod+Shift+G 会提示"还没有可恢复的会话快照"（优雅降级，不会出错）；③ 快照里同一应用有多个窗口（如两个 `code`）时，智能跳过只能按 app_id 整体判断，无法只补其中一个 —— 这是 nirinit 快照不含窗口标题/唯一标识的固有限制，见"已知但暂不处理"。
+
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
 
+~~[x] `stow -d ~/dotfiles -t ~ home` 曾整体中止、新增文件无法部署~~ — 2026-09-11 发现并同日由 P3-18 修复：在 `home/.stow-local-ignore` 增加 `\.config/waypaper/config\.ini$` 后冲突消失，stow 实跑补链成功。留档原文如下： 2026-09-11 由 WorkBuddy / wb-agent-0911 在 P3-16 期间发现：stow 预演报 `cannot stow dotfiles/home/.config/waypaper/config.ini over existing target .config/waypaper/config.ini since neither a link nor a directory`，随后 `All operations aborted`。原因是 P3-12 收编 waypaper 配置后，waypaper 运行时会用自身 schema 重写 `~/.config/waypaper/config.ini`（实测该文件已是 owner `mio` 的普通文件，且 `swww_transition_*` 五个字段被原样写回、`wallpaper` 路径也不同），链接因而断开。注意影响面：只要这一处冲突存在，**新增任何入库文件都无法用 stow 部署**（本次 P3-16 的 `config.toml` 只能按 stow 的相对链风格手工建链）。另 stow 预演还提示 `.config/scripts/wallpaper-lib.sh` 缺失待链。最终处理方式（2026-09-11，仓库负责人）：不采用 `--adopt`（会让 waypaper 的重写结果持续进入 git diff），改为让 stow **忽略**该文件——仓库内那份保留为"参考种子"，live 侧由 waypaper 自行维护。**遗留**：仓库副本与 live 会持续漂移且不再有链接关系，若将来 waypaper 配置需要随机器迁移，需另想办法（例如改名为 `.template` 由 setup 生成）。
+
+- `[ ]` 会话快照无法区分同一应用的多个窗口：nirinit 的快照只记录 `app_id`（不含窗口标题等可区分标识），所以像"两个 VS Code 窗口"这种情况，P3-18 的智能跳过只能按 app_id 整体判断 —— 其中一个已经在跑时，另一个不会被补回来（2026-09-11 实测本机快照里 `code` 确有两条）。属 nirinit 数据结构层面的限制，非本仓库脚本能解决；若将来确实需要，只能跟上游或改用能记录标题的方案。
+- `[ ]` `~/.config/waypaper/config.ini` 现已退出 stow 管理（仅被忽略、仓库内保留为参考种子），其 live 副本与仓库副本会持续漂移且无链接关系，换机时该文件的配置不会自动带过去。见上方 waypaper 条目。
 ~~[x] 统一 Node 版本管理器：`home/.config/zsh/integrations.zsh` 和 `home/.config/fish/conf.d/50-tools.fish` 仍同时初始化 `mise` 与 `fnm`，且文档与维护记录声明不一致。~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 经 P3-13 闭环；最终拍板为统一 fnm（与本条目原建议的 mise 相反，负责人确认目前用不上 mise）；验证: fish -c 实测 + grep 无活跃 mise 初始化
 - `[ ]` 统一脚本扩展名与解释器：`home/.config/niri/scripts/kbd-backlight-color.sh` 实际是 Fish 脚本；建议改名为 `.fish` 并同步调用方，避免 Bash/ShellCheck 误报。
 - `[ ]` 拆分 Stow 包：当前 `home/` 一次部署全部 Shell、Niri、主题和可选功能；建议拆分 `home-core`、`home-niri`、`home-dev`、`home-theme` 等按需部署的包。

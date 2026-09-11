@@ -1,0 +1,48 @@
+# nirinit 配置 —— app_id → 实际启动命令的映射表
+#
+# 为什么需要这个文件
+#   nirinit 恢复窗口的做法是「把 app_id 直接当命令 exec」, 而 niri 的 spawn
+#   只做 PATH 查找 (实现见 niri 的 src/utils/spawning.rs, 就是一句
+#   Command::new(command).args(args)), 完全不解析 .desktop 文件。
+#   因此凡 app_id 与可执行文件名不一致的应用, 不加映射就会被静默跳过:
+#   不报错、不提示, 只在 nirinit.log 里留一行
+#   "window for `X` did not appear within 5s"。
+#   没有这个文件时 nirinit 会在启动时打一条
+#   "failed to load config, using default values" 并退回空配置。
+#
+# 本机核对结果 (2026-09-11): session.json 记录的 10 个窗口里, 有 5 个 app_id
+# 在 PATH 中根本不存在 —— 也就是说这 5 类窗口此前恢复时一直是被静默丢弃的。
+# 其余 5 个 (motrix-next / code / firefox / workbuddy / kitty) 的 app_id 本身
+# 就是可执行文件名, 无需映射。
+#
+# 查当前窗口的 app_id:
+#   niri msg --json windows | jq -r '.[].app_id' | sort -u
+# 反查某个 app_id 该用什么命令启动 (desktop 文件的 StartupWMClass 就是 app_id 来源):
+#   grep -l "^StartupWMClass=<app_id>$" /usr/share/applications/*.desktop
+#   grep -m1 "^Exec=" /usr/share/applications/<上一步找到的文件>
+#
+# 注意:
+#   - [launch] 的 key 必须与 app_id 完全一致, 区分大小写
+#   - value 是单个可执行文件名。nirinit 只传这一个参数, 不支持附带参数,
+#     也不支持 %F/%U 这类占位符 (所以 WPS PDF 恢复出来是空窗口, 不会带原文件)
+#   - 本文件被 serde 以 deny_unknown_fields 解析, 写错键名会导致整份配置
+#     加载失败并静默退回默认值, 改完请看日志确认没有 WARN
+
+[launch]
+# Telegram Desktop: app_id 是反向域名, 二进制叫 Telegram
+"org.telegram.desktop" = "Telegram"
+# QQ: app_id 是大写 QQ, 二进制叫 linuxqq
+"QQ" = "linuxqq"
+# Ghostty: app_id 带域名前缀, 二进制叫 ghostty
+"com.mitchellh.ghostty" = "ghostty"
+# Chrome: app_id 首字母大写, 二进制叫 google-chrome-stable
+"Google-chrome" = "google-chrome-stable"
+# WPS PDF: WPS 走 XWayland, niri 取到的 app_id 是 "pdf" (本机唯一 PDF 阅读器)
+"pdf" = "wpspdf"
+
+# 恢复时跳过的应用。
+# 注意: 这里是拿 [launch] 映射【之后】的命令去匹配, 不是拿 app_id 匹配;
+# 没写映射的应用则直接用 app_id 匹配。
+# 本机目前不跳过任何应用。
+[skip]
+apps = []

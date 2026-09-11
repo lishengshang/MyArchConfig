@@ -210,8 +210,11 @@ spawn-at-startup "niri-sidebar" "listen"
 // spawn-at-startup "easyeffects" "-w"
 // nirius
 spawn-at-startup "niriusd"
-// nirinit 会话保存：开机只保存不恢复，手动恢复用 ~/.config/niri/scripts/nirinit-restore.sh
-spawn-at-startup "~/.cargo/bin/nirinit" "--save-interval" "300" "--no-restore"
+// nirinit 会话保存：开机先冻结"上次会话"快照再启动，只保存不恢复；
+// 手动恢复用 ~/.config/niri/scripts/nirinit-restore.sh（默认绑定 Mod+Shift+G）。
+// 注意不要改回直接 spawn nirinit 并传 --no-restore：该参数上游没有，
+// 换机 bootstrap 装到的原版会因未知参数以退出码 2 失败，会话保存会静默失效。
+spawn-at-startup "~/.config/niri/scripts/nirinit-start.sh"
 
 // 取消启动niri时自动开启快捷键教程
 hotkey-overlay {

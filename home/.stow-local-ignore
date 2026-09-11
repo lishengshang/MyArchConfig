@@ -1,2 +1,11 @@
 # Do not deploy Agent/runtime state that may exist in a working tree.
 \.omo(/|$)
+
+# waypaper 运行时会用自身 schema 重写该文件（每换一次壁纸就改动一次），
+# 入库副本与 live 持续漂移；live 侧一旦是普通文件就会与 stow 冲突，
+# 而 stow 遇到冲突是【整次操作中止】—— 不只是一个文件的事。
+# 2026-09-11 实测：正因如此，.config/scripts/wallpaper-lib.sh 入库后从未被链接，
+# 而 random-anime-wallpaper.sh / random-api-wallpaper.sh 都要 source 它，
+# 导致壁纸脚本一直是坏的。故此处只忽略不部署，仓库内那份仅作参考种子。
+# 详见 MAINTENANCE_PLAN 的"已知但暂不处理的问题"。
+\.config/waypaper/config\.ini$
