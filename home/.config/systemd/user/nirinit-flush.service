@@ -1,0 +1,27 @@
+[Unit]
+Description=Flush niri window layout before the compositor exits
+Documentation=file:%h/.config/niri/scripts/nirinit-flush.sh
+# 会话结束时由 graphical-session.target 带停（PartOf 负责传播停止）。
+#
+# 时机是本单元存在的全部理由：
+#   niri.service 声明了 Before=graphical-session.target，也就是它比挂在
+#   graphical-session.target 上的单元【更晚】停止；本单元是 After=它，因此
+#   【更早】停止 —— ExecStop 执行时 niri 还活着，能查到窗口列表。
+#   若直接依赖 nirinit 随 niri 一起被杀，那时 IPC socket 已断，
+#   收尾保存实测有 55% 概率失败。
+#   同一套写法可参考本机已在正常工作的 niri-clip.service。
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+# oneshot + RemainAfterExit：启动时什么都不做，只在被停止时触发 ExecStop。
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=%h/.config/niri/scripts/nirinit-flush.sh
+# 收尾保存只需几秒，给足余量但不拖慢关机
+TimeoutStopSec=20
+
+[Install]
+# 只随 niri 会话启用；KDE 等其它会话下 niri.service 不启动，因此不会被误触发
+WantedBy=niri.service

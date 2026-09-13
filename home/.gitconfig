@@ -9,3 +9,5 @@
 	helper = !/usr/bin/gh auth git-credential
 [safe]
 	directory = *
+[url "git@github.com:"]
+	insteadOf = https://github.com/

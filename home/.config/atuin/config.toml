@@ -9,6 +9,9 @@
 search_mode = "fuzzy"               # 模糊匹配（输入顺序无关）
 filter_mode = "global"              # 默认查全局历史
 filter_mode_shell_up_key_binding = "session"  # ↑ 时只查当前 session（直觉）
+# workspace 过滤：在 Git 仓库内时，"workspace" 模式搜整个仓库树下所有记录
+# （仓库外自动跳过该模式）；2026-09-12 开启，配合下方 search.filters 里的 workspace
+workspaces = true
 enter_accept = true                 # Enter 直接执行，Tab 进入命令行编辑
 exit_mode = "return-original"       # Esc 还原原始输入
 show_preview = true                 # 显示命令完整内容（长命令折行预览）
@@ -25,10 +28,9 @@ inline_height = 18                  # ← 不全屏！只占终端底部 18 行�
 invert = true                       # 搜索框放顶部（光标自然在输入处）
 
 [theme]
-# 内置主题：default / autumn / marine
-# autumn 偏暖橙红；marine 偏蓝青冷色；这里走自定义 tokyonight 风格
-# 配色与 fzf (env.zsh FZF_DEFAULT_OPTS) / p10k 完全同步，调色板见 themes/tokyonight.toml
-name = "tokyonight"
+# 2026-09-12 拍板：回归内置 default 主题（此前试过 autumn，均不如 default）
+# 自定义 tokyonight 主题文件仍在 themes/ 下，想启用改回 name = "tokyonight"
+name = "default"
 debug = false
 
 # ----- 列布局（左到右）-----
@@ -49,9 +51,10 @@ filters = ["global", "session", "directory", "workspace"]
 [preview]
 strategy = "auto"
 
-# ----- 同步：默认关闭（如果你没注册 atuin 账号）-----
-[sync]
-records = true
+# ----- 同步 -----
+# 2026-09-12 拍板：单机使用，不开 atuin sync（跨机同步需注册账号或自建服务器）。
+# 原先的 [sync] records = true 在未登录状态下空转，已移除；将来如需跨机同步，
+# 先 `atuin register`（或自建 sync_address）再加回 [sync] 段即可。
 
 # ----- 统计：常见子命令打散 -----
 [stats]

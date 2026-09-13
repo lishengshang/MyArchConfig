@@ -15,8 +15,11 @@
 set -euo pipefail
 
 NIRINIT_BIN="$HOME/.cargo/bin/nirinit"
-# 与 nirinit-start.sh 保持一致（改一处需改两处）
-SAVE_INTERVAL=300
+# 周期保存只作【崩溃/断电/被强杀时的兜底】：正常关机、重启、注销都由
+# nirinit-flush.service 在 niri 退出前精确保存。所以这里取 30 分钟，
+# 既不频繁写盘，又不至于在异常退出时丢太多。
+# 注意：该值同时出现在 nirinit-start.sh（改一处需改两处）。
+SAVE_INTERVAL=1800
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nirinit"
 SESSION_FILE="$DATA_DIR/session.json"
 PREV_FILE="$DATA_DIR/session.prev.json"
