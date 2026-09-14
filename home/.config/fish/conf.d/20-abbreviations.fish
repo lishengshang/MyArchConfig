@@ -59,7 +59,7 @@ if status is-interactive
     abbr -a di 'docker images'
     abbr -a dex 'docker exec -it'
     abbr -a dlog 'docker logs -f'
-    abbr -a dstop 'docker stop (docker ps -aq)'
+    abbr -a dstop 'docker stop (docker ps -aq) 2>/dev/null'
     abbr -a dclean 'docker system prune -af'
 
     # --- 现代化替代工具（abbr 形式：可看到完整命令） ---
@@ -72,7 +72,7 @@ if status is-interactive
     # --- 编辑器/导航 ---
     abbr -a v nvim
     abbr -a vim nvim
-    abbr -a sv 'sudo nvim'
+    abbr -a sv 'sudo -E nvim'
 
     # --- 目录跳转（fish 的 prevd/nextd） ---
     abbr -a -- - 'cd -'
@@ -106,6 +106,14 @@ if status is-interactive
     abbr -a fishconf '$EDITOR ~/.config/fish/conf.d/'
     abbr -a fishabbr '$EDITOR ~/.config/fish/conf.d/20-abbreviations.fish'
 
+    # --- dotfiles 管理（dot 函数的快捷方式，与 zsh 一致） ---
+    abbr -a dots 'dot status'
+    abbr -a dotd 'dot diff'
+    abbr -a dotds 'dot diff --staged'
+    abbr -a dotl 'dot log --oneline -10'
+    abbr -a dotc 'dot commit -m'
+    abbr -a dotp 'dot push'
+
     # --- 系统信息（轻量） ---
     abbr -a free 'free -h'
     abbr -a duh 'du -sh'
@@ -114,6 +122,7 @@ if status is-interactive
     # --- 实用快捷 ---
     abbr -a c clear
     abbr -a q exit
+    # fish 的 history 最新在前，head 即最近 50 条；zsh 相反（见 zsh/abbreviations.zsh 的 h）
     abbr -a h 'history | head -50'
     abbr -a path 'echo $PATH | tr " " "\n"'
 

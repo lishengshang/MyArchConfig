@@ -111,6 +111,14 @@ abbr-seed() {
         abbrc     '$EDITOR ~/.config/zsh/abbreviations.zsh'
         envrc     '$EDITOR ~/.config/zsh/env.zsh'
 
+        # --- dotfiles 管理（dot() 函数的快捷方式，与 fish 一致） ---
+        dots  'dot status'
+        dotd  'dot diff'
+        dotds 'dot diff --staged'
+        dotl  'dot log --oneline -10'
+        dotc  'dot commit -m'
+        dotp  'dot push'
+
         # --- 系统信息 / 通用 ---
         free 'free -h'
         duh  'du -sh'
@@ -118,7 +126,9 @@ abbr-seed() {
         path 'echo $PATH | tr ":" "\n"'
         c    'clear'
         q    'exit'
-        h    'history | tail -50'
+        # h: 最近 50 条历史。zsh 的 history（=fc -l）最早在前且默认只列 16 条，
+        #    必须用 fc -l -50；fish 的 history 最新在前（用 head），两边勿混淆
+        h    'fc -l -50'
     )
 
     local k

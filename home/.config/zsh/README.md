@@ -371,6 +371,16 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `abbrc`     | `$EDITOR ~/.config/zsh/abbreviations.zsh` |
 | `envrc`     | `$EDITOR ~/.config/zsh/env.zsh`        |
 
+#### dotfiles 管理
+| 缩写    | 展开                    |
+| ------- | ----------------------- |
+| `dots`  | `dot status`            |
+| `dotd`  | `dot diff`              |
+| `dotds` | `dot diff --staged`     |
+| `dotl`  | `dot log --oneline -10` |
+| `dotc`  | `dot commit -m`         |
+| `dotp`  | `dot push`              |
+
 #### 系统信息 / 通用
 | 缩写   | 展开                          |
 | ------ | ------------- |
@@ -380,7 +390,7 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 | `path` | `echo $PATH \| tr ":" "\n"` |
 | `c`    | `clear`        |
 | `q`    | `exit`         |
-| `h`    | `history \| tail -50` |
+| `h`    | `fc -l -50`（最近 50 条） |
 
 ---
 
@@ -389,12 +399,11 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 ### 透明替换（有则替换，无则回退原命令）
 - `ls` → `eza --icons --group-directories-first`
 - `cat` → `bat --style=plain --paging=never`
-- `grep` → `rg --smart-case`
 - `du` → `dust`
 - `df` → `duf`
-- `ps` → `procs`
 - `top` → `btop`
 - `cd` → `zoxide`（在 integrations.zsh 中通过 `--cmd cd` 接管）
+- 故意不替换 `grep`/`find`/`ps`（与 fish 一致：参数语义不兼容会破坏脚本和管道）
 
 ### 安全标志（强制）
 - `rm` → `rm -I`（删除前确认）
@@ -407,9 +416,7 @@ fzf-tab 提供模糊补全，整体面向 Arch Linux + pacman 工具链。
 - `diff` → `diff --color=auto`
 
 ### 杂项
-- `weather` → `curl -s "wttr.in/Wuhan?F&lang=zh"`
-- `ds` → `dirs -v`
-- `1`..`9` → `cd +1`..`cd +9`（目录栈快速跳转）
+- `ds` → `dirs -v`（目录栈查看；PUSHD_MINUS 已开启，`cd -N` 对应 `dirs -v` 显示的编号）
 - `dot` -> `git -C ~/dotfiles`（dotfiles 仓库）
 - `dota` -> `dot add -f` 简写（路径相对于 ~/dotfiles 仓库根）
 

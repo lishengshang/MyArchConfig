@@ -193,7 +193,6 @@ autopair 已启用：输入 `(` `[` `{` `"` `'` 自动配对，按 backspace 删
 |---|---|---|
 | `y` | yazi 文件管理器（退出时 cd 到最后浏览的目录） | `y` / `y ~/Pictures` |
 | `mkcd` | 创建目录并进入 | `mkcd projects/foo` |
-| `lt` | 树状列出（eza --tree） | `lt` |
 | `extract` | 通用解压（自动识别格式） | `extract archive.tar.gz` |
 | `br` | broot 文件浏览器（符号链接到 broot launcher） | `br` |
 
@@ -204,7 +203,6 @@ autopair 已启用：输入 `(` `[` `{` `"` `'` 自动配对，按 backspace 删
 | `fkill` | fzf 模糊搜索并杀进程 | `fkill` / `fkill SIGKILL` |
 | `port` | 查看端口占用 | `port 8080` |
 | `sysinfo` | 系统信息概览（OS/内核/内存/CPU/包数） | `sysinfo` |
-| `weather` | 天气（默认武汉） | `weather` / `weather Beijing` |
 
 ### Git / Dotfiles
 
@@ -212,6 +210,7 @@ autopair 已启用：输入 `(` `[` `{` `"` `'` 自动配对，按 backspace 删
 |---|---|---|
 | `dot` | 在 ~/dotfiles 仓库里执行 git 命令（普通 git 仓库，GNU Stow 部署） | `dot status` / `dot diff` / `dot push` |
 | `dota` | `dot add` 简写（路径相对 $HOME） | `dota .config/fish/foo.fish` |
+| `dots` / `dotd` / `dotds` / `dotl` / `dotc` / `dotp` | dot 仓库快捷 abbr（status / diff / diff --staged / log / commit -m / push，与 zsh 一致） | `dots` / `dotc "msg"` |
 | `gitignore` | 从 toptal.com 拉取 .gitignore 模板 | `gitignore python,node` / `gitignore list` |
 
 ### 娱乐

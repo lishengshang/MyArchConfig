@@ -3,7 +3,7 @@
 # =============================================================================
 # 大部分 alias 已迁移到 abbreviations.zsh（按空格展开为完整命令）。
 # 此文件保留以下场景的别名：
-#   1. 透明替换：ls/cat/find/grep（不需要看到原命令）
+#   1. 透明替换：ls/cat/du/df/top（不需要看到原命令）
 #   2. 安全标志：rm/cp/mv 必须永远生效
 #   3. 颜色：ip/diff 默认加 --color
 #
@@ -17,10 +17,8 @@
     typeset -A _repl=(
         ls   'eza --icons --group-directories-first'
         cat  'bat --style=plain --paging=never'
-        grep 'rg --smart-case'
         du   'dust'
         df   'duf'
-        ps   'procs'
         top  'btop'
     )
     for cmd in ${(k)_repl}; do
@@ -29,7 +27,10 @@
     done
 }
 # cd 由 integrations.zsh 中 zoxide --cmd cd 接管
-# find 不替换：fd 语法与 find 不兼容，破坏脚本调用
+# find/grep/ps 不替换（与 fish/conf.d/25-aliases.fish 的决策保持一致）：
+#   find: fd 语法与 find 不兼容，破坏脚本调用
+#   grep: rg 的 -E/-h 等参数语义与 grep 不同，会炸交互式管道
+#   ps:   `ps aux` 会被 procs 当作过滤器，静默返回空结果
 
 # --- 安全标志（强制） ---
 # --preserve-root 自 coreutils 8.x 起已是默认，无需显式声明
@@ -42,13 +43,9 @@ alias mkdir='mkdir -pv'
 alias ip='ip --color=auto'
 alias diff='diff --color=auto'
 
-# --- 杂项 ---
-alias weather='curl -s "wttr.in/Wuhan?F&lang=zh"'
-
 # --- 目录栈 ---
+# PUSHD_MINUS 已开启（options.zsh）：`cd -N` 才对应 `dirs -v` 显示的编号
 alias ds='dirs -v'
-# 匿名函数：循环变量天然局部，不污染全局命名空间
-() { local i; for i in {1..9}; do alias "$i"="cd +$i"; done }
 
 
 # =============================================================================
@@ -76,10 +73,5 @@ dota() {
     dot add -f "$@"
 }
 
-# --- 便捷别名 ---
-alias dots='dot status'
-alias dotd='dot diff'
-alias dotds='dot diff --staged'
-alias dotl='dot log --oneline -10'
-alias dotc='dot commit -m'
-alias dotp='dot push'
+# --- 便捷缩写 ---
+# dots/dotd/dotds/dotl/dotc/dotp 已迁移到 abbreviations.zsh（abbr 展开可见完整命令）
