@@ -1,3 +1,6 @@
+# pacman hook 源副本：活动安装位于 /etc/pacman.d/hooks/waybar-updates-refresh.hook
+# （hook 属系统路径，需 root 安装/更新，不在 stow 管理范围；改动后需手动同步到 /etc）。
+# 作用：包事务后通知 check-updates.sh 立即刷新更新计数，见下文 Exec。
 [Trigger]
 Type = Package
 Operation = Install

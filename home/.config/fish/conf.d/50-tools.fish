@@ -91,10 +91,11 @@ if status is-interactive
     # 拖慢启动。其他命令让 carapace 兜底即可。
     for cmd in opencode gh uv niri starship bat procs delta fd lazygit \
                git apt dot dota y zoxide eza rg
-        # 手写补全优先，其次使用 ~/.local/share 下运行时生成的补全。
+        # 手写补全优先，其次运行时生成的补全，最后包自带的 vendor 补全。
         for completions_dir in \
             ~/.config/fish/completions \
-            "$XDG_DATA_HOME/fish/generated-completions"
+            "$XDG_DATA_HOME/fish/generated-completions" \
+            /usr/share/fish/vendor_completions.d
             set -l f "$completions_dir/$cmd.fish"
             if test -f "$f"
                 source "$f" 2>/dev/null
