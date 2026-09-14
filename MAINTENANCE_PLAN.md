@@ -312,7 +312,7 @@
 
   验证：`niri validate`、两个脚本 `bash -n` + `shellcheck -S error`、三个 unit `systemd-analyze --user verify` 全过；实机截图验证 4 项全过——键盘路径 `+2` 步进精确（0.27→0.29）且 1.2s 后浮窗仍在、大写锁 OSD 正常、`wpctl` 直改音量（=耳机按键路径）浮窗弹出、浮窗数值与实际一致。
 
-  剩余风险：① 耳机按键步长本身仍是固件的 5~6%（只能补浮窗显示，不能调细）；② 部署时 stow 被 `home/.config/mimeapps.list` 的 live 普通文件冲突阻塞（`cannot stow ... neither a link nor a directory`，该文件在本次工作区已有他人未提交修改，非本任务引入、未处理），5 个新文件按 P3-16 先例以同风格相对软链手工部署，`readlink -f` 全部可解析；③ `config.kdl` 的 spawn 删除需 niri 重启/重登录才彻底生效，当前已由本会话 `pkill swayosd-server` + `enable --now` 完成切换，无双重实例。
+  剩余风险：① 耳机按键步长本身仍是固件的 5~6%（只能补浮窗显示，不能调细）；② 部署时 stow 被 `home/.config/mimeapps.list` 的 live 普通文件冲突阻塞（`cannot stow ... neither a link nor a directory`，该文件在本次工作区已有他人未提交修改，非本任务引入、未处理），5 个新文件按 P3-16 先例以同风格相对软链手工部署，`readlink -f` 全部可解析（已于 2026-09-14 由 P3-24 收编漂移并转软链，阻塞解除）；③ `config.kdl` 的 spawn 删除需 niri 重启/重登录才彻底生效，当前已由本会话 `pkill swayosd-server` + `enable --now` 完成切换，无双重实例。
 
 ~~[x] P3-22 Mod+/ 快速终端改单实例调度：已开则召回复聚焦，未开才新开~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: 新增 `home/.config/niri/scripts/quick-terminal.sh`、改 `home/.config/niri/binds.kdl`（Mod+Slash 由内联 spawn kitty 改为 spawn-sh 调脚本，原注释掉的 `--single-instance` 写法保留）
 
@@ -320,7 +320,7 @@
 
   实现：脚本先查 `niri msg --json windows` 有无 app_id=quickterminal 的窗口——有则 `move-window-to-workspace --window-id`（召回到当前工作区，取 is_focused 工作区的 name/idx 作引用）+ `focus-window --id` 聚焦；没有才启动 kitty（参数与原内联一致：`--class quickterminal -o font_size=10.0 -o background_opacity=0.8`）。**连按防抖**：新窗口注册到 niri 需几百毫秒，此窗口再查会误判"不存在"重复开窗，故启动时写毫秒时间戳到 `${XDG_RUNTIME_DIR}/niri-quickterminal.last`，0.8s 内的重复启动直接忽略。
 
-  验证：`bash -n` + `shellcheck -S error` + `niri validate` 全过；实机测试——已有窗口时连续两次运行脚本窗口数保持 1 且 focused=true（召回复聚焦生效）；防抖分支用隔离副本（app-id 改不存在 + exec kitty 换 echo）测试：首按触发、0.3s 内连按被吞、0.9s 后恢复。软链按 P3-16 先例手工部署（stow 仍被 mimeapps.list 阻塞，同 P3-21 ②）。
+  验证：`bash -n` + `shellcheck -S error` + `niri validate` 全过；实机测试——已有窗口时连续两次运行脚本窗口数保持 1 且 focused=true（召回复聚焦生效）；防抖分支用隔离副本（app-id 改不存在 + exec kitty 换 echo）测试：首按触发、0.3s 内连按被吞、0.9s 后恢复。软链按 P3-16 先例手工部署（stow 仍被 mimeapps.list 阻塞，同 P3-21 ②；该阻塞已于同日由 P3-24 解除）。
 
   剩余风险：① 防抖窗口 0.8s 内的"关了立刻重开"操作会被吞一次，属可接受的边缘情况；② 若用户手动开了多个 quickterminal（历史遗留的一串），脚本只召回第一个，多余的需要手动关一次。
 
@@ -333,6 +333,16 @@
   验证：`bash -n` + `shellcheck -S error` 通过；隔离副本（独立锁文件）端到端实测——`pw-cli destroy` 掐断测试 cava 的录音流后约 1~2s 自动拉起新 cava 且新流建立、启动宽限期内无误杀；谓词三分支单测（活进程+有流→ok、无流→判死、空 pid→判死）全过。
 
   剩余风险：① 真实休眠唤醒场景未端到端复测（今日实证即该场景，恢复机制一致，下次唤醒后自然验证）；② 新增的每秒一次 `pactl list source-outputs` 仅在播放中执行，空闲路径仍零轮询。
+
+~~[x] P3-24 xdg-open/MIME 配置健康审查与修复：mimeapps.list 收编漂移并恢复 stow 接管、修 clash 悬空关联、portal 补显式映射~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: `home/.config/mimeapps.list`、`home/.local/share/applications/clash-verge-handler.desktop`、`home/.config/xdg-desktop-portal/niri-portals.conf`
+
+  审查结论（仓库 + live 双向盘点）：链路本身健康——xdg-utils 1.2.1 不识别 niri，`xdg-open` 落 generic 路径 → `gio open`（glib 2.88.3），解析逻辑与 GIO 的 mimeapps.list 完全等价；13 类常用 MIME/协议默认项全部解析到真实存在的 .desktop；`xdg-settings` 与 http/https/text/html 三处默认一致（google-chrome.desktop）；`BROWSER` 未设属正常；portal gnome+gtk 组合符合 niri 官方推荐。需修的是管理方式而非工具选择。
+
+  修复内容：① `mimeapps.list` 恢复 stow 管理——原为全仓唯一未接管的相关文件（live 普通文件一直阻塞 stow，即 P3-21 ②），先把 live 独有的 `x-scheme-handler/workbuddy=workbuddy.desktop` 两行收编进仓库副本，再删 live 普通文件重跑 `stow -R`，软链指回仓库，后续新增文件可恢复用 stow 部署；② 修 4 处悬空的 `clash-verge.desktop`（clash-verge-rev 2.5.2 实际提供 `Clash Verge.desktop` 带空格 id）——[Default Applications] 两行改为 `clash-verge-handler.desktop`（同 P3-2 先例），[Added Associations] 两行改为 `Clash Verge.desktop;clash-verge-handler.desktop;`；③ `niri-portals.conf` 补回用户 override 覆盖丢失的三条发行版映射（Access=gtk、Notification=gtk、Secret=gnome-keyring，此前 Secret 靠回退机制才找到 gnome-keyring）；④ 删除 0 字节的弃用位置空文件 `~/.local/share/applications/mimeapps.list`；⑤ clash-verge-handler.desktop 的 MimeType 行补尾分号。
+
+  验证：`xdg-mime query default x-scheme-handler/clash(-verge)` 直接返回 `clash-verge-handler.desktop`（修复前靠悬空条目回退）；回归 https→google-chrome、baiduyunguanjia→baidunetdisk、workbuddy→workbuddy、inode/directory→Nautilus、text/plain→neovide、pdf→wps 全过；`readlink -f ~/.config/mimeapps.list` 指向仓库；`stow -n -R` 预演零冲突；`desktop-file-validate` 通过；三个 portal unit 重启后 journal 无 error（gnome 后端 inactive 属 D-Bus 按需激活，busctl 可见其在总线上存活）；另实证 `xdg-mime default` 同值重写为**写穿软链**模式（软链存活、无格式扰动），与 waypaper.conf 同路。
+
+  剩余风险：① 软链接管后，应用/GUI"设为默认"对 mimeapps.list 的写入会直接落到仓库文件产生 git churn（同 waypaper.conf 模式，属预期；若将来某程序改用"临时文件+rename"方式写入会把软链替换回普通文件、重新阻塞 stow，发现 stow 再报此冲突时按本任务第 ① 步同样处理即可）；② 包自带 `Clash Verge.desktop` 已登记为 Added 兜底，包 id 再变只需同步一行。
 
 ## 已知但暂不处理的问题
 
