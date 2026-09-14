@@ -366,6 +366,8 @@
 
   查证结论（未处理）：`~/.cache/matugen-strategy/`（191M）是壁纸主题守护的**活跃缓存**（palettes + shrunk_images，last_wallpaper 当分钟仍在更新），删除会触发每次换壁纸重新生成，保留；`~/.cache/kit-deb-data.tar.xz`（410M，mtime 为 epoch）与 `~/.cache/aur-probe/data.tar.xz`（372M）经全仓与 ~/Projects/aur-local 查证均无脚本/包归属，疑似一次性下载遗留，待负责人拍板后处理。
 
+~~[x] P4-8 系统侧（dotfiles 之外）体检与用户级清理~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: `systemctl --user disable --now ydotool.service`（grep 全配置确认零调用方，仅 2026-05 VSCode 历史草稿出现过）；删除 `~/.cache/aur-probe/`（Trae CN deb 数据层）与 `~/.cache/kit-deb-data.tar.xz`（WorkBuddy deb 数据层）共 782M——身份经 tar 内容列表确认，全盘 grep 无引用方，负责人批准后执行；核查结论（只读）：包缓存 25G 根因是 paccache.timer 从未启用、9 个孤儿包 Required By/Optional For 全为 None（主包 realesrgan-ncnn-vulkan-bin 为显式安装勿删）、`/etc/default/grub` GRUB_TIMEOUT=8 即 loader 7.3s 来源（引导器为 GRUB 2.14）、USB -71 定位为 Jieli 无线键鼠接收器硬件循环（软件无解）、baidunetdisk 崩溃为上游 Electron bug、btrfs 无任何快照（timeshift 未初始化）；验证: ydotool is-active=inactive/is-enabled=disabled、`~/.cache` 5.8G → 5.1G；剩余风险: paccache/journal/孤儿包/pacdiff/GRUB 提速等 sudo 清单待负责人执行（见"已知但暂不处理的问题"系统侧条目），swappiness/zram/pacman.conf 经核查已合理未改动
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
@@ -391,15 +393,20 @@
 以下为 2026-09-14 P4 体检新增记录（均为低风险记录项或需 sudo 的负责人待办）：
 
 - `[ ]` bootstrap.sh 的 niri profile 缺 niri-clip 安装步骤：niri-clip 是 pacman 不拥有的裸 cargo 二进制（`pacman -Qo` 无属主），被 systemd unit（niri-clip.service）、Mod+V（binds.kdl）、waybar 剪贴板模块三处依赖，换机即断。需确认其来源（crates.io crate 或 ~/Projects 本地构建）后补 `cargo install` 步骤或文档说明。
-- `[ ]` 需 sudo 的系统侧待办（负责人执行，本机 Agent 无 sudo）：
-  - `sudo paccache -rk2`（/var/cache/pacman/pkg 占 25G）；
-  - 可选 `sudo journalctl --vacuum-size=200M`（当前 745M）；
-  - 9 个孤儿包逐个确认后 `pacman -Rns`：asar、cmark-gfm、gcc15、hyprwayland-scanner、kd-bin-debug、libayatana-indicator、qpdf、realesrgan-ncnn-vulkan-bin-debug、svt-hevc（两个 -debug 包可能有意保留）；
-  - 5 个 pacnew/pacsave 待 `pacdiff` 合并：locale.gen.pacnew、pacman.d/mirrorlist.pacnew、tpm2-tss 两个 json.pacnew、xdg/fuzzel/fuzzel.ini.pacsave。
-- `[ ]` `~/.cache/kit-deb-data.tar.xz`（410M，mtime 为 epoch）与 `~/.cache/aur-probe/data.tar.xz`（372M）无脚本/包归属（kd-bin 包内与 ~/Projects/aur-local 均未引用），疑似一次性下载遗留，待负责人拍板删除。
-- `[ ]` ydotool.service enabled 但不在 systemd-user-units.txt：该 unit 属 ydotool 系统包（非仓库 stow 管理），清单只收录仓库 unit 属正确行为；若确认不用 ydotool 可 `systemctl --user disable --now ydotool.service`，否则仅记录。
-- `[ ]` 内核/硬件层噪音（每次唤醒必现，非桌面配置问题，仅记录）：内存温度传感器 `spd5118 PM: failed to resume async: error -6`、`usb 1-1 device descriptor read/64 error -71`（某 USB 设备/接口异常，若外设有异常可排查）；蓝牙 A2DP 唤醒后 connect failed 属 audio-resume-guard 自愈重启 wireplumber 的伴生噪音。
-- `[ ]` 安全记录：9/14 18:31 `sudo auth conversation failed`、22:52 `FAILED SU (to root) mio on pts/3`——失败的提权尝试各一次，若非负责人本人操作请留意。
+- `[ ]` 需 sudo 的系统侧待办（负责人执行，本机 Agent 无 sudo；2026-09-14 深查后更新）：
+  - 包缓存 25G 的根因已查明：**paccache.timer 从未启用**（Arch 默认 preset 即 disabled，无 override）。执行 `sudo paccache -rk2 && sudo systemctl enable --now paccache.timer`（一次性清到每包留 2 份 + 每周自动清理）；
+  - `sudo journalctl --vacuum-size=200M`（当前 745M）；
+  - 9 个孤儿包已逐个画像：**Required By 与 Optional For 全部为 None**（`realesrgan-ncnn-vulkan-bin` 主包是显式安装、非孤儿，壁纸超分依赖它），删除无功能影响；`sudo pacman -Rns asar cmark-gfm gcc15 hyprwayland-scanner kd-bin-debug libayatana-indicator qpdf svt-hevc realesrgan-ncnn-vulkan-bin-debug`（两个 -debug 仅在需要调试 kd/realesrgan 崩溃时才有价值）；
+  - 5 个 pacnew/pacsave 待 `sudo pacdiff` 合并：locale.gen.pacnew、pacman.d/mirrorlist.pacnew、tpm2-tss 两个 json.pacnew、xdg/fuzzel/fuzzel.ini.pacsave；
+  - 可选：`sudo pacman -S --needed usbutils reflector`（本机连 lsusb 都没有；mirrorlist 421 条 Server 未收敛，reflector 可收敛到 10-20 条）；
+  - 可选提速开机：`/etc/default/grub` 的 `GRUB_TIMEOUT=8` 是 systemd-analyze 里 loader 7.3s 的来源（引导器实为 **GRUB 2.14** 非 systemd-boot）；`GRUB_DEFAULT=saved` + `GRUB_SAVEDEFAULT=true` 已记住上次选择，可降到 `GRUB_TIMEOUT=2` 后 `grub-mkconfig -o /boot/grub/grub.cfg`，双系统选择不受影响（开机按 Esc 仍可进菜单）。
+- ~~[x] `~/.cache/kit-deb-data.tar.xz`（410M）与 `~/.cache/aur-probe/data.tar.xz`（372M）无主遗留~~ — 2026-09-14 由 ZCode CLI / zcode-20260914 查明身份并经负责人批准删除：aur-probe/data.tar.xz 为 **Trae CN 的 deb 数据层**（AUR 探测一次性遗留）、kit-deb-data.tar.xz 为 **WorkBuddy Electron 应用的 deb 数据层**（kd-bin 相关探测遗留）；全盘 grep（~/Projects、shell 历史）无引用方；验证: `~/.cache` 5.8G → 5.1G。
+- ~~[x] ydotool.service enabled 但不在 systemd-user-units.txt~~ — 2026-09-14 由 ZCode CLI / zcode-20260914 停用闭环：grep 全配置确认零调用方（仅 2026-05 的 VSCode 本地历史草稿出现过，早已弃用；waybar/脚本/niri 配置无引用），unit 属 ydotool 系统包非仓库管理；执行 `systemctl --user disable --now ydotool.service`；验证: is-active=inactive、is-enabled=disabled；回退方式 `systemctl --user enable --now ydotool.service`。
+- `[ ]` 内核/硬件层噪音（每次唤醒必现，非桌面配置问题，仅记录）：内存温度传感器 `spd5118 PM: failed to resume async: error -6`（DDR5 传感器内核驱动已知问题，无害）；`usb 1-1 error -71` 已定位为一只 **Jieli 方案无线键鼠 USB 接收器**（idVendor=3654 idProduct=4a55，Intel xHCI 1 号口，非摄像头/蓝牙），30 秒周期性"枚举失败→power cycle→重连→掉线"循环，软件侧无解（-71=EPROTO），物理换 USB 口或换接收器即可验证；蓝牙 A2DP 唤醒后 connect failed 属 audio-resume-guard 自愈重启 wireplumber 的伴生噪音。
+- `[ ]` 安全记录：9/14 18:31:24 `pam_unix(sudo:auth): auth could not identify password for [mio]`、22:52:02 `FAILED SU (to root) mio on pts/3`；前后（22:09~23:53）均有正常 sudo session，若均为负责人本人（输错密码/取消）可忽略，否则建议核对 pts/3 对应的终端来源。
+- `[ ]` 备份缺口（建议项）：btrfs（/@ 与 /@home，compress=zstd:3,ssd,discard=async）当前**没有任何快照**——timeshift 已安装但从未初始化（无 systemd unit、无 /timeshift 目录），snapper 未装。是否启用由负责人决定；启用前不建议做大规模系统改动。
+- `[ ]` baidunetdisk 9/13 连续 4 次 SIGSEGV/SIGTRAP：`coredumpctl info` 显示崩在 `upload_service` 线程处理 `baiduyunguanjia://evoked-download` 深链（SEGV_MAPERR，无符号栈），属上游 Electron 客户端 bug，本地无可修项，等更新或改用网页版。
+- `[ ]` 系统参数核查结论（无需改动，留档）：vm.swappiness=60 + zram0 zstd 16G（priority 100，实际用 1.2G→压缩后 306M）+ NVMe swap 30G 兜底（priority -1）属合理配置；pacman.conf 已有 Color、ParallelDownloads=5、DownloadUser=alpm；fstrim.timer 正常每周触发；启动 27.2s 中 firmware 11.4s + loader 7.3s 占 2/3，userspace 仅 6.0s 无可优化空间（critical-chain 无异常慢单元）。
 - `[ ]` shell 工具链收敛候选（有行为变化，需拍板，未执行）：uv 补全（782KB）完全退出启动链改懒加载（首次 Tab 延迟 ~0.1s）；fnm 两连 fork（env + use default）缓存化（multishell 路径每会话变化，需改写方案）；zinit forgit 与 fzf.fish/fzf-tab 能力重叠裁剪其一；fisher 停用（5 插件已全部 vendor 进仓库，启动期无人调用）。
 
 
