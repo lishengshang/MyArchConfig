@@ -214,7 +214,7 @@
 
 ~~[x] P3-5 删除 vim 配置包~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: `git rm -r home/.config/vim`（11 文件，git 历史可找回）；live 清理 `~/.config/vim/`（含空目录残留）；验证: EDITOR 全链为 nvim（environment.d/10-shell.conf、zsh/env.zsh）、全仓库 grep 无 `.config/vim` 引用
 
-- `[?]` P3-6 卸载遗留包 cliphist-tui-git、swaylock-effects 并刷新包快照 — 阻塞：Agent 运行环境无 sudo 权限。需仓库负责人执行：`sudo pacman -Rns cliphist-tui-git swaylock-effects` 后运行 `bash update-pkglist.sh` 刷新两份包快照。前置复核已完成：全仓库无脚本活跃引用 swaylock/cliphist-tui（rule.kdl 仅注释提及），`cliphist.service`（随包的系统 unit）本就处于 disabled — Owner: 待负责人
+~~[x] P3-6 卸载遗留包 cliphist-tui-git、swaylock-effects 并刷新包快照~~ — 2026-09-14 由 ZCode CLI / zcode-20260914 经 P4-4 复核闭环：两包实测均已卸载（`pacman -Q` 报"未找到"，卸载应已在早前完成），两份 generated 快照已刷新（原生 185 / AUR 30），不再需要任何 sudo 操作；验证: `pacman -Q cliphist-tui-git swaylock-effects`、`bootstrap.sh --dry-run`
 
 ~~[x] P3-7 清理仓库改名遗留的 live 悬空软链与全注释占位文件 im.conf~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；修改: rm `~/.config/scripts/niri_auto_blur_bg.sh`、`~/.config/waybar/scripts/old-longshot.sh`（均确认悬空）；`git rm home/.config/environment.d/im.conf`；核实 `~/.local/bin/env` 为 uv 产物且被 `home/.config/bash/bashrc:35` source（保留）、`env.fish` 为 fish PATH 兜底（保留）；验证: `tests/stow/integration.sh` STOW_PASS
 
@@ -344,6 +344,28 @@
 
   剩余风险：① 软链接管后，应用/GUI"设为默认"对 mimeapps.list 的写入会直接落到仓库文件产生 git churn（同 waypaper.conf 模式，属预期；若将来某程序改用"临时文件+rename"方式写入会把软链替换回普通文件、重新阻塞 stow，发现 stow 再报此冲突时按本任务第 ① 步同样处理即可）；② 包自带 `Clash Verge.desktop` 已登记为 Added 兜底，包 id 再变只需同步一行。
 
+## P4 任务：全面体检与低风险优化（2026-09-14 三路只读审计）
+
+来源：2026-09-14 仓库负责人委托的全面体检（仓库内容审计 + 系统状态审计 + shell 启动性能审计三路并行只读审查）。总结论：**系统整体健康**——0 个 failed unit、16 个仓库管理 unit 全部在岗（NRestarts=0）、仓库零死引用、.gitignore 无矛盾、无失控轮询、开机 27s 无拖慢关键链路的单元。需要动手的三类问题由 P4-1~P4-6 修复，系统侧发现与待办记录于本节和"已知但暂不处理的问题"。
+
+~~[x] P4-1 fish `_cached_init` 缓存命中条件反转修复 + uv 补全双载去除~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: `home/.config/fish/conf.d/50-tools.fish`；验证: `fish -n`、交互启动计时 0.301s → 0.185s、缓存命中复核（第二次启动后缓存文件 mtime 不变）；剩余风险: 无（首次启动重建一次缓存属预期）
+
+  背景：命中条件 `test (command -v $bin) -nt $cache` 缺 `not`——只有二进制比缓存新才用缓存（等于固定用过期缓存），稳态反而每次启动 fork 6 个进程重建 ~1MB init 脚本；且二进制升级后 `-nt` 恒真、旧缓存被永远 source。另 uv 补全（782KB）双载（`_cached_init` + 预加载列表各一次），已退出 `_cached_init` 由预加载统一加载。
+
+~~[x] P4-2 smoke.zsh 过期 mise 断言修正 + fish 两处小修~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: `tests/zsh/smoke.zsh`（tool:mise → tool:fnm，P3-13 已移出 mise，原断言为既有失败）、`home/.config/fish/conf.d/35-pager.fish`（加载顺序注释修正：`-` 0x2D < `.` 0x2E，matugen 文件先于本文件加载）、`home/.config/fish/conf.d/fzf.fish`（`fzf_configure_bindings --history=` 去掉 ^R 死绑定）；验证: `tests/zsh/smoke.zsh` 27/27 PASS、`fish -n`、实机确认 `__fzf_search_history` 不再注册；剩余风险: fzf.fish 为 vendor 文件的本地偏离，若将来重新 fisher 安装需重做该改动
+
+~~[x] P4-3 死补全/死模板清理与 fish 补全来源收编~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: 删除 30 个 fish 补全仓库副本（27 个与 `/usr/share/fish/vendor_completions.d` 包级补全重复；swaylock/hermes/chafa 三个对应工具实测未安装属死文件），保留 11 个手写补全（apt/dot/dota/f/fwatch/y/opencode/ffmpeg/fzf/fisher/fzf_configure_bindings）；`50-tools.fish` 预加载搜索链补 `vendor_completions.d` 一级（保证 eza/rg/zoxide 等删除后仍能 source 到包级补全，不被 carapace 占位挡住）；删除 matugen `scripts/inject_vscode.sh` + `templates/vscode-inject.json`（已被 setup.sh 从 settings.base.json 直出取代，全仓零引用）；`waybar/scripts/waybar-updates-refresh.hook` 补头部源副本身份说明；`xdg-terminals.list` 补 `com.mitchellh.ghostty.desktop`（kitty 仍居首）；live 侧同步清理 31 条悬空软链；验证: `fish -n`、vendor 补全 source 实测、fish 启动冒烟、`stow -n` 预演；剩余风险: 无——被删文件 git 历史可找回
+
+~~[x] P4-4 包快照刷新与 niri profile 对齐（P3-6 闭环）~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: 重跑 `update-pkglist.sh`（原生 185 / AUR 30；cliphist-tui-git、swaylock-effects、trae-cn 移除，workbuddy/baidunetdisk-bin/wps-office-cn/zcode-bin/kd-bin/clash-verge-rev 等 8 月中旬以来新装应用如实入库）、`packages/niri.txt` 移除 cliphist 并补注释；验证: `bootstrap.sh --dry-run` 输出与系统实际一致
+
+~~[x] P4-5 live 侧收尾与 stow 漂移复核~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: `~/.config/environment.d/im.conf` 悬空软链（审计发现时存在，执行时已消失，可能被用户/系统清理，目标状态达成，如实记录）；验证: `stow -n -v` 全绿（零冲突、零待补链接）
+
+  **勘误（重要）**：系统审计报告的"mimeapps.list 是 live 普通文件非软链、阻塞 stow"及 P3-21 剩余风险 ② 为**误报**——`stat -c %F` 会跟随软链导致误判；`stat %N` 核实 mimeapps.list、xdg-desktop-portal/niri-portals.conf、applications/clash-verge-handler.desktop 三者均为指向仓库的 stow 软链，stow 现已完全畅通（P3-24 已于同日收编漂移）。审计期间工作区出现的三个文件未提交修改，本任务初判为"应用运行时经软链写入"，实为**并行 Agent 同日另一会话的 P3-24 在途工作**（mimeapps 收编 workbuddy 漂移、修 clash 悬空关联、portal 显式映射），已于 23:37 由其提交（be0cbad + 8ef94b9），不存在"自行还原"；本系列四个提交均未包含对方文件，符合协作规范。`xdg-mime query default x-scheme-handler/clash` 实测返回 clash-verge-handler.desktop，P3-2 的修复语义有效。
+
+~~[x] P4-6 缓存谨慎清理（负责人拍板：保留 Trash，谨慎清理）~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: 删除 `~/.cache/thumbnails`（292M，可再生）与 `~/.cache/paru`（704M，AUR 构建缓存）；验证: `~/.cache` 6.9G → 5.8G；Trash（19G）按负责人决定保留不动
+
+  查证结论（未处理）：`~/.cache/matugen-strategy/`（191M）是壁纸主题守护的**活跃缓存**（palettes + shrunk_images，last_wallpaper 当分钟仍在更新），删除会触发每次换壁纸重新生成，保留；`~/.cache/kit-deb-data.tar.xz`（410M，mtime 为 epoch）与 `~/.cache/aur-probe/data.tar.xz`（372M）经全仓与 ~/Projects/aur-local 查证均无脚本/包归属，疑似一次性下载遗留，待负责人拍板后处理。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
@@ -354,6 +376,7 @@
 - `[ ]` `~/.config/waypaper/config.ini` 现已退出 stow 管理（仅被忽略、仓库内保留为参考种子），其 live 副本与仓库副本会持续漂移且无链接关系，换机时该文件的配置不会自动带过去。见上方 waypaper 条目。
 ~~[x] 统一 Node 版本管理器：`home/.config/zsh/integrations.zsh` 和 `home/.config/fish/conf.d/50-tools.fish` 仍同时初始化 `mise` 与 `fnm`，且文档与维护记录声明不一致。~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 经 P3-13 闭环；最终拍板为统一 fnm（与本条目原建议的 mise 相反，负责人确认目前用不上 mise）；验证: fish -c 实测 + grep 无活跃 mise 初始化
 - `[ ]` 统一脚本扩展名与解释器：`home/.config/niri/scripts/kbd-backlight-color.sh` 实际是 Fish 脚本；建议改名为 `.fish` 并同步调用方，避免 Bash/ShellCheck 误报。
+  > 2026-09-14 P4 补充：改名被 sudoers 依赖阻塞——脚本经 `sudo -n (status filename) $argv`（kbd-backlight-color.sh:14）以自身绝对路径提权，`/etc/sudoers.d/kbd-backlight-color` 的 NOPASSWD 白名单钉死了 `.sh` 路径；改名须 root 协同改 sudoers，属高风险区暂缓，当前靠 shebang 解释执行、功能正常。
 - `[ ]` 拆分 Stow 包：当前 `home/` 一次部署全部 Shell、Niri、主题和可选功能；建议拆分 `home-core`、`home-niri`、`home-dev`、`home-theme` 等按需部署的包。
 - `[ ]` 分离通用配置与主机配置：审查 `output.kdl` 的显示器参数、NVIDIA/Clevo/触控板配置，以及 `autostart/stop-niri-session-services.desktop` 中的 `/home/mio` 绝对路径。
 - `[ ]` 简化 Shell 工具链：在 Zinit/Fisher、fzf/Atuin、carapace、Starship 等重复能力中明确主方案，减少启动时网络访问和运行时初始化。
@@ -362,8 +385,23 @@
 - `[ ]` 审查 Matugen、动态壁纸、GTK/Fcitx5 定时主题和 Niri/Systemd 双重生命周期，明确基础功能与可选增强功能的边界。
 ~~[x] 清理未使用或疑似遗留脚本（`niri_auto_blur_bg.sh` 与 `waybar/scripts/old-longshot.sh` 均已确认零调用方并于 2026-09-02 删除）~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 补充清理 live 侧悬空软链后闭环；验证: `tests/stow/integration.sh`
 ~~[x] 复核 `home/.gitconfig` 中当前工作区新增的 `safe.directory = *`；通用配置不应默认信任所有 Git 仓库。~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；已实际删除（P3-3）；验证: `git config --global --list`
-- `[ ]` shell init 缓存目录属主为 root，缓存自愈机制已失效：`~/.cache/zsh/init/` 与 `~/.cache/fish/init/`（含 atuin/carapace/starship 等缓存文件）为 `root:root`（755/644），`mio` 只读不可写。疑似此前某次 Agent 会话以 root 身份、`HOME=/home/mio` 跑过交互 shell 所致（fish 目录创建于 2026-09-05 10:47，与 zcode P3-10 同日）。后果：工具二进制更新后 zsh 侧 `_zsh_cached_init` 重建失败会 `return 1`（该工具 init 整个不加载，Ctrl+R 退回原生搜索），fish 侧会继续 source 过期缓存脚本。2026-09-12 由 WorkBuddy / wb-agent-0912 在 Atuin 共享历史审计中发现（Atuin 双 shell 共享本身正常：`history.db` 内 zsh 668 + fish 1030 条记录、无 `db_path` 覆盖、`filter_mode=global`）。修复建议（需负责人执行）：`sudo rm -rf ~/.cache/zsh/init ~/.cache/fish/init`（缓存可再生，下次 shell 启动会以正确属主重建）；属 live 机器状态问题，非仓库文件。
+~~[x] shell init 缓存目录属主为 root，缓存自愈机制已失效~~ — 2026-09-14 由 ZCode CLI / zcode-20260914 经 P4 审计复核关闭：`~/.cache/zsh/init` 与 `~/.cache/fish/init` 实测属主均已为 `mio:mio`（2026-09-12 重建），无需 sudo；zsh 缓存正常命中；fish 侧"每次重建"的真正根因是 P4-1 修复的 `_cached_init` 条件反转 bug（与属主无关），已同日修复。留档原文：`~/.cache/zsh/init/` 与 `~/.cache/fish/init/`（含 atuin/carapace/starship 等缓存文件）曾为 `root:root`（755/644），`mio` 只读不可写，疑似此前某次 Agent 会话以 root 身份、`HOME=/home/mio` 跑过交互 shell 所致（2026-09-12 由 WorkBuddy / wb-agent-0912 在 Atuin 共享历史审计中发现）。
 - `[ ]` 扩充真实 HOME 场景的 Stow/Setup/Uninstall 测试，覆盖普通文件冲突、断链、动态生成文件和无 Wayland/可选依赖场景。
+
+以下为 2026-09-14 P4 体检新增记录（均为低风险记录项或需 sudo 的负责人待办）：
+
+- `[ ]` bootstrap.sh 的 niri profile 缺 niri-clip 安装步骤：niri-clip 是 pacman 不拥有的裸 cargo 二进制（`pacman -Qo` 无属主），被 systemd unit（niri-clip.service）、Mod+V（binds.kdl）、waybar 剪贴板模块三处依赖，换机即断。需确认其来源（crates.io crate 或 ~/Projects 本地构建）后补 `cargo install` 步骤或文档说明。
+- `[ ]` 需 sudo 的系统侧待办（负责人执行，本机 Agent 无 sudo）：
+  - `sudo paccache -rk2`（/var/cache/pacman/pkg 占 25G）；
+  - 可选 `sudo journalctl --vacuum-size=200M`（当前 745M）；
+  - 9 个孤儿包逐个确认后 `pacman -Rns`：asar、cmark-gfm、gcc15、hyprwayland-scanner、kd-bin-debug、libayatana-indicator、qpdf、realesrgan-ncnn-vulkan-bin-debug、svt-hevc（两个 -debug 包可能有意保留）；
+  - 5 个 pacnew/pacsave 待 `pacdiff` 合并：locale.gen.pacnew、pacman.d/mirrorlist.pacnew、tpm2-tss 两个 json.pacnew、xdg/fuzzel/fuzzel.ini.pacsave。
+- `[ ]` `~/.cache/kit-deb-data.tar.xz`（410M，mtime 为 epoch）与 `~/.cache/aur-probe/data.tar.xz`（372M）无脚本/包归属（kd-bin 包内与 ~/Projects/aur-local 均未引用），疑似一次性下载遗留，待负责人拍板删除。
+- `[ ]` ydotool.service enabled 但不在 systemd-user-units.txt：该 unit 属 ydotool 系统包（非仓库 stow 管理），清单只收录仓库 unit 属正确行为；若确认不用 ydotool 可 `systemctl --user disable --now ydotool.service`，否则仅记录。
+- `[ ]` 内核/硬件层噪音（每次唤醒必现，非桌面配置问题，仅记录）：内存温度传感器 `spd5118 PM: failed to resume async: error -6`、`usb 1-1 device descriptor read/64 error -71`（某 USB 设备/接口异常，若外设有异常可排查）；蓝牙 A2DP 唤醒后 connect failed 属 audio-resume-guard 自愈重启 wireplumber 的伴生噪音。
+- `[ ]` 安全记录：9/14 18:31 `sudo auth conversation failed`、22:52 `FAILED SU (to root) mio on pts/3`——失败的提权尝试各一次，若非负责人本人操作请留意。
+- `[ ]` shell 工具链收敛候选（有行为变化，需拍板，未执行）：uv 补全（782KB）完全退出启动链改懒加载（首次 Tab 延迟 ~0.1s）；fnm 两连 fork（env + use default）缓存化（multishell 路径每会话变化，需改写方案）；zinit forgit 与 fzf.fish/fzf-tab 能力重叠裁剪其一；fisher 停用（5 插件已全部 vendor 进仓库，启动期无人调用）。
+
 
 ## 协作前置检查
 
