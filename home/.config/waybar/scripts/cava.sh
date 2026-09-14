@@ -66,23 +66,52 @@ is_audio_active() {
     pactl list sink-inputs 2>/dev/null | grep -q "Corked: no"
 }
 
+# 启动 cava 子进程（抽出公用：正常启动与僵尸流重启走同一路径）
+start_cava() {
+    # 这里的 sed 字典是根据你的 CHARS 动态生成的
+    sed_dict="s/;//g;"
+    for ((i=0; i<=${len}; i++)); do
+        sed_dict="${sed_dict}s/$i/${CHARS:$i:1}/g;"
+    done
+    cava -p "$CONF" 2>/dev/null | sed -u "$sed_dict" &
+}
+
+# cava 的录音流是否仍挂在 PipeWire 上。
+# 休眠唤醒/默认设备消失会把 cava 的录音流掐断而进程仍存活（僵尸化，
+# 实证见 MAINTENANCE_PLAN P3-23）：此时 cava 持续输出静态数据，
+# waybar 表现为频谱条永远不动，必须杀掉进程重启才能重建流。
+cava_stream_ok() {
+    local pid="$1"
+    [ -n "$pid" ] || return 1
+    pactl list source-outputs 2>/dev/null | grep -q "application.process.id = \"$pid\""
+}
+
 # 初始状态
 echo "$idle_output"
+
+# 新建的 cava 注册录音流需要零点几秒，宽限几轮再开始查流，防止误杀
+stream_grace=0
 
 while true; do
     # 如果存在未静音的音频
     if is_audio_active; then
-        if ! pgrep -P $$ -x cava >/dev/null; then
-            # 这里的 sed 字典是根据你的 CHARS 动态生成的
-            sed_dict="s/;//g;"
-            for ((i=0; i<=${len}; i++)); do
-                sed_dict="${sed_dict}s/$i/${CHARS:$i:1}/g;"
-            done
-            cava -p "$CONF" 2>/dev/null | sed -u "$sed_dict" &
+        cava_pid="$(pgrep -P $$ -x cava | head -n1)"
+        if [ -z "$cava_pid" ]; then
+            start_cava
+            stream_grace=2
+        elif [ "$stream_grace" -gt 0 ]; then
+            stream_grace=$((stream_grace-1))
+        elif ! cava_stream_ok "$cava_pid"; then
+            # 僵尸流：进程在但录音流已断，重启 cava 重建流
+            pkill -P $$ -x cava 2>/dev/null
+            wait "$cava_pid" 2>/dev/null
+            start_cava
+            stream_grace=2
         fi
         # 正在播放时，稍微降低检查频率减少 CPU 占用
         sleep 1
     else
+        stream_grace=0
         if pgrep -P $$ -x cava >/dev/null; then
             pkill -P $$ -x cava 2>/dev/null
             wait 2>/dev/null

@@ -324,6 +324,16 @@
 
   剩余风险：① 防抖窗口 0.8s 内的"关了立刻重开"操作会被吞一次，属可接受的边缘情况；② 若用户手动开了多个 quickterminal（历史遗留的一串），脚本只召回第一个，多余的需要手动关一次。
 
+~~[x] P3-23 waybar cava 频谱僵尸流自愈：cava.sh 检测"cava 进程存活但录音流丢失"并自动重启~~ — Agent: Trae CN / trae-agent-0914, 日期: 2026-09-14；修改: `home/.config/waybar/scripts/cava.sh`
+
+  背景（当日实证）：suspend-then-hibernate 唤醒后 waybar 频谱条静止——cava 进程（16:38 启动）跨越休眠存活，但录音流被掐断（`pactl list source-outputs` 为空，用户播放中也是静态条），手动杀掉 cava 后 cava.sh 自动重启即恢复。旧逻辑只在"进程不存在"时重启 cava，进程活着就永远不自愈。
+
+  实现：抽出 `start_cava()` 公用；新增 `cava_stream_ok()`——用 `pactl list source-outputs` 按 `application.process.id`（与 cava 子进程 pid 精确匹配，避免误认其他 cava 实例的流）校验录音流存活；主循环在进程存在时若流已死则 pkill+wait+重启；新建/重启后 2 轮宽限期防止流注册完成前的误杀；空闲分支重置宽限计数。
+
+  验证：`bash -n` + `shellcheck -S error` 通过；隔离副本（独立锁文件）端到端实测——`pw-cli destroy` 掐断测试 cava 的录音流后约 1~2s 自动拉起新 cava 且新流建立、启动宽限期内无误杀；谓词三分支单测（活进程+有流→ok、无流→判死、空 pid→判死）全过。
+
+  剩余风险：① 真实休眠唤醒场景未端到端复测（今日实证即该场景，恢复机制一致，下次唤醒后自然验证）；② 新增的每秒一次 `pactl list source-outputs` 仅在播放中执行，空闲路径仍零轮询。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
