@@ -10,7 +10,8 @@ end
 set --global _fzf_search_vars_command '_fzf_search_variables (set --show | psub) (set --names | psub)'
 
 # Install the default bindings, which are mnemonic and minimally conflict with fish's preset bindings
-fzf_configure_bindings
+# ^R 不注册：历史搜索由 atuin 接管（fish_user_key_bindings 最终覆盖），避免注册后即被覆盖的死绑定
+fzf_configure_bindings --history=
 
 # Doesn't erase autoloaded _fzf_* functions because they are not easily accessible once key bindings are erased
 function _fzf_uninstall --on-event fzf_uninstall

@@ -37,7 +37,7 @@ if status is-interactive
 
         # 缓存命中且工具未更新：直接 source
         if test -f $cache
-            and test (command -v $bin) -nt $cache
+            and not test (command -v $bin) -nt $cache
             source $cache
             return
         end
@@ -58,7 +58,8 @@ if status is-interactive
     _cached_init zoxide zoxide init fish --cmd cd
 
     # --- uv shell 补全 ---
-    _cached_init uv uv generate-shell-completion fish
+    # uv 补全由下方预加载列表从运行时生成目录统一 source，
+    # 不在此处再 init（同一份 782KB 补全会双载）。
 
     # --- fnm：统一管理 Node/npm/pi，并按目录自动切换 ---
     # 2026-09-05 拍板：Node 版本管理统一 fnm，mise 已移出 shell 初始化。

@@ -31,8 +31,8 @@ check() {
 # B. Core tools present
 # ---------------------------------------------------------------------------
 check "tool:cd=zoxide"      '(( ${+functions[cd]} ))'
-# mise: shims mode (2026-08) - no hook function; PATH must contain shims dir
-check "tool:mise"           '(( $+commands[mise] )) && [[ ${PATH-} == *mise/shims* ]]'
+# Node 版本管理统一 fnm（P3-13）：init 会导出会话级 FNM_MULTISHELL_PATH
+check "tool:fnm"            '(( $+commands[fnm] )) && [[ -n "$FNM_MULTISHELL_PATH" ]]'
 check "tool:direnv"         '(( ${+functions[_direnv_hook]} ))'
 check "tool:atuin"          '(( ${+widgets[atuin-search]} ))'
 check "tool:carapace"       '(( $+commands[carapace] ))'

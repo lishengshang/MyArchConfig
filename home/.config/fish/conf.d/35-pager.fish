@@ -6,8 +6,8 @@
 #   生成：~/.config/fish/conf.d/35-pager-matugen.fish  ← 此文件
 #         由 matugen 自动生成，每次换壁纸时随整套主题更新
 #
-# 字母序加载：'35-pager-matugen.fish' > '35-pager.fish'，所以
-# matugen 生成的文件会在本文件之后加载并覆盖任何遗留设置，安全。
+# 字母序加载：'-'(0x2D) < '.'(0x2E)，'35-pager-matugen.fish' 排在本文件
+# 之前加载。本文件保持为空，无覆盖关系需要维护。
 #
 # 设计语言：Material You（与 starship / kitty / ghostty / fuzzel / niri
 # 等保持一致的动态语义化配色）。颜色变量含义见 matugen 模板注释。
