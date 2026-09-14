@@ -186,10 +186,10 @@ binds {
     Mod+Return hotkey-overlay-title="独立终端 Terminal" { spawn "kitty"; }
     Mod+T hotkey-overlay-title="共享终端 Terminal" { spawn "kitty" "--single-instance"; }
     // Mod+Slash hotkey-overlay-title="临时终端 Quick Terminal" { spawn "kitty" "--single-instance" "--class" "quickterminal"; }
-    Mod+Slash hotkey-overlay-title="临时终端 Quick Terminal" { 
+    Mod+Slash hotkey-overlay-title="临时终端 Quick Terminal" {
         spawn "kitty" "--class" "quickterminal" \
         "-o" "font_size=10.0" \
-        "-o" "background_opacity=0.8" 
+        "-o" "background_opacity=0.8"
         }
 
     // 启动器与文件管理
@@ -256,9 +256,9 @@ binds {
     // 快照由 nirinit-flush.service 在 niri 退出前保存（见该 unit 的注释）。
     Mod+Shift+G hotkey-overlay-title="恢复上次会话 Restore last session" { spawn "~/.config/niri/scripts/nirinit-restore.sh"; }
 
-    // 音量 (允许锁屏使用)
-    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "swayosd-client --output-volume +1||wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.01+"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "swayosd-client --output-volume -1||wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.01-"; }
+    // 音量 (允许锁屏使用)；步进 2%，与 waybar 滚轮一致
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "swayosd-client --output-volume +2||wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.02+"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "swayosd-client --output-volume -2||wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.02-"; }
     XF86AudioMute allow-when-locked=true { spawn-sh "swayosd-client --output-volume mute-toggle||wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
     XF86AudioMicMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
 

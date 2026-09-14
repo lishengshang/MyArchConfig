@@ -12,4 +12,6 @@ niri-clip.service
 nirinit-flush.service
 aur-local-check.timer
 aur-local-check.service
+swayosd.service
+swayosd-volume-watch.service
 audio-resume-guard.service

@@ -304,6 +304,16 @@
 
   剩余风险：① 真实 suspend-then-hibernate 端到端未跑（需下次真实唤醒后查 `journalctl --user -u audio-resume-guard` 确认触发）；② 每次唤醒会重启 wireplumber，约 0.5s 音频中断（无声设备场景下无感知）；③ `sleep 5` 期间若再次入睡（实际不可能）事件会漏，由下次唤醒补上。
 
+~~[x] P3-21 swayosd 转 systemd 托管 + 蓝牙耳机按键调音量的浮窗反馈 + 键盘音量步进 2%~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: 新增 `home/.config/systemd/user/swayosd.service`、`home/.config/systemd/user/swayosd-volume-watch.service`、`home/.config/niri/scripts/swayosd-volume-watch.sh`；改 `home/.config/niri/config.kdl`（删 `spawn-sh-at-startup "sleep 3 && swayosd-server"`，注释指向新 unit）、`home/.config/niri/binds.kdl`（键盘步进 1%→2%）、登记 `systemd-user-units.txt`
+
+  背景与定位：用户诉求"耳机按键步进 5 太粗、浮窗不显示"。核实结论：① 耳机机身键走蓝牙 AVRCP 绝对音量，步长（5~6%）由耳机固件决定**软件侧不可调**，且该路径不经 swayosd-client 故无任何浮窗；② 键盘/滚轮步进实际是 1%/2%（用户感知的 5 来自耳机键）；③ "浮窗不显示"两层原因——swayosd 0.3.2 默认显示时长约 1s 太短易错过 + 音频栈坏期间 server 假死（P3-20 场景）。
+
+  方案：`swayosd.service`（`graphical-session.target` 拉起、`Restart=on-failure` 自愈、`--duration 2500` 延长显示）接管 server；新增 `swayosd-volume-watch` 守护（`pactl subscribe` 监听 sink 本体 change 事件，去重后 `swayosd-client --output-volume +0` 空操作仅显示）补上耳机按键等一切"旁路"音量变化的浮窗；键盘步进改 2% 与 waybar 滚轮一致。libinput-backend 为包自带系统级服务（负责大写锁等按键），未动。watch 脚本细节：启动先读基准音量防误弹、只匹配 `on sink #N` 排除 sink-input 播放流唤醒、断流非零退出交给 systemd 拉起。
+
+  验证：`niri validate`、两个脚本 `bash -n` + `shellcheck -S error`、三个 unit `systemd-analyze --user verify` 全过；实机截图验证 4 项全过——键盘路径 `+2` 步进精确（0.27→0.29）且 1.2s 后浮窗仍在、大写锁 OSD 正常、`wpctl` 直改音量（=耳机按键路径）浮窗弹出、浮窗数值与实际一致。
+
+  剩余风险：① 耳机按键步长本身仍是固件的 5~6%（只能补浮窗显示，不能调细）；② 部署时 stow 被 `home/.config/mimeapps.list` 的 live 普通文件冲突阻塞（`cannot stow ... neither a link nor a directory`，该文件在本次工作区已有他人未提交修改，非本任务引入、未处理），5 个新文件按 P3-16 先例以同风格相对软链手工部署，`readlink -f` 全部可解析；③ `config.kdl` 的 spawn 删除需 niri 重启/重登录才彻底生效，当前已由本会话 `pkill swayosd-server` + `enable --now` 完成切换，无双重实例。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：

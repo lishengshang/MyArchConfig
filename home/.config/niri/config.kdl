@@ -190,9 +190,9 @@ spawn-at-startup "fcitx5"
 // 回退方案：取消下一行注释，改用 niri 启动（注意 flock 会防止重复实例）
 //spawn-at-startup "~/.config/niri/scripts/swayidle.sh"
 
-// 大写锁定键的osd显示
-// 延迟3秒启动,避开会话D-Bus未就绪的竞争窗口(swayosd 0.3.x连接失败时静默失效且不重试)
-spawn-sh-at-startup "sleep 3 && swayosd-server"
+// 大写锁定键的osd显示：swayosd-server 已改由 systemd 用户服务托管
+// （swayosd.service：自动重启 + 浮窗显示 2.5s），不再在此拉起；
+// 耳机蓝牙按键调音量的浮窗反馈由 swayosd-volume-watch.service 负责
 
 // 自动开启护眼模式,经纬度设置位置
 // spawn-at-startup "~/.local/bin/toggle-wlsunset"
