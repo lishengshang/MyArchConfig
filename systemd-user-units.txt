@@ -12,3 +12,4 @@ niri-clip.service
 nirinit-flush.service
 aur-local-check.timer
 aur-local-check.service
+audio-resume-guard.service

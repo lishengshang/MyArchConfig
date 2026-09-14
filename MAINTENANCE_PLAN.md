@@ -294,6 +294,16 @@
 
   剩余风险：① **本环境无法验证 unit 的 enable 行为与停止顺序**（`systemd-analyze --user` 起不来，没有 user manager），顺序推导有 `niri-clip` 的实证支撑，但需实机确认；② **本会话尚未 start 该单元**（`.wants` 链接已按 `systemctl --user enable` 的格式预置），需 `systemctl --user daemon-reload` 后再 `enable --now` 才在当前会话生效；③ 崩溃/断电/`kill -9` 不走会话结束流程，flush 不执行，由 1800s 周期保存兜底，最多丢 30 分钟；④ `systemctl --user restart niri` 时会话目标不一定停止，flush 可能不触发（同上由兜底覆盖）。
 
+~~[x] P3-20 唤醒后音频自愈兜底：audio-resume-guard.service 监听 logind PrepareForSleep，唤醒后延迟重启 WirePlumber~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: 新增 `home/.config/niri/scripts/audio-resume-guard.sh` 与 `home/.config/systemd/user/audio-resume-guard.service`、登记 `systemd-user-units.txt`
+
+  背景（当日实证）：suspend-then-hibernate 的 s2idle→休眠切换瞬间 WirePlumber `alsa.lua` nil 崩溃后进入坏状态——内置声卡 profile 卡 off、蓝牙耳机（QCY H3）不建节点，所有声音进 `auto_null` 虚拟输出，表现为"耳机已连但无声"；`systemctl --user restart wireplumber` 即恢复（上游 0.5.8~0.5.17 反复出现的 alsa.lua nil bug 家族，非本机特有）。本任务把该手动修复自动化。
+
+  实现要点：原计划写 `/etc/systemd/system-sleep/` 钩子，因 Agent 运行环境无 sudo（同 P3-6 结论）改为**用户级 D-Bus 监听**——`dbus-monitor` 订阅 logind `PrepareForSleep`，见 `boolean false`（唤醒）后 sleep 5 再 `systemctl --user restart wireplumber.service`（只重启设备管家、不动 PipeWire 本体）。**关键坑**：系统总线上非 root 的 dbus-monitor 无法启用 new-style monitoring，回退 eavesdropping 后**匹配规则失效、全总线信号都会打印**，因此不能用"单行含 boolean false"判断（PropertiesChanged 的 `variant boolean false` 会误触发）；已改为两行状态机：先见 `member=PrepareForSleep`、紧随其后的 `boolean false` 才触发。脚本带 `GUARD_TEST`/`GUARD_TEST_SRC` 离线测试钩子；流结束以非零退出交给 `Restart=on-failure` 拉起。
+
+  验证：`bash -n` + `shellcheck -S error` 通过；`systemd-analyze --user verify` 通过；离线样例测试（含 4 个诱饵：`PrepareForShutdown`、两条 PropertiesChanged `variant boolean false`、挂起 `boolean true`）0 误触发、真唤醒事件恰好触发 1 次、EOF 退出码 1；服务 `enable --now` 后 active，实机 live。
+
+  剩余风险：① 真实 suspend-then-hibernate 端到端未跑（需下次真实唤醒后查 `journalctl --user -u audio-resume-guard` 确认触发）；② 每次唤醒会重启 wireplumber，约 0.5s 音频中断（无声设备场景下无感知）；③ `sleep 5` 期间若再次入睡（实际不可能）事件会漏，由下次唤醒补上。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
