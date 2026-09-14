@@ -11,7 +11,7 @@ grim
 slurp
 satty
 wl-clipboard
-cliphist
+# 剪贴板历史已由 niri-clip 取代（cargo 自装，见 systemd-user-units.txt / binds.kdl）
 xdg-desktop-portal-gnome
 networkmanager
 network-manager-applet
