@@ -277,6 +277,23 @@
   剩余风险：① 本次仍未做真机端到端恢复（会杀掉正在运行的 nirinit 并重开全部应用），实际效果待用户下次登录后按一次确认；② `config.kdl` 的 spawn-at-startup 改动需**重新登录或 niri 重启**才生效，在那之前按 Mod+Shift+G 会提示"还没有可恢复的会话快照"（优雅降级，不会出错）；③ 快照里同一应用有多个窗口（如两个 `code`）时，智能跳过只能按 app_id 整体判断，无法只补其中一个 —— 这是 nirinit 快照不含窗口标题/唯一标识的固有限制，见"已知但暂不处理"。
 
 
+~~[x] P3-19 会话恢复改为"会话结束时保存一次"：新增 nirinit-flush.service，周期保存降为崩溃兜底；撤销手动固定布局~~ — Agent: WorkBuddy / wb-agent-0911, 日期: 2026-09-11；修改: 新增 `home/.config/niri/scripts/nirinit-flush.sh` 与 `home/.config/systemd/user/nirinit-flush.service`、改两个脚本的 `SAVE_INTERVAL`、改 `binds.kdl`、登记 `systemd-user-units.txt`、删除 `nirinit-save.sh`；验证: `bash -n`、`shellcheck -S error`、`niri validate`、`systemd-analyze verify`、PID namespace 内 3 场景实测
+
+  需求（仓库负责人）：在关机和重启之前自动保存一次，不要每隔几分钟保存。
+
+  **关键发现（否决了朴素实现）**：nirinit 随 niri 一起被杀时，它的收尾保存有 **55% 概率失败**。统计 `~/.local/share/nirinit/nirinit.log`：正常关闭 42 次，其中 **23 次**报 `Failed to send data to Niri's IPC socket: Connection reset by peer (os error 104)`。根因是 niri 的 IPC socket 比 nirinit 收到 SIGTERM 更早消失，nirinit 已经问不到窗口列表。**因此单纯去掉周期保存会让快照长期停在空/过期状态，功能直接退化。**
+
+  **解法**：本机 niri 是 systemd user unit（`/usr/lib/systemd/user/niri.service`，`Type=notify`，`BindsTo`/`Before=graphical-session.target`），且仓库已有同套路的现役范例 `niri-clip.service`（`PartOf=graphical-session.target` + `After=graphical-session.target` + `WantedBy=niri.service`）。据此新增 `nirinit-flush.service`：
+  - 顺序推导：`niri.service` 声明 `Before=graphical-session.target` ⇒ 它在会话目标**之后**停止；本单元 `After=graphical-session.target` ⇒ 它在会话目标**之前**停止。故本单元先停、niri 后停，**其 `ExecStop` 执行时 niri 仍活着** → 此时杀掉 nirinit，收尾保存必然成功。
+  - `oneshot` + `RemainAfterExit=yes` + `ExecStart=/bin/true`，只在被停止时触发 `ExecStop`；`TimeoutStopSec=20`；`WantedBy=niri.service`，因此 KDE 等其它会话下不会误触发。
+  - `nirinit-flush.sh` 的三条设计约束：幂等（nirinit 未运行时必须安全无操作退出）、不重启 nirinit（会话即将结束，下次登录由 `spawn-at-startup` 负责）、不用 `set -e`（关机钩子的非致命失败不该让单元失败或拖慢关机）。
+
+  同时：`nirinit-start.sh` / `nirinit-restore.sh` 的 `SAVE_INTERVAL` 由 300 改为 **1800**，周期保存降级为"崩溃/断电/被强杀时的兜底"；撤销上一轮实现的手动"固定布局"（删除 `nirinit-save.sh`、`binds.kdl` 的 Mod+Shift+S、`nirinit-restore.sh` 的 saved.json 优先逻辑）——新语义下"摆好布局 → 关机"即等于保存，多一套概念只会增加困惑；`systemd-user-units.txt` 登记新 unit（`setup.sh` 据此 enable，且 `setup.sh --units` 会校验成员资格）。
+
+  验证：三个脚本 `bash -n` + `shellcheck -S error` 通过；`niri validate` 通过；`systemd-analyze verify` 对 unit **无任何语法/未知键告警**（唯一一次告警是 `%h` 在 root 身份下解析成 `/root`，属环境因素）；`nirinit-flush.sh` 在 **PID namespace** 内实测 3 场景全过 —— 未运行时安全无操作退出且退出码 0、运行中时停掉替身并完成收尾保存（写入 2 个窗口）、替身忽略 SIGTERM 时升级 SIGKILL 清除。测试带**安全联锁**：进入 namespace 后先确认看不到外部 nirinit，否则立即中止，全程未触碰用户真实运行的实例。
+
+  剩余风险：① **本环境无法验证 unit 的 enable 行为与停止顺序**（`systemd-analyze --user` 起不来，没有 user manager），顺序推导有 `niri-clip` 的实证支撑，但需实机确认；② **本会话尚未 start 该单元**（`.wants` 链接已按 `systemctl --user enable` 的格式预置），需 `systemctl --user daemon-reload` 后再 `enable --now` 才在当前会话生效；③ 崩溃/断电/`kill -9` 不走会话结束流程，flush 不执行，由 1800s 周期保存兜底，最多丢 30 分钟；④ `systemctl --user restart niri` 时会话目标不一定停止，flush 可能不触发（同上由兜底覆盖）。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
@@ -295,6 +312,7 @@
 - `[ ]` 审查 Matugen、动态壁纸、GTK/Fcitx5 定时主题和 Niri/Systemd 双重生命周期，明确基础功能与可选增强功能的边界。
 ~~[x] 清理未使用或疑似遗留脚本（`niri_auto_blur_bg.sh` 与 `waybar/scripts/old-longshot.sh` 均已确认零调用方并于 2026-09-02 删除）~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 补充清理 live 侧悬空软链后闭环；验证: `tests/stow/integration.sh`
 ~~[x] 复核 `home/.gitconfig` 中当前工作区新增的 `safe.directory = *`；通用配置不应默认信任所有 Git 仓库。~~ — Agent: ZCode CLI / zcode-20260905, 日期: 2026-09-05；已实际删除（P3-3）；验证: `git config --global --list`
+- `[ ]` shell init 缓存目录属主为 root，缓存自愈机制已失效：`~/.cache/zsh/init/` 与 `~/.cache/fish/init/`（含 atuin/carapace/starship 等缓存文件）为 `root:root`（755/644），`mio` 只读不可写。疑似此前某次 Agent 会话以 root 身份、`HOME=/home/mio` 跑过交互 shell 所致（fish 目录创建于 2026-09-05 10:47，与 zcode P3-10 同日）。后果：工具二进制更新后 zsh 侧 `_zsh_cached_init` 重建失败会 `return 1`（该工具 init 整个不加载，Ctrl+R 退回原生搜索），fish 侧会继续 source 过期缓存脚本。2026-09-12 由 WorkBuddy / wb-agent-0912 在 Atuin 共享历史审计中发现（Atuin 双 shell 共享本身正常：`history.db` 内 zsh 668 + fish 1030 条记录、无 `db_path` 覆盖、`filter_mode=global`）。修复建议（需负责人执行）：`sudo rm -rf ~/.cache/zsh/init ~/.cache/fish/init`（缓存可再生，下次 shell 启动会以正确属主重建）；属 live 机器状态问题，非仓库文件。
 - `[ ]` 扩充真实 HOME 场景的 Stow/Setup/Uninstall 测试，覆盖普通文件冲突、断链、动态生成文件和无 Wayland/可选依赖场景。
 
 ## 协作前置检查
