@@ -314,6 +314,16 @@
 
   剩余风险：① 耳机按键步长本身仍是固件的 5~6%（只能补浮窗显示，不能调细）；② 部署时 stow 被 `home/.config/mimeapps.list` 的 live 普通文件冲突阻塞（`cannot stow ... neither a link nor a directory`，该文件在本次工作区已有他人未提交修改，非本任务引入、未处理），5 个新文件按 P3-16 先例以同风格相对软链手工部署，`readlink -f` 全部可解析；③ `config.kdl` 的 spawn 删除需 niri 重启/重登录才彻底生效，当前已由本会话 `pkill swayosd-server` + `enable --now` 完成切换，无双重实例。
 
+~~[x] P3-22 Mod+/ 快速终端改单实例调度：已开则召回复聚焦，未开才新开~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: 新增 `home/.config/niri/scripts/quick-terminal.sh`、改 `home/.config/niri/binds.kdl`（Mod+Slash 由内联 spawn kitty 改为 spawn-sh 调脚本，原注释掉的 `--single-instance` 写法保留）
+
+  背景：原绑定每次按下都 `spawn kitty --class quickterminal`，连按会开一串浮动 kitty（rule.kdl:175 匹配 app-id 让其浮于左上角）。用户需求：只开一个，再按聚焦。
+
+  实现：脚本先查 `niri msg --json windows` 有无 app_id=quickterminal 的窗口——有则 `move-window-to-workspace --window-id`（召回到当前工作区，取 is_focused 工作区的 name/idx 作引用）+ `focus-window --id` 聚焦；没有才启动 kitty（参数与原内联一致：`--class quickterminal -o font_size=10.0 -o background_opacity=0.8`）。**连按防抖**：新窗口注册到 niri 需几百毫秒，此窗口再查会误判"不存在"重复开窗，故启动时写毫秒时间戳到 `${XDG_RUNTIME_DIR}/niri-quickterminal.last`，0.8s 内的重复启动直接忽略。
+
+  验证：`bash -n` + `shellcheck -S error` + `niri validate` 全过；实机测试——已有窗口时连续两次运行脚本窗口数保持 1 且 focused=true（召回复聚焦生效）；防抖分支用隔离副本（app-id 改不存在 + exec kitty 换 echo）测试：首按触发、0.3s 内连按被吞、0.9s 后恢复。软链按 P3-16 先例手工部署（stow 仍被 mimeapps.list 阻塞，同 P3-21 ②）。
+
+  剩余风险：① 防抖窗口 0.8s 内的"关了立刻重开"操作会被吞一次，属可接受的边缘情况；② 若用户手动开了多个 quickterminal（历史遗留的一串），脚本只召回第一个，多余的需要手动关一次。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
