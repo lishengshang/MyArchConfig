@@ -6,3 +6,6 @@ Type=oneshot
 ExecStart=%h/Projects/aur-local/check-all.sh
 # 多包同时有新版时构建耗时可能较长
 TimeoutStartSec=30min
+
+# journal 日志标识（与仓内其他 unit 统一）
+SyslogIdentifier=aur-local-check

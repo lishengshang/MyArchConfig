@@ -1,5 +1,5 @@
 [Unit]
-Description=Switch GTK theme at 07:00 and 18:00 local time
+Description=每天 07:00/18:00 切换 GTK 主题
 
 [Timer]
 OnCalendar=*-*-* 07:00:00

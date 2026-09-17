@@ -1,8 +1,11 @@
 [Unit]
-Description=Apply scheduled GTK light/dark theme
+Description=按时段切换 GTK 亮/暗主题
 After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
 Type=oneshot
 ExecStart=%h/.config/scripts/gtk-theme-by-time.sh
+
+# journal 日志标识（与仓内其他 unit 统一）
+SyslogIdentifier=gtk-theme-by-time

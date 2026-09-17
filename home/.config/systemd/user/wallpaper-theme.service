@@ -1,5 +1,5 @@
 [Unit]
-Description=Resident wallpaper theme updater
+Description=壁纸主题常驻更新守护（matugen 产物刷新）
 After=graphical-session.target
 PartOf=graphical-session.target
 

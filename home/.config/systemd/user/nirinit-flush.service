@@ -1,5 +1,5 @@
 [Unit]
-Description=Flush niri window layout before the compositor exits
+Description=合成器退出前保存 niri 窗口布局（会话快照收尾）
 Documentation=file:%h/.config/niri/scripts/nirinit-flush.sh
 # 会话结束时由 graphical-session.target 带停（PartOf 负责传播停止）。
 #
@@ -22,6 +22,7 @@ ExecStop=%h/.config/niri/scripts/nirinit-flush.sh
 # 收尾保存只需几秒，给足余量但不拖慢关机
 TimeoutStopSec=20
 
+SyslogIdentifier=nirinit-flush
 [Install]
 # 只随 niri 会话启用；KDE 等其它会话下 niri.service 不启动，因此不会被误触发
 WantedBy=niri.service

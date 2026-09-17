@@ -1,5 +1,5 @@
 [Unit]
-Description=Auto commit dotfiles changes (local only; no push by default)
+Description=dotfiles 自动提交（仅本地；默认不 push）
 Documentation=file://%h/dotfiles/HOW.md
 Wants=network-online.target
 After=network-online.target

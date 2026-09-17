@@ -1,5 +1,5 @@
 [Unit]
-Description=awww daemon for niri overview background (blur layer, namespace: overview)
+Description=awww 总览背景守护（模糊层，namespace: overview）
 # 跟随图形会话生命周期；wrapper 会等待当前 Wayland socket 就绪。
 After=graphical-session.target
 PartOf=graphical-session.target
@@ -13,5 +13,6 @@ ExecStart=/usr/bin/bash %h/.config/niri/scripts/awww-overview-daemon.sh
 Restart=on-failure
 RestartSec=2
 
+SyslogIdentifier=awww-overview-daemon
 [Install]
 WantedBy=graphical-session.target

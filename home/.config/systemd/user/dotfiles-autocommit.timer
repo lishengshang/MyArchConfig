@@ -1,5 +1,5 @@
 [Unit]
-Description=Every 3 days dotfiles auto-commit timer
+Description=每 3 天自动提交 dotfiles
 Documentation=file://%h/dotfiles/autocommit.md
 
 [Timer]

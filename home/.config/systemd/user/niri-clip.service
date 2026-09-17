@@ -1,5 +1,5 @@
 [Unit]
-Description=niri-clip clipboard daemon
+Description=niri-clip 剪贴板守护
 PartOf=graphical-session.target
 After=graphical-session.target
 Documentation=https://github.com/lishengshang/niri-clip
@@ -10,5 +10,6 @@ Restart=on-failure
 RestartSec=2
 # 双实例由二进制内 flock 兜底：即使同时配置了 niri spawn-at-startup 也安全
 
+SyslogIdentifier=niri-clip
 [Install]
 WantedBy=niri.service
