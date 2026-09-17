@@ -281,7 +281,9 @@ include = ~/.config/cava/themes/matugen
 
 # use theme file instead of defining colors in this file
 # themes are located in $HOME/.config/cava/themes
- theme = 'your-theme'
+# 颜色以顶部 include 的 matugen 动态取色为准（2026-09-17 负责人拍板）；
+# 如需固定主题，取消下一行注释并换成 themes/ 下任意主题名（如 solarized_dark）：
+# theme = 'your-theme'
 
 
 [smoothing]
