@@ -340,6 +340,8 @@ window#waybar.empty #window {
     padding: 0px 0.33em; /* 5px */
 }
 
+/* backlight 模块当前在 modules.jsonc 中整块注释禁用（NVIDIA 背光锁死，
+   见该文件内说明）；样式保留备用，恢复模块时无需重写。 */
 #backlight {
     background-color: @surface_container_high;
     color: @tertiary;
