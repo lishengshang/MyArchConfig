@@ -56,6 +56,9 @@ home/.config/fastfetch/config.jsonc
 home/.config/nvim/generated.lua
 home/.config/Code/User/settings.json
 
+# --- Python 字节码缓存（py_compile / import 生成，不跟踪）---
+__pycache__/
+
 # --- systemd wants 目录（自动生成，不跟踪）---
 *.wants/
 

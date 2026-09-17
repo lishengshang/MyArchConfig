@@ -160,8 +160,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Public repositories do not need a Gitleaks license token.
-      # GITHUB_TOKEN allows the action to report findings on the workflow run.
+      # 公开仓库无需 Gitleaks license token；
+      # GITHUB_TOKEN 用于在 workflow 运行页面上报扫描结果。
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
