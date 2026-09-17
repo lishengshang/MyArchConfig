@@ -13,7 +13,7 @@
 # 配置
 CHARS="▁▂▃▄▅▆▇█"
 BARS=10
-CONF="/tmp/waybar_cava_config"
+CONF="${XDG_RUNTIME_DIR:-/tmp}/waybar_cava_config"
 
 # 初始化
 len=$((${#CHARS}-1))
@@ -37,7 +37,7 @@ EOF
 # 单例锁：waybar 在多个显示器上各起一个 bar 时会执行两次本脚本，
 # 用 flock 保证只有一个实例真正启动 cava，其余实例输出静态条。
 # fd 200 在脚本退出时自动关闭，锁随之释放，无需手动清理。
-exec 200>/tmp/cava.sh.lock
+exec 200>"${XDG_RUNTIME_DIR:-/tmp}"/cava.sh.lock
 if ! flock -n 200; then
     # 锁被占: 可能是双 bar 的另一实例 (正常), 也可能是 waybar 重启
     # (Mod+F2) 留下的孤儿 (它握着锁但可能永不输出, 靠 SIGPIPE 自愈不可靠)。

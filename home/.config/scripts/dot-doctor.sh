@@ -50,12 +50,12 @@ else
 fi
 
 section "核心命令"
-for command_name in git stow zsh fish mise niri waybar fuzzel; do
+for command_name in git stow zsh fish niri waybar fuzzel; do
     check_command "$command_name"
 done
 
 section "可选功能依赖"
-for command_name in matugen waypaper awww wl-paste wl-copy cliphist ddcutil pactl hyprlock \
+for command_name in matugen waypaper awww wl-paste wl-copy ddcutil pactl hyprlock \
                    swayidle wl-screenrec grim slurp satty notify-send carapace atuin direnv \
                    niri-sidebar nirinit niriusd; do
     check_command "$command_name" optional

@@ -546,7 +546,7 @@ fi
 
 # 同步 waypaper 状态 (公共库): 本脚本绕过 waypaper 直接调用 awww,
 # 需手动更新 waypaper 的当前壁纸记录, 否则 waypaper GUI 显示的"当前壁纸"会过期,
-# matugen-update.sh / niri_set_overview_blur_dark_bg.sh 的 fallback 分支也会读到错误的壁纸路径.
+# matugen-update.sh / niri-set-overview-blur-dark-bg.sh 的 fallback 分支也会读到错误的壁纸路径.
 wallpaper_sync_waypaper "$FINAL_PATH"
 wallpaper_log "apply" "成功: $(basename "$FINAL_PATH")"
 

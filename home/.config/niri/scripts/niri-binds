@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+#
+# niri-binds — niri 快捷键速查菜单（fzf 浏览，不触发绑定）。
+#
+# 功能: 扫描 ~/.config/niri 全部 *.kdl 的 hotkey-overlay-title= 注解生成缓存，
+#   fzf 搜索浏览；配置变更后缓存由 auto-update-cache.sh（inotify）失效化。
+# 调用方: binds.kdl Mod+Shift+Slash，经 nirius focus-or-spawn 单实例调度
+#   （窗口 app-id 即 INSTANCE_CLASS，rule.kdl 据此设浮动）。
+# 依赖: fzf、jq（可选，窗口查重）；kitty/foot/alacritty 任一承载，
+#   均缺失时降级为在当前终端内运行 fzf。
+
 # === 配置 ===
 INSTANCE_CLASS="niri-hotkey-menu"
 NIRI_DIR="$HOME/.config/niri"

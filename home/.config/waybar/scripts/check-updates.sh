@@ -17,7 +17,7 @@ set -euo pipefail
 # === 配置区域 ===
 CACHE_DIR="$HOME/.cache/shorin-check-arch-updates"
 CACHE_FILE="$CACHE_DIR/updates.json"
-LOCK_FILE="/tmp/waybar-updates.lock"
+LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/waybar-updates.lock"
 MAX_LINES=50
 CHECK_INTERVAL=3600
 SLEEP_INTERVAL=60

@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# toggle-random-api-wallpaper.sh — 开关自动随机壁纸（random-api-wallpaper.timer）。
+#
+# 调用方: binds.kdl Mod+Alt+F10。
+# 依赖: systemctl (user)、notify-send。
+# 行为: timer 停止时启动 timer 并立即触发一次 service；运行时停止 timer。
 
 # 只允许在 Niri 中控制这个 Niri 专用 timer；不要重新 enable 到全局 timers.target，
 # 否则切到 KDE 后 linger user manager 仍会继续调度它。

@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+#
+# niri-quick-switch-fuzzel.py — fuzzel 窗口快速切换菜单（binds.kdl Mod+Tab）。
+#
+# 功能: 循环列出当前聚焦显示器各工作区的窗口（fuzzel dmenu，按工作区分组
+#   排序），Enter 聚焦选中窗口，Ctrl+H 关闭选中窗口后继续选下一个，
+#   ESC/空列表退出。fuzzel 自身与 quick-switch 窗口不在候选之列。
+# 依赖: fuzzel、niri (msg -j windows/workspaces)、python3。
 
 import subprocess
 import json

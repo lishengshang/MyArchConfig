@@ -6,12 +6,13 @@
 #   开启: 启动 daemon 并立即应用当前壁纸的模糊缓存 (下游脚本自带
 #         flock + socket 就绪轮询, 无需在此固定 sleep)
 #   关闭: 停止 daemon (总览背景恢复为未模糊状态)
-# 由 waybar 启动器按钮中键调用 (modules.jsonc custom/applauncher); 也可手动运行。
-# 依赖: systemctl (user)、notify-send、niri_set_overview_blur_dark_bg.sh
+# 调用: 目前无默认绑定（modules.jsonc custom/applauncher 的中键入口处于注释
+#   休眠态，需要时取消该行注释即可恢复）; 可随时手动运行。
+# 依赖: systemctl (user)、notify-send、niri-set-overview-blur-dark-bg.sh
 # =============================================================================
 
 SERVICE="awww-overview-daemon.service"
-BLUR_SCRIPT="$HOME/.config/scripts/niri_set_overview_blur_dark_bg.sh"
+BLUR_SCRIPT="$HOME/.config/scripts/niri-set-overview-blur-dark-bg.sh"
 
 fail() {
     notify-send "Overview Blur" "$1" --urgency=critical 2>/dev/null || true

@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# matugen-update.sh — matugen 主题生成入口：壁纸 → 全套 colors.* 主题产物。
+#
+# 调用方: wallpaper-theme-daemon.sh（壁纸切换请求的主消费者）与命令行手动运行。
+# 参数: [WALLPAPER] 壁纸路径；-f/--force 强制重生成；-n/--no-index 交互选色；
+#   --cache-only 只生成调色板缓存不刷新主题；未变更的壁纸默认跳过。
+# 说明: 只生成颜色产物；gtk-theme 由 gtk-theme-by-time.sh 独占管理，互不覆盖。
 
 # --- 1. 参数解析 ---
 WALLPAPER=""

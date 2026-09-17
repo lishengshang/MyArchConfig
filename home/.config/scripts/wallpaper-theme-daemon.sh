@@ -5,7 +5,7 @@
 set -Eeuo pipefail
 
 MATUGEN_UPDATE="$HOME/.config/scripts/matugen-update.sh"
-BLUR_UPDATE="$HOME/.config/scripts/niri_set_overview_blur_dark_bg.sh"
+BLUR_UPDATE="$HOME/.config/scripts/niri-set-overview-blur-dark-bg.sh"
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 REQUEST_DIR="$RUNTIME_DIR/wallpaper-theme"
 REQUEST_FILE="$REQUEST_DIR/request"

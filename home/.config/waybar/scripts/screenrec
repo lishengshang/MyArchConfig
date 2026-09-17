@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Script Name: shorin-screenrec
+# Script Name: screenrec（APP_NAME/STATE_DIR/CONFIG_DIR 保留 shorin 历史命名：
 # Description: 终极双引擎 Wayland 录屏管理脚本 (支持 Waybar 与纯 CLI 调用)。
 #
 # Architecture (双引擎架构):
@@ -14,7 +14,7 @@
 #   4. 智能音频捕获: 剥离PulseAudio乱码，优雅选择系统声音或麦克风。
 #   5. Waybar 同步: 实时显示时长、引擎状态、JSON 极简输出。
 #
-# Usage: shorin-screenrec -h
+# Usage: screenrec -h
 # ==============================================================================
 
 set -Eeuo pipefail

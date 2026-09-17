@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# screenshot.sh — niri 区域截图并用 satty 标注编辑（Mod+P 等快捷键调用）
+# screenshot.sh — niri 区域截图并用 satty 标注编辑（Mod+Alt+A 调用）
 #
 # 依赖: niri (msg action/event-stream)、satty；旧版本分支另需 wl-paste (wl-clipboard)
 # 用法: screenshot.sh   (无参数)

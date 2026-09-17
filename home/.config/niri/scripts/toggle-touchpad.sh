@@ -2,11 +2,10 @@
 #
 # toggle-touchpad.sh — 运行时切换 niri 触控板禁用状态
 #
-# 原理：翻转 config.kdl 中 touchpad 段的 `off` 配置。
+# 原理：翻转 config.kdl 中 touchpad 段的 `off` / `disabled-on-external-mouse` 开关
+#   （两态整体注释/取消注释；默认 `off` 生效 = 触控板禁用）。
 # niri 监听配置文件变化并 live-reload，保存后立即生效：无需 sudo、无需重启。
 # readlink -f 解析 symlink 指向的真实文件（dotfiles 部署），避免破坏 symlink。
-#
-# 依赖：niri 配置里 touchpad 段存在一行 `// off`（默认注释 = 触控板启用）
 
 set -euo pipefail
 

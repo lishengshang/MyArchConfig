@@ -26,7 +26,7 @@ report_error() {
     local error_msg="$1"
     echo "错误：$error_msg" >&2
     if command -v notify-send >/dev/null 2>&1; then
-        notify-send -u critical -a "Command Center" "Shorin 指令异常" "$error_msg" || true
+        notify-send -u critical -a "Command Center" "指令执行异常" "$error_msg" || true
     fi
 }
 
@@ -146,7 +146,7 @@ fi
 
 # 调用 Fuzzel 显示菜单
 SELECTED=$(printf "%s\n" "${OPTIONS_ARR[@]}" | fuzzel --dmenu \
-    -p "Shorin指令 > " \
+    -p "指令 > " \
     --placeholder "命令可手动运行" \
     --placeholder-color 80808099 || true)
 

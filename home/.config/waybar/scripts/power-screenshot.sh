@@ -35,8 +35,6 @@ if [[ "$LOCALE" == zh* ]]; then
     # 通用
     LABEL_CANCEL="取消"
     LABEL_SETTINGS="设置"
-    LABEL_EDIT_YES="编辑"
-    LABEL_EDIT_NO="不编辑"
 
     # Niri 模式
     LABEL_NIRI_FULL="全屏"
@@ -66,8 +64,6 @@ if [[ "$LOCALE" == zh* ]]; then
 else
     LABEL_CANCEL="Cancel"
     LABEL_SETTINGS="Settings"
-    LABEL_EDIT_YES="Edit"
-    LABEL_EDIT_NO="No edit"
 
     LABEL_NIRI_FULL="Fullscreen"
     LABEL_NIRI_WINDOW="Window"

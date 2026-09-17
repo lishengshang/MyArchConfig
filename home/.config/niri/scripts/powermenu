@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# powermenu — fuzzel 电源菜单：锁屏 / 熄屏 / 注销 / 挂起 / 休眠 / 重启 / 关机。
+#
+# 调用方: binds.kdl Mod+Shift+P（绑定与 waybar group/powermenu 均指向本脚本）。
+# 依赖: fuzzel、niri (msg action)、lock-screen.sh、systemctl。
+# 中英文案随 LANG 切换；重启/关机/注销经 fuzzel 二次确认。
+
 set -euo pipefail
 
 # 语言检测

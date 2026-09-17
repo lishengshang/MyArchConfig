@@ -43,7 +43,6 @@ SUSPEND_TIMEOUT=1200    # 20 分钟：挂起（挂起满 1.5 小时后自动转�
 # 再继续，避免锁屏失败后继续熄屏或 suspend。
 # 注意：swayidle 用 sh -c 执行命令字符串，这里的 $HOME 会在运行时由 sh 展开。
 LOCK_CMD='$HOME/.config/niri/scripts/lock-screen.sh --wait-ready'
-LOCK_READY_CMD='$HOME/.config/niri/scripts/lock-screen.sh --wait-ready'
 
 # ─── 日志辅助 ────────────────────────────────────────────────────────────────
 log()  { printf '[swayidle] %s\n' "$*" >&2; }
@@ -92,9 +91,9 @@ fi
 exec swayidle -w \
     timeout "$LOCK_TIMEOUT"     "$LOCK_CMD" \
         resume                   'niri msg action power-on-monitors' \
-    timeout "$SCREEN_TIMEOUT"   "$LOCK_READY_CMD && niri msg action power-off-monitors" \
+    timeout "$SCREEN_TIMEOUT"   "$LOCK_CMD && niri msg action power-off-monitors" \
         resume                   'niri msg action power-on-monitors' \
     timeout "$SUSPEND_TIMEOUT"  'niri msg action power-on-monitors && systemctl suspend-then-hibernate' \
         resume                   'niri msg action power-on-monitors' \
-    before-sleep                "$LOCK_READY_CMD" \
+    before-sleep                "$LOCK_CMD" \
     after-resume                'niri msg action power-on-monitors'

@@ -31,7 +31,7 @@ valid_display() {
 }
 
 select_display() {
-    local display path candidate newest newest_mtime mtime
+    local display path newest newest_mtime mtime
 
     # 正常路径：Niri 通过 session environment 导入当前显示器名称。
     display="${WAYLAND_DISPLAY:-}"
