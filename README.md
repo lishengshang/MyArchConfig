@@ -66,9 +66,10 @@
         ├── niri/                      # Niri 合成器（config/binds/rule 分文件 + scripts/）
         ├── waybar/                    # 状态栏（三文件拆分 + scripts/）
         ├── fuzzel/ mako/              # 启动器 / 通知
-        ├── systemd/user/              # 12 个 user unit（壁纸/主题/锁屏/剪贴板/自动提交等）
+        ├── systemd/user/              # 仓库管理的 user units（权威清单见根目录 systemd-user-units.txt）
         ├── environment.d/             # systemd 用户会话环境变量
         ├── autostart/                 # XDG 自启动覆盖（niri 会话治理）
+        ├── nirinit/                   # 会话恢复工具配置（app_id → 启动命令映射）
         ├── matugen/                   # Material You 主题引擎（config + 模板库）
         ├── atuin/                     # shell 历史搜索（Ctrl+R，zsh/fish 共用）
         ├── niri-clip/                 # 剪贴板守护的配置（二进制经 cargo install）

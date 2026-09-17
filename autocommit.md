@@ -17,7 +17,8 @@ cd ~/dotfiles && git status --porcelain
    ↓
 生成 commit message（时间戳 + 改动文件列表）
   ↓
-筛选并暂存配置源文件   ← home/ + 根目录 *.sh；排除补全、主题、generated 和 VS Code 动态颜色
+筛选并暂存配置源文件   ← 白名单：home/ + 根目录 *.sh（生成物 colors.*、
+                          VS Code settings.json 等在 .gitignore，天然不会出现）
   ↓
 git commit
   ↓
@@ -176,7 +177,7 @@ auto: 2026-07-22 03:00:01
 - 修改: 3
 - 删除: 0
 
-(由 systemd timer dotfiles-autocommit.timer 自动提交)
+(由 systemd timer dotfiles-autocommit.timer 自动提交；默认不 push)
 ```
 
 ## 故障排查
@@ -240,7 +241,7 @@ dot push
 
 以下内容不会被自动提交，必须人工审查后提交：
 
-- `~/.local/share/fish/generated-completions/`（仓库中的手写补全源仍可自动提交）；
+- `~/.local/share/fish/generated-completions/`（在仓库外，天然不涉及；仓库内的手写补全源可自动提交）；
 - `fish_variables`；
 - `home/.config/**/colors.*`；
 - `home/.config/**/generated.*`；

@@ -44,7 +44,9 @@ dot log -5      # 看最近的提交
 - 把仓库 clone 到 `~/dotfiles`
 - 用 `stow -d ~/dotfiles -t $HOME home` 在 `$HOME` 下创建软链
 - 如果 `$HOME` 下已有同名文件（非软链），stow 会报冲突，需手动处理
+- 从 `settings.base.json` 生成 VS Code 本地 `settings.json`（生成物不进 git）
 - 重生成 matugen 主题产物（失败不致命）
+- `--enable-units` 时启用 `systemd-user-units.txt` 清单中的 user units（默认不启用）
 
 ### 预演模式（先看会做什么）
 
@@ -176,7 +178,8 @@ git -C ~/dotfiles commit -m "chore(packages): 更新本机包快照"
 git -C ~/dotfiles push
 ```
 
-可选: 设置 systemd user timer 自动更新（参考 `update-pkglist.sh` 文件头注释）。
+可选: 设置 systemd user timer 定期执行 `update-pkglist.sh`，保持包快照与实机同步
+（timers 定时器写法参考仓库内任意一个 `*.timer`，如 `random-api-wallpaper.timer`）。
 
 ## 备份 / 回滚
 
@@ -240,7 +243,6 @@ dot stash pop       # 恢复
 | `.local/share/fish/generated-completions/*.fish` | 工具运行时生成的补全 | `fish-update-completions --force` |
 | `.config/fish/fish_variables` | Fish universal 变量 | Fish 自己重新生成 |
 | `.config/fcitx5/conf/cached_layouts` | fcitx5 键盘布局缓存 | fcitx5 启动时扫描 |
-| `.config/fcitx5/cache/` | fcitx5 其他缓存 | fcitx5 启动时 |
 | `.config/mpv/` | mpv 是独立 git 仓库 | 单独 clone mpv 仓库 |
 
 > 注意区分：`~/.config/fish/completions/` 下的手写补全**是跟踪的**（仓库源文件）；
