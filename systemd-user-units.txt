@@ -15,3 +15,4 @@ aur-local-check.service
 swayosd.service
 swayosd-volume-watch.service
 audio-resume-guard.service
+niri-edge-switch.service

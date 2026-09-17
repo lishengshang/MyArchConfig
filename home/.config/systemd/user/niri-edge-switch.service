@@ -1,0 +1,23 @@
+[Unit]
+Description=niri edge switch (左右屏幕边缘点击切换窗口)
+# 跟随 graphical-session 生命周期：会话结束自动停止（同 swayosd.service 模式）
+PartOf=graphical-session.target
+After=graphical-session.target
+# 防止崩溃循环：5 分钟内最多重启 5 次
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+Type=exec
+# Python 会先加载 libwayland，导致 gtk4-layer-shell 初始化 layer surface 失败；
+# 官方解法即预加载该库（脚本内也有兜底，这里显式声明更可靠）
+Environment=LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so
+ExecStart=%h/.config/niri/scripts/niri-edge-switch.py
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=niri-edge-switch
+
+[Install]
+WantedBy=graphical-session.target

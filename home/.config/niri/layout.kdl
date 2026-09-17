@@ -119,9 +119,12 @@ layout {
     // layer-shell panels and regular gaps.
     
     //窗口距离屏幕边缘的距离
+    //左右各留 8px 给 niri-edge-switch 的边缘点击热区（宽度需与其 STRIP_WIDTH 一致）：
+    //平铺/最大化列不会盖住热区，点屏幕边缘不会误触点中窗口内容。
+    //注意真全屏窗口会忽略 struts（niri 既定行为），全屏下改由 overlay 层热区负责。
     struts {
-        //left 64
-        // right 64
+        left 8
+        right 8
         // top 64
         // bottom 64
     }

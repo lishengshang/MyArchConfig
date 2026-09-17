@@ -11,6 +11,10 @@ grim
 slurp
 satty
 wl-clipboard
+# niri-edge-switch（屏幕边缘点击切换窗口，见 niri-edge-switch.service）依赖：
+# 二者当前只是 ghostty/swayosd 与 waypaper 的间接依赖，显式列出以防将来被移除后失效
+gtk4-layer-shell
+python-gobject
 # 剪贴板历史已由 niri-clip 取代（cargo 自装，见 systemd-user-units.txt / binds.kdl）
 xdg-desktop-portal-gnome
 networkmanager
