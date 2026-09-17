@@ -202,7 +202,7 @@ binds {
 
     // 快捷键教程
     Mod+Shift+Slash hotkey-overlay-title="快捷键教程 Keybind tutorial" {
-        spawn-sh "nirius focus-or-spawn --app-id niri-binds -- ~/.config/niri/scripts/niri-binds"
+        spawn-sh "nirius focus-or-spawn --app-id niri-hotkey-menu -- ~/.config/niri/scripts/niri-binds"
     }
 
     // ============================================================
