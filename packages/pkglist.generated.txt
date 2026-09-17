@@ -1,3 +1,4 @@
+# 当前机器显式安装包快照（pacman -Qqen）— 由 update-pkglist.sh 自动生成，勿手改
 7zip
 adobe-source-han-serif-cn-fonts
 adw-gtk-theme
@@ -135,6 +136,7 @@ python-pillow
 python-pip
 python-pytorch-cuda
 qoder-cn-ide
+reflector
 rime-ice-git
 rime-pinyin-moegirl
 satty
@@ -157,7 +159,9 @@ tumbler
 udftools
 unzip
 usage
+usbutils
 uv
+vim
 vivid
 vlc-plugin-ffmpeg
 waybar

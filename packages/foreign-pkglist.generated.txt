@@ -1,3 +1,4 @@
+# 当前机器 AUR/外部包快照（pacman -Qqem）— 由 update-pkglist.sh 自动生成，勿手改
 alass
 baidunetdisk-bin
 carapace-bin
