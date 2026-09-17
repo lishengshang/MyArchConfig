@@ -21,8 +21,11 @@ if ! command -v pacman >/dev/null; then
     exit 1
 fi
 
-pacman -Qqen > "$PACKAGES_DIR/pkglist.generated.txt"
-pacman -Qqem > "$PACKAGES_DIR/foreign-pkglist.generated.txt"
+# 生成文件带注释头（bootstrap.sh 解析时忽略 # 行），明确"本机快照、勿手改"。
+{ echo "# 当前机器显式安装包快照（pacman -Qqen）— 由 update-pkglist.sh 自动生成，勿手改";
+  pacman -Qqen; } > "$PACKAGES_DIR/pkglist.generated.txt"
+{ echo "# 当前机器 AUR/外部包快照（pacman -Qqem）— 由 update-pkglist.sh 自动生成，勿手改";
+  pacman -Qqem; } > "$PACKAGES_DIR/foreign-pkglist.generated.txt"
 
 # 兼容旧文档和手动命令；如果用户误删软链，下次运行会恢复。
 ln -sfn packages/pkglist.generated.txt pkglist.txt

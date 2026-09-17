@@ -14,11 +14,13 @@
 #   --enable-units=UNIT,...   只启用指定的 systemd user units
 #   -h, --help                显示帮助
 #
-# 这个脚本做五件事:
+# 这个脚本做以下几件事:
 #   1. 确保 stow 已安装（没有则 pacman 装）
 #   2. 把仓库 clone 到 ~/dotfiles（如果还没 clone）
 #   3. 用 stow 把 home/ 包部署到 $HOME（创建软链）
+#   3.5 从 settings.base.json 生成 VS Code 本地 settings.json（生成物不进 git）
 #   4. 重生成 matugen 主题产物（colors.* 文件不进 git，换机器需重新生成）
+#   4.5 --enable-units 时启用 systemd-user-units.txt 清单中的 user units（默认不启用）
 #   5. 提示用户接下来运行 bootstrap.sh + 启用 systemd timer
 # =============================================================================
 set -euo pipefail
@@ -55,6 +57,7 @@ fi
 
 REMOTE="https://github.com/lishengshang/MyArchConfig.git"
 DOTFILES_DIR="$HOME/dotfiles"
+# 仅当 systemd-user-units.txt 不可读时的兜底清单；权威清单以 txt 为准，勿在此新增。
 DEFAULT_MANAGED_UNITS=(
     dotfiles-autocommit.timer
     dotfiles-autocommit.service

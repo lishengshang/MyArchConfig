@@ -116,7 +116,7 @@ log "检测到 $total 个允许提交的文件变更，开始本地提交..."
 g commit -q -m "$msg" -- "${COMMIT_PATHS[@]}"
 log "✓ 本地 commit 完成"
 
-# --- 4. 显式 --push 才同步远程 ---
+# --- 5. 显式 --push 才同步远程 ---
 if ! $PUSH; then
     log "本次仅本地提交，未执行 pull/push"
     log "如需同步远程，请先检查状态后运行: bash $DOTFILES_DIR/auto-commit.sh --push"

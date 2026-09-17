@@ -41,6 +41,7 @@ done
 DOTFILES_DIR="$HOME/dotfiles"
 
 # 这些 unit 都由本仓库提供或由本仓库 setup.sh 启用。
+# 仅当 systemd-user-units.txt 不可读时的兜底清单；权威清单以 txt 为准，勿在此新增。
 # 即使某个 unit 当前不存在，systemctl disable --now 的失败也不应阻止卸载。
 MANAGED_UNITS=(
     dotfiles-autocommit.timer
