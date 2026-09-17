@@ -88,6 +88,12 @@
 ~~[x] 审查并删除当前未跟踪文件 `home/.config/fish/conf.d/fnm.fish`。~~ — Agent: user + pi / audit-fix, 日期: 2026-08-19；结果: 采用 mise 方案，不保留 fnm 文件
 > 2026-09-05 补记（ZCode CLI / zcode-20260905）：P0-6 当时只完成了 zsh 侧收敛，fish 侧 50-tools.fish 仍 mise+fnm 并存（任务记录与实况不一致的来源）。负责人已改拍板为「统一 fnm、mise 移出初始化」，由 P3-13 完成闭环。
 
+### P0-7：剪贴板 TUI 快捷键显示和交互修复
+
+~~[x] 修复四项问题 + 两个行为调整：(1) 星标与内容间距过大 — `--tabstop=1`；(2) 快捷键显示不全 — 双行 header + `^` 符号；(3) Enter 后窗口卡住空白 — `wl-copy 2>/dev/null` 防止 daemon 持有 PTY；(4) Ctrl-F 粘贴功能（已在 header 中宣传但未实现）；(5) 星标条目置顶 — `build_menu` 两遍扫描，先输出星标再输出普通；(6) 星标删除需确认，普通直接删 — `Ctrl+X` 检查 `is_pinned`。注意：`--no-clear` 尝试修复 Enter 后空白但导致箭头键/Esc 无法使用，已回退。 — Agent: ZCode / zcode-agent, 日期: 2026-08-20；验证: `bash -n`、`shellcheck -S error`、kitty 窗口关闭测试~~
+
+> 注：P0-7 条目原误置于 P2-6 与 P2-7 之间，2026-09-17 由 P5-4 归位至 P0 区（内容未改动）。
+
 ## P1 任务：可靠性和可迁移性
 
 ### P1-1：自动提交安全性
@@ -134,6 +140,8 @@
 ~~[x] 增加 gitleaks secret scanning CI。~~ — Agent: user + pi / audit-fix, 日期: 2026-08-19；验证: `.github/workflows/lint.yml` 结构检查，实际扫描待 GitHub 运行
 
 ## P2 任务：依赖和长期维护
+
+### P2-1：剪贴板 / 主题 / 组件集成修复（2026-08-20 批次）
 
 ~~[x] 将剪贴板历史改为显式 opt-in，移除固定的 clipsync-git 依赖，并增加安全的启动/重启 wrapper。~~ — Agent: pi / secure-niri, 日期: 2026-08-20；验证: `bash -n`、默认关闭运行测试、Waybar 配置检查
 ~~[x] 修复 GTK tooltip 拼写、VS Code 包 provide 误判、随机壁纸并发竞态和 dot-doctor 的 Niri service 误报。~~ — Agent: pi / secure-niri, 日期: 2026-08-20；验证: `shellcheck -S error`、`dot-doctor.sh`、Matugen injector smoke test
@@ -187,10 +195,6 @@
 ~~[x] 修复超分直出 JPG 引入的重复壁纸回归：realesrgan 直出 jpg 成功（及 PNG 转码失败退回 PNG）时未删除原始下载文件，库内同时留下原图与 2x 超分版两张内容相同照片（实测 3 对，均为 2026-09-02 优化后产生）；修复为超分产物替代原图时删除原图，并清理现存重复对（保留高分辨率超分版）。 — Owner: Lingma / qoder-agent, 日期: 2026-09-02；验证: `bash -n`、`shellcheck -S error`、库内成对检查归零、awww/哈希缓存一致性不受影响~~
 
 ~~[x] 壁纸脚本统一日志：wallpaper-lib.sh 新增 `wallpaper_log` / `wallpaper_log_init`（日志 `~/.local/state/wallpaper/wallpaper.log`，超 4000 行轮转保留最近 2000 行，写失败静默不影响主流程）；random-anime-wallpaper.sh 记录运行参数、逐源尝试与具体失败原因（curl 退出码 / JPG 归一化失败 / 无效图片 / 几何不符 / 重复哈希，校验链重构为 `check_download_result` 供主循环与保底源复用）、下载成功摘要（源 / 文件 / 尺寸 / 大小 / sha256 / 最终 URL）、超分决策与结果（原图尺寸 → 2x 产物文件名）、应用成功/失败、清理数量；random-api-wallpaper.sh 记录选择与应用结果（awww / waypaper 回退）与错误分支。 — Owner: TraeCode / trae-glm, 日期: 2026-09-10；验证: `bash -n`、`shellcheck -S error`、假 HOME 沙箱端到端（horosama 1920x1080 → realesrgan 超分 3840x2160 → awww shim 应用，全链日志正确落盘）、未知源错误路径、本地随机切换冒烟（waypaper 记录同步不受影响）、4100 行轮转实测保留最近 2000 行~~
-
-### P0-7：剪贴板 TUI 快捷键显示和交互修复
-
-~~[x] 修复四项问题 + 两个行为调整：(1) 星标与内容间距过大 — `--tabstop=1`；(2) 快捷键显示不全 — 双行 header + `^` 符号；(3) Enter 后窗口卡住空白 — `wl-copy 2>/dev/null` 防止 daemon 持有 PTY；(4) Ctrl-F 粘贴功能（已在 header 中宣传但未实现）；(5) 星标条目置顶 — `build_menu` 两遍扫描，先输出星标再输出普通；(6) 星标删除需确认，普通直接删 — `Ctrl+X` 检查 `is_pinned`。注意：`--no-clear` 尝试修复 Enter 后空白但导致箭头键/Esc 无法使用，已回退。 — Agent: ZCode / zcode-agent, 日期: 2026-08-20；验证: `bash -n`、`shellcheck -S error`、kitty 窗口关闭测试~~
 
 ### P2-7：waybar 脚本健康度修复
 
@@ -368,6 +372,32 @@
 
 ~~[x] P4-8 系统侧（dotfiles 之外）体检与用户级清理~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14；修改: `systemctl --user disable --now ydotool.service`（grep 全配置确认零调用方，仅 2026-05 VSCode 历史草稿出现过）；删除 `~/.cache/aur-probe/`（Trae CN deb 数据层）与 `~/.cache/kit-deb-data.tar.xz`（WorkBuddy deb 数据层）共 782M——身份经 tar 内容列表确认，全盘 grep 无引用方，负责人批准后执行；核查结论（只读）：包缓存 25G 根因是 paccache.timer 从未启用、9 个孤儿包 Required By/Optional For 全为 None（主包 realesrgan-ncnn-vulkan-bin 为显式安装勿删）、`/etc/default/grub` GRUB_TIMEOUT=8 即 loader 7.3s 来源（引导器为 GRUB 2.14）、USB -71 定位为 Jieli 无线键鼠接收器硬件循环（软件无解）、baidunetdisk 崩溃为上游 Electron bug、btrfs 无任何快照（timeshift 未初始化）；验证: ydotool is-active=inactive/is-enabled=disabled、`~/.cache` 5.8G → 5.1G；剩余风险: paccache/journal/孤儿包/pacdiff/GRUB 提速等 sudo 清单待负责人执行（见"已知但暂不处理的问题"系统侧条目），swappiness/zram/pacman.conf 经核查已合理未改动
 
+~~[x] P4-7 P4 审计记录收编与勘误（纯文档维护，无仓库代码改动；编号此前漏登，提交信息已引用）~~ — Agent: ZCode CLI / zcode-20260914, 日期: 2026-09-14（commit 3371b35），2026-09-17 由 P5-4 补登；内容: 新增 P4 任务区并记录 P4-1~P4-6 全部任务（Agent/日期/修改/验证/剩余风险）；P3-6 复核闭环（cliphist-tui-git、swaylock-effects 实测均已卸载，快照由 P4-4 刷新）；勘误 mimeapps.list 阻塞 stow 系 `stat -c %F` 跟随软链误报（P3-21 剩余风险 ② 一并修正）；已知问题区关闭缓存属主条目（实测已自愈 mio:mio）、补 kbd 改名条目的 sudoers 依赖说明，登记 bootstrap niri-clip 缺口与系统侧 sudo 待办清单；验证: `git log --format=%B -1 3371b35` 与本文件内容一致
+
+## P5 任务：规范统一与第三轮历史遗留清理（2026-09-17 专项审计）
+
+来源：2026-09-17 仓库负责人委托的专项审计（统一规范 / 代码结构 / 注释结构 / 冗余代码与不必要内容），两路只读审计代理（桌面配置、文档元数据）+ shell 侧自查，关键发现逐条人工复核后执行。原则与 P3/P4 一致：只清理有实证的死代码与漂移；有意保留项（mpris 模块、swaybg 备用后端、command-center 优雅降级分支、kbd-backlight-color.sh 的 sudoers 阻塞项、/home/mio 硬编码的 P1-4 拍板范围）一律不动。
+
+~~[x] P5-1 niri 配置清理~~ — Agent: ZCode CLI / zcode-20260917, 日期: 2026-09-17；修改: `binds.kdl`（Mod+Shift+Slash 的 nirius `--app-id niri-binds` → `niri-hotkey-menu`，此前永远匹配不到窗口、召回全靠脚本内部 pgrep 兜底，现与脚本 `INSTANCE_CLASS`/rule.kdl 三方一致）；`config.kdl`（删 linuxqq-clipsync 注释残留行，clipsync 体系已弃）；`rule.kdl`（删已卸载应用的浮动 match：copyq / clipse-gui / btrfs-assistant，删 clipse 整条 window-rule，删 yesplaymusic 旧参数注释块——现行规则就在紧下方；**shorinclip/cliphist 注释块保留**，其自带的"已废弃，保留注释"标记是此前有意决策，按休眠配置策略不动）；拼写修正 niri-siderbar→niri-sidebar（2 处）、fuzzle→fuzzel；验证: `niri validate` config is valid、`grep` 复核零残留；剩余风险: 无（改动均为注释/死规则，仅 binds 的 app-id 修正有行为变化且方向为修复原设计意图）
+~~[x] P5-2 脚本修复与头注统一~~ — Agent: ZCode CLI / zcode-20260917, 日期: 2026-09-17；修改: `dot-doctor.sh`（mise 移出核心命令列表、cliphist 移出可选列表——P3-13 已弃用，包未卸载所以此前不报错属侥幸）；`swayidle.sh`（LOCK_CMD 与 LOCK_READY_CMD 逐字符相同，合并为单变量）；`power-screenshot.sh`（删 LABEL_EDIT_YES/NO 四处死字符串，SC2034 实证）；`awww-overview-daemon.sh`（删未用 local candidate）；`screenshot.sh` 头注快捷键 Mod+P→Mod+Alt+A（与 binds.kdl 实际绑定一致，P3-16 同类）；补结构化头注 5 个：powermenu、niri-binds、niri-quick-switch-fuzzel.py、matugen-update.sh、toggle-random-api-wallpaper.sh（内容均经正文/调用方核实）；`niri_set_overview_blur_dark_bg.sh` → `niri-set-overview-blur-dark-bg.sh`（git mv，同步 toggle-overview-blur/wallpaper-theme-daemon/random-anime-wallpaper 4 处引用，live 悬空旧链已删、新链经并行会话 stow 实跑建好）；`toggle-touchpad.sh`/`toggle-overview-blur.sh` 头注更新为现状（touchpad 默认 off=禁用、两态切换；blur 的 waybar 中键入口处于注释休眠态）；`screenrec`/`select-network-tui.sh` 头注脚本名更正（screenrec 的 APP_NAME/STATE_DIR 保留 shorin 历史命名——改动会变更录屏保存目录与状态路径，仅正头注）；`cava.sh`/`check-updates.sh` 的 /tmp 锁与临时配置统一到 `${XDG_RUNTIME_DIR:-/tmp}` 惯例（hook 只 pkill 发信号不跑脚本，无跨用户锁竞态）；`command-center.sh`/`config.jsonc` 去 Shorin 显示文案（apt.fish 等的 `command -v shorin` 优雅降级分支属休眠集成，保留）；验证: 全部改动脚本 `bash -n` + `shellcheck -S error` 通过、`py_compile` 通过；剩余风险: 无
+~~[x] P5-3 waybar/cava/systemd 清理~~ — Agent: ZCode CLI / zcode-20260917, 日期: 2026-09-17；修改: `config.jsonc` 头部 divider 注释改写（p 前缀表述系回滚前遗留，与现状不符；保留"实例名=CSS class 避免数字开头"的有效告诫）；`modules-dividers.jsonc` 删 7 个零引用定义（审计报 6 个 + 复验抓到漏删的 right_inv#1，删除后三方引用零缺口、mpris 有意保留项完好）；`style.css` backlight 死样式块补保留说明（模块因 NVIDIA 锁死整块注释禁用，样式备用）；13 个 user service 的 Description 统一为中文（9 个英文/混用改写，事实表述不变）、6 个缺 SyslogIdentifier 的 service 补齐（timer 无进程输出不需要）；验证: `systemd-analyze --user verify` 0 error、`daemon-reload` 实机生效、jsonc 去注释解析 OK、divider 三方一致性复验零缺口；剩余风险: Description 仅影响 systemctl 列表显示，SyslogIdentifier 影响 journalctl -t 标签（想按旧标签查历史日志需注意）
+~~[x] P5-4 根脚本与文档对齐~~ — Agent: ZCode CLI / zcode-20260917, 日期: 2026-09-17；修改: `setup.sh` 头注步骤清单补 3.5（VS Code settings 生成）/4.5（--enable-units），"五件事"改"以下几件事"，兜底 unit 数组注明"权威清单以 txt 为准"（uninstall.sh 同）；`auto-commit.sh` 重复节号 `# --- 4.` → 5；`update-pkglist.sh` 生成快照时写入"本机快照勿手改"注释头并重跑生成（原生 189 / AUR 31，reflector 系实机新装如实入库）——顺带落实了"generated 快照未标记为机器快照"的遗留条目；`README.md` unit 计数改引权威清单（不再写死数字防再漂移）、布局树补 `nirinit/`；`HOW.md` 补 setup 步骤 bullet、update-pkglist timer 引用改为可自洽的写法、删 fcitx5 cache 失效行（实测两处缓存目录均不存在）；`autocommit.md` 流程图"排除补全"改为白名单表述（generated-completions 在仓库外天然不涉及）、示例 message 补"；默认不 push"、补全条目措辞修正；`lint.yml` 两条英文注释译中；`.gitignore` 补 `__pycache__/`（P5-5 的并行建议项收编）；本文件 P0-7 归位至 P0 区、P2-1 补标题、P4-7 按提交 3371b35 补登；验证: `bash -n`/`shellcheck` 全过、`update-pkglist.sh` 实跑成功、stow -n 零冲突；剩余风险: 文档类改动无行为影响
+~~[x] P5-5 niri 边缘点击切换窗口：左右屏幕边缘 8px 热区，左键点击 = focus-column-left/right（真全屏下同样生效）~~ — Agent: TraeCode CN / traecode-20260917, 日期: 2026-09-17；修改: 新增 `home/.config/niri/scripts/niri-edge-switch.py`、`home/.config/systemd/user/niri-edge-switch.service`；改 `home/.config/niri/layout.kdl`（struts left/right 8）、`systemd-user-units.txt`（登记）、`packages/niri.txt`（显式列出 gtk4-layer-shell / python-gobject）；验证: `python3 -m py_compile`、`niri validate`、`systemd-analyze --user verify`、stow 实跑零冲突、实机端到端点击测试（见下）
+
+  需求（仓库负责人）：平铺时点屏幕左右边缘切换窗口，全屏软件也要能这样切。经确认拍板为「真全屏保持不变 + overlay 层边缘热区」，不做「检测到全屏就自动转成窗口化全屏 + 最大化列」的自动转换。
+
+  **关键技术结论（决定了实现方式，含实测）**：
+  1. **真全屏无法在配置层缩小**：niri 的真全屏窗口必定铺满整屏、且**忽略 struts**（官方 wiki 三种尺寸模式对比表里 Fullscreen 的 "Gaps & Struts" 即 Ignored，只有 maximize-column 是 Respected），所以"把全屏改小留边"这条路在 niri 里不通，只能在输入层做文章。
+  2. **只有 overlay 层能盖在全屏之上**：官方文档明确 "Only the overlay layer will show up on top of full-screen windows"，热区因此放在 overlay 层，真全屏（视频 / 浏览器 / 游戏）下点击照样生效，且全屏画面完全不变。
+  3. **热区自动避开顶栏（本机实测）**：niri 会把 overlay 表面放进"顶栏之下的可用区"——探针用 12px 红条验证，红色从 y≈45 物理像素（waybar 下沿）才开始，故无需硬编码栏高。
+  4. **Python 必须预加载 libgtk4-layer-shell**：Python 会先加载 libwayland，直接跑会报 "Failed to initialize layer surface, GTK4 Layer Shell may have been linked after libwayland" 并崩溃；upstream 给的免重编译解法即 `LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so`，unit 里设了 `Environment=LD_PRELOAD=`，脚本内另有一道自动 re-exec 兜底。
+
+  实现要点：热区宽度与 `layout.kdl` 的 struts 保持一致（8px；现有 gaps 10 已大于它，故平铺时热区落在窗口外，不会压住窗口内容）；**只在聚焦窗口确实存在相邻列时才显示对应热区**，否则隐藏该表面让点击穿透给应用（单窗口全屏时屏幕边缘的点击仍归应用）；总览打开时热区全部隐藏。相邻列判断取自 `niri msg --json windows` 的 `pos_in_scrolling_layout`（按 workspace_id + 非浮动过滤后取列号极值），由 `niri msg --json event-stream` 触发、250ms 去抖合并；IPC 查询失败时保持原状态（不误伤功能）。
+
+  验证方法与结果：静态 —— `python3 -m py_compile`、`niri validate`（config is valid）、`systemd-analyze --user verify`（无告警）、`stow -n` 预演零冲突后实跑部署（`.py` 与 `.service` 均为指向仓库的软链）。运行时 —— 服务 active + enabled；`niri msg --json layers` 中 `niri-edge-switch` 表面位于 Overlay 层，数量随聚焦状态在 1↔2 之间正确增减。端到端 —— 临时用 ydotool 注入指针（用户属 input 组；先以 overlay 探针确认底层确实收到指针事件：`PRESS n=1 at 4.0 609.0`），随后点左边缘 (4,640)：聚焦窗口 zcode(ws2 col3) → code(ws2 col2)；点右边缘 (2044,640)：zcode → trae-cn(ws2 col4)，左右双向均生效。测试后已停掉临时 ydotoold 并保持 `ydotool.service` 为 disabled（P4-8 的原状），临时探针脚本与截图全部删除。
+
+  剩余风险：① 全屏时左右各 8px 的点击（含右键/中键/滚轮）被热区吃掉、不再传给应用——FPS 类游戏在屏幕边缘开火会点不到，需要时 `systemctl --user stop niri-edge-switch.service` 即可；② **未在"真实全屏窗口"上做端到端点击**（当前会话没有全屏窗口），overlay 高于全屏这一条依据官方文档 + overlay 层实测能收到指针事件推断；③ 多显示器下动作作用于"聚焦窗口所在显示器"的布局，与"点了哪块屏"无关（本机只有 eDP-1，未涉及）；④ 热区宽度有两处常量需同步（脚本 `STRIP_WIDTH` 与 `layout.kdl` 的 struts），改一处要记得改另一处。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
@@ -392,7 +422,7 @@
 
 以下为 2026-09-14 P4 体检新增记录（均为低风险记录项或需 sudo 的负责人待办）：
 
-- `[ ]` bootstrap.sh 的 niri profile 缺 niri-clip 安装步骤：niri-clip 是 pacman 不拥有的裸 cargo 二进制（`pacman -Qo` 无属主），被 systemd unit（niri-clip.service）、Mod+V（binds.kdl）、waybar 剪贴板模块三处依赖，换机即断。需确认其来源（crates.io crate 或 ~/Projects 本地构建）后补 `cargo install` 步骤或文档说明。
+~~[x] bootstrap.sh 的 niri profile 缺 niri-clip 安装步骤~~ — 2026-09-17 负责人拍板：**不处理**。niri-clip 为 cargo 自装二进制（`~/.cargo/bin`），换机时手动 `cargo install` 即可，不为单件工具扩 bootstrap 逻辑。（原发现留档：niri-clip 无 pacman 属主，被 niri-clip.service、Mod+V（binds.kdl）、waybar 剪贴板模块三处依赖。）
 - `[ ]` 需 sudo 的系统侧待办（负责人执行，本机 Agent 无 sudo；2026-09-14 深查后更新）：
   - 包缓存 25G 的根因已查明：**paccache.timer 从未启用**（Arch 默认 preset 即 disabled，无 override）。执行 `sudo paccache -rk2 && sudo systemctl enable --now paccache.timer`（一次性清到每包留 2 份 + 每周自动清理）；
   - `sudo journalctl --vacuum-size=200M`（当前 745M）；
@@ -400,6 +430,75 @@
   - 5 个 pacnew/pacsave 待 `sudo pacdiff` 合并：locale.gen.pacnew、pacman.d/mirrorlist.pacnew、tpm2-tss 两个 json.pacnew、xdg/fuzzel/fuzzel.ini.pacsave；
   - 可选：`sudo pacman -S --needed usbutils reflector`（本机连 lsusb 都没有；mirrorlist 421 条 Server 未收敛，reflector 可收敛到 10-20 条）；
   - 可选提速开机：`/etc/default/grub` 的 `GRUB_TIMEOUT=8` 是 systemd-analyze 里 loader 7.3s 的来源（引导器实为 **GRUB 2.14** 非 systemd-boot）；`GRUB_DEFAULT=saved` + `GRUB_SAVEDEFAULT=true` 已记住上次选择，可降到 `GRUB_TIMEOUT=2` 后 `grub-mkconfig -o /boot/grub/grub.cfg`，双系统选择不受影响（开机按 Esc 仍可进菜单）。
+  - 2026-09-17 新增：**NVIDIA 时钟锁策略部署**（修空闲降频导致的窗口/工作区动画掉帧；根因已实测确认——手动 `sudo nvidia-smi -pm 1 && sudo nvidia-smi -lgc 1500,3105` 后掉帧消失，驱动侧 Persistence Mode=Disabled + DynamicPowerManagement=3 导致空闲降到 ~800MHz，同类上游问题见 niri issue #2516）。策略：**仅当 AC 供电且 niri 会话在运行**时 `-lgc 1200,3105`（下限 1200 为功耗/丝滑折中，负责人指定），其余情况（电池 / KDE 等其他 DE / 未登录）`-rgc` 解锁，两操作均幂等；udev 规则负责电源插拔的即时触发，niri 登录/退出/切 DE/唤醒由 60s timer 兜底重评估（udev 只在电源事件时触发，光靠它做不到"切到 KDE 撤锁"）。配置已于 2026-09-17 由 ZCode CLI 交付，待负责人执行（Agent 无 sudo）：
+
+    ```bash
+    # 0) 若建过此前消息里无条件开机锁的 nvidia-lock-clocks.service，先撤掉（未建过则此两行无效）
+    sudo systemctl disable --now nvidia-lock-clocks.service 2>/dev/null
+    sudo rm -f /etc/systemd/system/nvidia-lock-clocks.service
+
+    # 1) 策略脚本：AC + niri 会话 → 锁 1200-3105；其余 → 解锁（均幂等）
+    sudo tee /usr/local/sbin/nvidia-clock-lock >/dev/null <<'EOF'
+    #!/bin/bash
+    # NVIDIA 时钟锁策略执行器（由 nvidia-clock-reapply.service 触发）
+    # AC 供电且 niri 会话运行时锁 SM 时钟下限（修空闲降频动画掉帧）；
+    # 电池 / KDE 等其他 DE / 未登录时不锁（-rgc 只撤销残留锁，无副作用）。
+    ac=0
+    for f in /sys/class/power_supply/*/online; do
+        [[ -e $f && "$(<"$f")" == 1 ]] && ac=1
+    done
+    ni=0
+    pgrep -x niri >/dev/null && ni=1
+    if [[ $ac == 1 && $ni == 1 ]]; then
+        /usr/bin/nvidia-smi -lgc 1200,3105 && act=lock || act=lock-failed
+    else
+        /usr/bin/nvidia-smi -rgc && act=unlock || act=unlock-failed
+    fi
+    logger -t nvidia-clock-lock "ac=$ac niri=$ni -> $act"
+    EOF
+    sudo chmod 755 /usr/local/sbin/nvidia-clock-lock
+
+    # 2) udev 规则：电源插拔即时触发重评估（是否真锁由脚本判断）
+    sudo tee /etc/udev/rules.d/99-nvidia-clock-lock.rules >/dev/null <<'EOF'
+    # NVIDIA 时钟锁：电源状态变化时触发 nvidia-clock-reapply.service
+    # 仅当 AC + niri 会话同时满足才会真正锁频（判断在脚本内）
+    ACTION=="change", SUBSYSTEM=="power_supply", ATTR{online}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}+="nvidia-clock-reapply.service"
+    ACTION=="change", SUBSYSTEM=="power_supply", ATTR{online}=="0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="nvidia-clock-reapply.service"
+    EOF
+    sudo udevadm control --reload
+
+    # 3) 重评估服务 + 兜底定时器（覆盖开机、登录/退出 niri、切 KDE、唤醒）
+    sudo tee /etc/systemd/system/nvidia-clock-reapply.service >/dev/null <<'EOF'
+    [Unit]
+    Description=Re-evaluate NVIDIA GPU clock lock (AC + niri session policy)
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/sbin/nvidia-clock-lock
+    EOF
+    sudo tee /etc/systemd/system/nvidia-clock-reapply.timer >/dev/null <<'EOF'
+    [Unit]
+    Description=Periodically re-evaluate NVIDIA GPU clock lock
+
+    [Timer]
+    OnBootSec=45
+    OnUnitActiveSec=60
+    AccuracySec=15
+
+    [Install]
+    WantedBy=timers.target
+    EOF
+    sudo systemctl daemon-reload
+
+    # 4) 启用：持久模式服务（替代手敲 -pm 1）+ 兜底定时器
+    sudo systemctl enable --now nvidia-persistenced.service nvidia-clock-reapply.timer
+
+    # 5) 立即重评估一次并查看决策日志
+    sudo systemctl start nvidia-clock-reapply.service
+    journalctl -t nvidia-clock-lock -n 3 --no-pager
+    ```
+
+    验证：`nvidia-smi --query-gpu=clocks.sm --format=csv,noheader -l 3`（AC + niri 下应恒 ≥1200）；拔电源数秒内应回落 <1200、插回立即回升；登录 KDE 后 `journalctl -t nvidia-clock-lock` 应显示 `niri=0 -> unlock`。当前手动锁的 1500 会在首次重评估时被改写为 1200，无需重启。回滚：`sudo systemctl disable --now nvidia-clock-reapply.timer nvidia-persistenced.service && sudo rm -f /usr/local/sbin/nvidia-clock-lock /etc/udev/rules.d/99-nvidia-clock-lock.rules /etc/systemd/system/nvidia-clock-reapply.service /etc/systemd/system/nvidia-clock-reapply.timer && sudo udevadm control --reload && sudo systemctl daemon-reload`。
 - ~~[x] `~/.cache/kit-deb-data.tar.xz`（410M）与 `~/.cache/aur-probe/data.tar.xz`（372M）无主遗留~~ — 2026-09-14 由 ZCode CLI / zcode-20260914 查明身份并经负责人批准删除：aur-probe/data.tar.xz 为 **Trae CN 的 deb 数据层**（AUR 探测一次性遗留）、kit-deb-data.tar.xz 为 **WorkBuddy Electron 应用的 deb 数据层**（kd-bin 相关探测遗留）；全盘 grep（~/Projects、shell 历史）无引用方；验证: `~/.cache` 5.8G → 5.1G。
 - ~~[x] ydotool.service enabled 但不在 systemd-user-units.txt~~ — 2026-09-14 由 ZCode CLI / zcode-20260914 停用闭环：grep 全配置确认零调用方（仅 2026-05 的 VSCode 本地历史草稿出现过，早已弃用；waybar/脚本/niri 配置无引用），unit 属 ydotool 系统包非仓库管理；执行 `systemctl --user disable --now ydotool.service`；验证: is-active=inactive、is-enabled=disabled；回退方式 `systemctl --user enable --now ydotool.service`。
 - `[ ]` 内核/硬件层噪音（每次唤醒必现，非桌面配置问题，仅记录）：内存温度传感器 `spd5118 PM: failed to resume async: error -6`（DDR5 传感器内核驱动已知问题，无害）；`usb 1-1 error -71` 已定位为一只 **Jieli 方案无线键鼠 USB 接收器**（idVendor=3654 idProduct=4a55，Intel xHCI 1 号口，非摄像头/蓝牙），30 秒周期性"枚举失败→power cycle→重连→掉线"循环，软件侧无解（-71=EPROTO），物理换 USB 口或换接收器即可验证；蓝牙 A2DP 唤醒后 connect failed 属 audio-resume-guard 自愈重启 wireplumber 的伴生噪音。
@@ -407,7 +506,9 @@
 - `[ ]` 备份缺口（建议项）：btrfs（/@ 与 /@home，compress=zstd:3,ssd,discard=async）当前**没有任何快照**——timeshift 已安装但从未初始化（无 systemd unit、无 /timeshift 目录），snapper 未装。是否启用由负责人决定；启用前不建议做大规模系统改动。
 - `[ ]` baidunetdisk 9/13 连续 4 次 SIGSEGV/SIGTRAP：`coredumpctl info` 显示崩在 `upload_service` 线程处理 `baiduyunguanjia://evoked-download` 深链（SEGV_MAPERR，无符号栈），属上游 Electron 客户端 bug，本地无可修项，等更新或改用网页版。
 - `[ ]` 系统参数核查结论（无需改动，留档）：vm.swappiness=60 + zram0 zstd 16G（priority 100，实际用 1.2G→压缩后 306M）+ NVMe swap 30G 兜底（priority -1）属合理配置；pacman.conf 已有 Color、ParallelDownloads=5、DownloadUser=alpm；fstrim.timer 正常每周触发；启动 27.2s 中 firmware 11.4s + loader 7.3s 占 2/3，userspace 仅 6.0s 无可优化空间（critical-chain 无异常慢单元）。
+~~[x] cava `theme = 'your-theme'` 占位行~~ — 2026-09-17 负责人拍板"以 matugen 取色为主"，当日由 ZCode CLI / zcode-20260917 执行：`home/.config/cava/config` 的该行转为注释态并注明拍板与恢复方法（固定主题可随时取消注释换 themes/ 下主题名）；已 `pkill cava` 由 cava.sh 自愈拉起使配置生效；matugen 模板输出目标核实为 `~/.config/cava/themes/matugen`（经 config 顶部 include 消费）。`themes/solarized_dark`、`themes/tricolor` 为备用主题文件，保留未删。
 - `[ ]` shell 工具链收敛候选（有行为变化，需拍板，未执行）：uv 补全（782KB）完全退出启动链改懒加载（首次 Tab 延迟 ~0.1s）；fnm 两连 fork（env + use default）缓存化（multishell 路径每会话变化，需改写方案）；zinit forgit 与 fzf.fish/fzf-tab 能力重叠裁剪其一；fisher 停用（5 插件已全部 vendor 进仓库，启动期无人调用）。
+- `[ ]` `__pycache__` 未被 .gitignore 忽略（P5-5 期间实测）：在仓库内跑 `python3 -m py_compile home/.config/niri/scripts/*.py` 会生成 `home/.config/niri/scripts/__pycache__/`（未跟踪文件），且 `stow` 会把它当仓库内容一并部署到 `~/.config`。本次生成的目录已删除、未改动 .gitignore 以免扩大范围；建议后续补一条 `__pycache__/` 规则（CI 为全新 checkout，暂不受影响）。
 
 
 ## 协作前置检查
