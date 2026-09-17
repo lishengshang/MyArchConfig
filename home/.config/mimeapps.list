@@ -16,8 +16,8 @@ image/jpeg=imv-dir.desktop;org.kde.gwenview.desktop;
 image/png=imv.desktop;
 image/webp=imv.desktop;
 text/plain=neovide.desktop;
-x-scheme-handler/clash=Clash Verge.desktop;clash-verge-handler.desktop;
-x-scheme-handler/clash-verge=Clash Verge.desktop;clash-verge-handler.desktop;
+x-scheme-handler/clash=clash-verge.desktop;Clash Verge.desktop;clash-verge-handler.desktop;
+x-scheme-handler/clash-verge=clash-verge.desktop;Clash Verge.desktop;clash-verge-handler.desktop;
 x-scheme-handler/workbuddy=workbuddy.desktop;
 
 [Default Applications]
@@ -30,8 +30,8 @@ inode/directory=org.gnome.Nautilus.desktop
 inode/mount-point=org.gnome.Nautilus.desktop
 text/html=google-chrome.desktop
 text/plain=neovide.desktop
-x-scheme-handler/clash=clash-verge-handler.desktop;
-x-scheme-handler/clash-verge=clash-verge-handler.desktop;
+x-scheme-handler/clash=clash-verge.desktop;
+x-scheme-handler/clash-verge=clash-verge.desktop;
 x-scheme-handler/http=google-chrome.desktop
 x-scheme-handler/https=google-chrome.desktop
 x-scheme-handler/motrixnext=motrix-next-handler.desktop
