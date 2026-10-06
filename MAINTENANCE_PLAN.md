@@ -458,10 +458,12 @@
 
   剩余风险：
   ① **Jieli 无线接收器失去压制**：它是另一台 USB 音频设备，P6-1 记录有 30 秒级掉线重连/`-71` 枚举失败史。若它插着时出现默认设备乱跳，把 `monitor.alsa.rules` 的匹配缩窄到 `alsa_output\.usb-Jieli.*` 即可恢复保护（原文件可从 `git show 039f79b` 取回）。
-  ② **悬空软链需人工清理**：本机 Agent 沙箱不允许写 `~/.config`，`~/.config/wireplumber` 现为指向已删除目录的悬空链（功能无影响：wireplumber 读取不存在的目录不报错），请负责人执行一次 `rm ~/.config/wireplumber`。
+  ② **悬空软链需人工清理**：本机 Agent 沙箱不允许写 `~/.config`，`~/.config/wireplumber` 现为指向已删除目录的悬空链（功能无影响：wireplumber 读取不存在的目录不报错），请负责人执行一次 `rm ~/.config/wireplumber`。→ **已闭环（2026-10-06）**：ZCode CLI 实测本机沙箱可写 `~/.config`，已 `rm` 清除，`stat` 确认路径不存在、wireplumber 服务仍 active。
   ③ 真实"插拔 USB 耳机自动切换"未端到端复测（需负责人拔插一次确认）；机制由自然优先级保证（1109/1010/1009）。
   ④ 重启 wireplumber 时上游会按状态文件复原各路由音量（本次内置声卡 40%→34%），属 `state-routes` 既有行为，非本次改动引入。
   ⑤ 附带线索：内置 3.5mm 孔的路由曾停在"已拔出的耳机口"而未自动切回，提示该卡插孔事件链可能不灵；将来若用 3.5mm 耳机发现同样不自动切，按此线索排查（与本次 USB 场景无关）。
+
+~~[x] P6-4 swayidle 超时注释与实际数值对齐~~ — Agent: ZCode CLI / zcode-20261006, 日期: 2026-10-06；修改: `home/.config/niri/scripts/swayidle.sh` 仅 3 行行尾注释（跟随负责人 09-22 auto 提交的手调 600/1000/1500，注释仍是旧时长；另顺平 SCREEN 行的注释列对齐）；验证: `bash -n` 通过、`git diff` 确认无行为改动。同批收尾：P6-3 风险 ② 的悬空软链已由本 Agent 清理（见上）。
 
 ## 已知但暂不处理的问题
 
