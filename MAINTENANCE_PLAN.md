@@ -441,6 +441,28 @@
 
   剩余风险: 无（纯字形恢复，不涉及行为）。提醒后人：改这个文件后务必用码点复核（本次即用 `python3` 逐项打印 U+ 码点），不要只靠肉眼——PUA 字形在终端/编辑器里可能显示为空或与相邻字形混淆。
 
+~~[x] P6-3 撤销 P6-1 的 USB 输出优先级压制规则（回归上游默认），并修掉内置声卡卡在不可用耳机路由的问题~~ — Agent: Trae CN / trae-agent-0921, 日期: 2026-09-21；修改: 删除 `home/.config/wireplumber/wireplumber.conf.d/50-audio-policy.conf` 及空目录（唯一仓库侧改动）；验证: 见下（优先级 700→1109 实测 + 路由/默认设备复核 + stow 预演 + journal 无配置报错）
+
+  背景（负责人 2026-09-21 报告"有线耳机插上不自动切换，须手动从扬声器切"）：该耳机是 KTMicro Z2 USB 声卡（内核日志 22:21:08 接入新设备）。根因是 **P6-1 那条规则本身**——它把 USB 输出压到 `priority.session=700`（重启前实测），低于内置 1009，USB 输出无法再自动抢默认；而 Z2 的自然优先级是 **1109**（`priority.driver` 一直是 1109，未被规则改动）。排查中另查明一个既有状态问题：内置声卡（ALC256）的播放路由卡在 `analog-output-headphones`，而 ALSA 插孔状态是 `Front Headphone Jack=off`（该口未插东西），即路由停在一条 `available=no` 的路由上；按上游 `linking-utils.haveAvailableRoutes()`（`scripts/lib/linking-utils.lua:377-386`，由 `default-nodes/rescan.lua:110-114` 调用）该 sink 会被**剔除出默认设备候选**——内置扬声器既不出声、也无法被自动选为默认（这也解释了当时默认为何落在 Z2 上）。负责人拍板：USB 耳机要"插上就自动切"，按"不必要/徒增复杂度即优化掉"处理，故整个规则撤销而非缩窄。
+
+  改动：
+  * 删除 `home/.config/wireplumber/wireplumber.conf.d/50-audio-policy.conf`（P6-1 新增的唯一仓库侧音频配置）与其空目录：USB 输出回归自然优先级（USB 模拟 **1109** > 蓝牙 **1010** > 内置 **1009**），USB 耳机插上即自动接管，不再需要任何自定义规则；`~/.config/wireplumber` 是 stow 折叠链，仓库目录删除后该链悬空（见剩余风险 ②）。
+  * live 侧（不入库，属本机状态）：`wpctl clear-default` 清掉排查期间临时钉的 `default.configured.audio.sink=Z2`——规则删除后 Z2 靠自然 1109 即接管，该钉成冗余（清后 `wpctl status` 的 Settings 段为空）；`pactl set-sink-port alsa_output.pci-0000_00_1f.3.analog-stereo analog-output-speaker` 把内置声卡路由从不可用耳机口切回扬声器口。
+
+  验证方法与结果：
+  * **规则确已移除**：重启 wireplumber 后 Z2 sink `priority.session` 由 **700 → 1109**（与自然值一致）；默认输出仍为 Z2（自然排序所得，非 configured 指定）；Settings 段为空。
+  * **内置声卡**：`Route = analog-output-speaker (avail=unknown)`、`pactl` 报 `Active Port: analog-output-speaker` → 该 sink 恢复为合法默认候选，拔掉 Z2 后有回落目标。
+  * **无配置报错**：重启后 journal 仅剩既有的 libcamera SPA 插件告警（与本次无关）；服务 active、NRestarts=0、单进程。
+  * **部署与旁路**：`stow -n -d ~/dotfiles -t ~ home` 预演退出码 0、无冲突；输入侧未受影响（默认输入仍为 Z2 单声道，P6-1 的设计保留）。
+  * 判断依据留档：近 30 天 `-71` 枚举失败计数为 0（本机 journal 仅保留当日，样本有限）；USB 掉线重连史见 P6-1 条目。
+
+  剩余风险：
+  ① **Jieli 无线接收器失去压制**：它是另一台 USB 音频设备，P6-1 记录有 30 秒级掉线重连/`-71` 枚举失败史。若它插着时出现默认设备乱跳，把 `monitor.alsa.rules` 的匹配缩窄到 `alsa_output\.usb-Jieli.*` 即可恢复保护（原文件可从 `git show 039f79b` 取回）。
+  ② **悬空软链需人工清理**：本机 Agent 沙箱不允许写 `~/.config`，`~/.config/wireplumber` 现为指向已删除目录的悬空链（功能无影响：wireplumber 读取不存在的目录不报错），请负责人执行一次 `rm ~/.config/wireplumber`。
+  ③ 真实"插拔 USB 耳机自动切换"未端到端复测（需负责人拔插一次确认）；机制由自然优先级保证（1109/1010/1009）。
+  ④ 重启 wireplumber 时上游会按状态文件复原各路由音量（本次内置声卡 40%→34%），属 `state-routes` 既有行为，非本次改动引入。
+  ⑤ 附带线索：内置 3.5mm 孔的路由曾停在"已拔出的耳机口"而未自动切回，提示该卡插孔事件链可能不灵；将来若用 3.5mm 耳机发现同样不自动切，按此线索排查（与本次 USB 场景无关）。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
