@@ -36,6 +36,11 @@ SOURCES=(
 # 保底源: 其他源全部失败后再尝试
 FALLBACK_SOURCE="alcy|https://t.alcy.cc/pc/|"
 
+# 低频源: 尽量少用的源 (负责人 2026-10-06 指定; 原话 "paili"/"mvm-pc" 按脚本源名映射为 paiii/mwm-pc)。
+# 选源时常规源排在前面, 只有常规源 (扣除最近使用后) 填不满尝试预算
+# MAX_SOURCE_ATTEMPTS 时低频源才轮得到; 需要临时使用可 -S <name> 强制指定。
+LOW_PRIORITY_SOURCES=(paiii yande xl0408 horosama mwm-pc)
+
 SAVE_DIR="$HOME/Pictures/Wallpapers/api-random-download"
 
 # 最近使用过的源记录, 选源时跳过最近 RECENT_EXCLUDE_COUNT 次, 避免短时间重复
@@ -56,7 +61,15 @@ UPSCALE_RATIO=90
 
 # 增量哈希去重缓存: "hash  size:mtime  path" 三元组按行存储。
 # 只对 size/mtime 变化的文件重新计算哈希, 避免每次下载前全库扫描 (随图库增长线性变贵)。
+# 覆盖目录内全部非隐藏文件 (含手工放入的精选图), 下载图与它们撞图同样会被去重拦截。
 HASH_CACHE_FILE="$SAVE_DIR/.wall_hashes"
+
+# 超分原图哈希墓碑: 原图被超分产物替换 (删除或重编码覆盖) 后, 其哈希会随文件消失
+# 从 .wall_hashes 淘汰, 同一张图下次再被抽到就绕过了去重。这里持久记录"曾入库过
+# 的原图哈希", 下载去重时与 .wall_hashes 一并比对。墓碑没有对应现存文件, 不能进
+# 按现存文件重建的 .wall_hashes, 故单独成文件; 追加写 + 超限截断最旧的。
+TOMBSTONE_FILE="$SAVE_DIR/.removed_hashes"
+TOMBSTONE_MAX_LINES=5000
 
 # 失败降级: 最多尝试多少个源
 MAX_SOURCE_ATTEMPTS=3
@@ -174,15 +187,27 @@ get_target_width() {
     fi
 }
 
-# 从源池构造本次尝试顺序 (随机打乱,或把指定源放最前,保底源永远最后)
-# 随机模式下跳过最近 RECENT_EXCLUDE_COUNT 次用过的源, 避免短时间重复;
-# 若过滤后源池为空 (源太少或刚好用完一圈), 退化为全随机保证可用性。
+# 判断源名是否属于低频池 (LOW_PRIORITY_SOURCES, 尽量少用)
+is_low_priority() {
+    local name="$1" n
+    for n in "${LOW_PRIORITY_SOURCES[@]}"; do
+        [ "$n" = "$name" ] && return 0
+    done
+    return 1
+}
+
+# 从源池构造本次尝试顺序 (随机打乱,或把指定源放最前,保底源永远最后)。
+# 尝试顺序分层: 常规源 → 低频源 (LOW_PRIORITY_SOURCES) → 保底源;
+# 低频源仅当常规源填不满 MAX_SOURCE_ATTEMPTS 个尝试预算时才轮得到。
+# 随机模式跳过最近 RECENT_EXCLUDE_COUNT 次用过的源, 避免短时间重复;
+# 若常规池被过滤清空 (源太少或刚好用完一圈), 退化为全随机保证可用性。
 # 输出 stdout: 每行一个 "name|url";返回 1 表示 FORCED_SOURCE 不存在
 build_source_order() {
     local fallback_name="${FALLBACK_SOURCE%%|*}"
+    local s found="" normal=() low=()
     if [ -n "$FORCED_SOURCE" ]; then
-        local found=""
-        for s in "${SOURCES[@]}"; do
+        # -S 可指定池内源, 也可指定保底源 (usage 列出了它)
+        for s in "${SOURCES[@]}" "$FALLBACK_SOURCE"; do
             if [ "${s%%|*}" = "$FORCED_SOURCE" ]; then
                 found="$s"
                 break
@@ -192,28 +217,39 @@ build_source_order() {
         echo "$found"
         for s in "${SOURCES[@]}"; do
             [ "$s" = "$found" ] && continue
-            echo "$s"
-        done | shuf
+            if is_low_priority "${s%%|*}"; then
+                low+=("$s")
+            else
+                normal+=("$s")
+            fi
+        done
+        printf '%s\n' "${normal[@]}" | shuf
+        [ ${#low[@]} -gt 0 ] && printf '%s\n' "${low[@]}" | shuf
         # 保底源放在最后
         [ "$fallback_name" != "$FORCED_SOURCE" ] && echo "$FALLBACK_SOURCE"
-        return
+        return 0
     fi
-    # 随机模式: 过滤掉最近用过的源
-    local recent pool=() s name
+    # 随机模式: 过滤掉最近用过的源, 常规/低频分层
+    local recent
     recent=$(cat "$RECENT_SOURCES_FILE" 2>/dev/null)
     for s in "${SOURCES[@]}"; do
-        name="${s%%|*}"
-        if printf '%s\n' "$recent" | grep -qxF -- "$name"; then
+        if printf '%s\n' "$recent" | grep -qxF -- "${s%%|*}"; then
             continue
         fi
-        pool+=("$s")
+        if is_low_priority "${s%%|*}"; then
+            low+=("$s")
+        else
+            normal+=("$s")
+        fi
     done
-    if [ ${#pool[@]} -eq 0 ]; then
+    if [ ${#normal[@]} -eq 0 ]; then
         printf '%s\n' "${SOURCES[@]}" | shuf
     else
-        printf '%s\n' "${pool[@]}" | shuf
+        printf '%s\n' "${normal[@]}" | shuf
+        [ ${#low[@]} -gt 0 ] && printf '%s\n' "${low[@]}" | shuf
     fi
     echo "$FALLBACK_SOURCE"
+    return 0
 }
 
 # 记录本次使用的源, 保留最近 RECENT_EXCLUDE_COUNT 个 (保底源不记录, "保底除外")
@@ -228,9 +264,23 @@ record_source() {
     mv "$tmp" "$RECENT_SOURCES_FILE"
 }
 
+# 记录一条墓碑哈希 (原图被超分产物替换时调用), 超限截断最旧的
+# 用法: record_tombstone <sha256>
+record_tombstone() {
+    [ -n "$1" ] || return 0
+    printf '%s\n' "$1" >> "$TOMBSTONE_FILE" 2>/dev/null || return 0
+    local n
+    n=$(wc -l < "$TOMBSTONE_FILE" 2>/dev/null) || return 0
+    if [ "$n" -gt "$TOMBSTONE_MAX_LINES" ]; then
+        tail -n "$TOMBSTONE_MAX_LINES" "$TOMBSTONE_FILE" > "${TOMBSTONE_FILE}.tmp" 2>/dev/null \
+            && mv -f "${TOMBSTONE_FILE}.tmp" "$TOMBSTONE_FILE"
+    fi
+}
+
 # 下载结果校验: 依次检查 curl 退出码 / JPG 归一化 / 内容 / 几何 / 重复哈希。
 # 失败时设置全局 DL_ERR (具体原因, 供日志), 成功时清空 DL_ERR 并回填全局 HASH。
 # 几何检查同时回填全局 IMG_WIDTH/IMG_HEIGHT (validate_geometry 既有行为)。
+# 重复哈希比对两处: .wall_hashes (现存图库) + .removed_hashes (被超分替换的原图墓碑)。
 check_download_result() {
     local curl_exit="$1" f="$2"
     HASH=""
@@ -245,7 +295,8 @@ check_download_result() {
         DL_ERR="几何不符 ${IMG_WIDTH}x${IMG_HEIGHT} (竖图或宽度 < $MIN_WIDTH)"
     else
         HASH=$(sha256sum "$f" | cut -d' ' -f1)
-        if printf '%s\n' "${HASH_CACHE[@]}" | grep -qFx -- "$HASH"; then
+        if printf '%s\n' "${HASH_CACHE[@]}" | grep -qFx -- "$HASH" \
+            || { [ -f "$TOMBSTONE_FILE" ] && grep -qFx -- "$HASH" "$TOMBSTONE_FILE"; }; then
             DL_ERR="重复壁纸 (sha256=${HASH:0:8})"
         fi
     fi
@@ -282,7 +333,7 @@ load_hash_cache() {
         SIG_CACHE["$f"]="$sig"
     done < "$HASH_CACHE_FILE"
 }
-# 刷新缓存: 对当前每个文件复用旧哈希或重算 (仅 size/mtime 变化才重算),
+# 刷新缓存: 对目录内每个非隐藏文件复用旧哈希或重算 (仅 size/mtime 变化才重算),
 # 被清理/删除的文件自然淘汰。结果原子替换缓存文件。
 refresh_hash_cache() {
     local f sig old hash
@@ -301,7 +352,7 @@ refresh_hash_cache() {
             HASH_CACHE["$f"]="$hash"
             SIG_CACHE["$f"]="$sig"
         fi
-    done < <(find "$SAVE_DIR" -maxdepth 1 -type f -name 'wall_*' -print0 2>/dev/null)
+    done < <(find "$SAVE_DIR" -maxdepth 1 -type f ! -name '.*' -print0 2>/dev/null)
     mv -f "$NEW_ENTRIES" "$HASH_CACHE_FILE" 2>/dev/null || rm -f "$NEW_ENTRIES"
     NEW_ENTRIES=""
 }
@@ -509,6 +560,10 @@ if [ "$ENABLE_UPSCALE" = true ] && [ -n "$UPSCALE_TOOL" ]; then
             if [ "$FINAL_PATH" != "$RAW_PATH" ]; then
                 rm -f "$RAW_PATH"
             fi
+            # 原图字节已随超分消失 (直出 jpg 被删 / 转码路径被重编码覆盖),
+            # 把原图哈希记入墓碑, 否则下次同一张图再被抽到时
+            # .wall_hashes 已无原图哈希, 去重会漏放。
+            record_tombstone "$SUCCESS_HASH"
             wallpaper_log "upscale" "成功: ${IMG_WIDTH}x${IMG_HEIGHT} → $((IMG_WIDTH * 2))x$((IMG_HEIGHT * 2)), 产物 $(basename "$FINAL_PATH")"
             MSG_EXTRA="$MSG_EXTRA (已超分 2x)"
         else

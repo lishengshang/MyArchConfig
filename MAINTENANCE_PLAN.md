@@ -465,6 +465,29 @@
 
 ~~[x] P6-4 swayidle 超时注释与实际数值对齐~~ — Agent: ZCode CLI / zcode-20261006, 日期: 2026-10-06；修改: `home/.config/niri/scripts/swayidle.sh` 仅 3 行行尾注释（跟随负责人 09-22 auto 提交的手调 600/1000/1500，注释仍是旧时长；另顺平 SCREEN 行的注释列对齐）；验证: `bash -n` 通过、`git diff` 确认无行为改动。同批收尾：P6-3 风险 ② 的悬空软链已由本 Agent 清理（见上）。
 
+## P7 任务：壁纸下载脚本源池分层与去重补强（2026-10-06）
+
+来源：仓库负责人审阅 `random-anime-wallpaper.sh` 时提出三点：① paiii / yande / xl0408 / horosama / mwm-pc 五个源"尽量少用"；② 确认下载是否有哈希去重、不希望重复下载同一张图；③ 顺带详细 review。
+
+~~[x] P7-1 源池低频分层 + 去重补强（超分原图哈希墓碑 + 去重覆盖手工精选图）+ 修复 -S 指定保底源报"未知源"~~ — Agent: ZCode CLI / zcode-20261006, 日期: 2026-10-06；修改: `home/.config/scripts/random-anime-wallpaper.sh`（唯一改动文件）；验证: `bash -n`、`shellcheck -S error`、假 HOME 沙箱端到端 16 项断言全过（见下）
+
+  review 结论与改动：
+
+  1. **去重现状（负责人问题 ② 的回答）**：有 sha256 去重（`check_download_result` 对比 `.wall_hashes` 增量缓存，重复即换下一源），但实证存在两个漏放通道——
+     * 日志统计（845 行，约 55 次成功下载）：去重命中 **0 次**、超分 **37 次**（67%）。超分产物替换原图后，原图哈希随文件删除从"按现存文件重建"的 `.wall_hashes` 中淘汰，同一张图下次再被抽到时去重必然漏放（二次超分后库内还会出现两张内容相同的超分图）。
+     * 图库 241 张中 **56 张**为手工精选/旧命名图（非 `wall_*`），不在去重覆盖内，下载图与之撞图不被拦截。
+     * 改动：新增 `.removed_hashes` 原图哈希墓碑（超分成功即登记原图哈希；去重时与 `.wall_hashes` 一并比对；超限 5000 行截断最旧）；`refresh_hash_cache` 扫描范围从 `wall_*` 扩为目录内全部非隐藏文件（含手工精选图）。
+  2. **低频源分层（负责人问题 ①）**：新增 `LOW_PRIORITY_SOURCES=(paiii yande xl0408 horosama mwm-pc)`（负责人原话 "paili"/"mvm-pc" 按脚本源名映射为 paiii/mwm-pc；mwm-fj 是 mwm-pc 同站姊妹源，未被点名未动）。选源顺序分层：常规源（随机打乱、跳过最近使用 3 个）→ 低频源 → 保底源。常规池 15 个、扣最近后 ≥12，永远填满 `MAX_SOURCE_ATTEMPTS=3` 的尝试预算，故低频源在随机模式下实际几乎不会被轮到（效果等同移出轮换，但保留 `-S <name>` 强制入口与池内登记）；想偶尔轮到或彻底移除，改该数组即可。`-S` 强制低频/保底源均已实测可用。
+  3. **顺带修复的既有 bug**：`-S alcy`（usage 明确列出的保底源）报"未知源"——`build_source_order` 的 -S 查找范围不含 `FALLBACK_SOURCE`；且强制源=保底源时函数尾部 `[ 条件 ] && echo` 短路为假后裸 `return` 把退出码 1 带出去（即使找到也判失败）。两处均修，两分支显式 `return 0`。
+  4. **review 记录但不改的**：去重为字节级 sha256，同图以不同格式/重编码/元数据再次到达时无法识别（需感知哈希/pHash，见"已知但暂不处理"）；`KEEP_COUNT` 清理移出的图将来可能再入（符合"保留最近 1000 张"的语义）；重复图会消耗 3 次尝试预算（极端时本次失败，保底源在预算外兜底）。
+
+  验证方法与结果：
+  * `bash -n` + `shellcheck -S error` 通过。
+  * 假 HOME + stub（curl/realesrgan/awww/notify-send）沙箱端到端 16 项 PASS：预置同图 → 各源全被拒（缓存去重）；首跑成功且超分 → 原图哈希入墓碑且 `.wall_hashes` 已无原图哈希 → 二跑同图被拒（墓碑去重，精确复现修复前漏放条件）；`-S alcy` 正常作为第 1 尝试；`build_source_order` 六态断言（随机分层 / 强制常规 / 强制低频 / 强制保底 / 未知源 rc=1 / 常规池清空退化全随机）。
+  * 测试全程 `XDG_STATE_HOME` 隔离 + 真实日志行数哨兵复核。过程中发现并修正过一次脚手架漏配导致的真实日志污染（沙箱条目混入真实 log），已按边界截断恢复至原 845 行后重跑。
+
+  剩余风险：① 墓碑/缓存均为路径无关的字节哈希，"同图不同字节"仍不可识别；② 低频源随机轮换命中率 ≈0 属预期（"尽量少用"的直接结果），可用 `grep '尝试 \[paiii\]' ~/.local/state/wallpaper/wallpaper.log` 观测。
+
 ## 已知但暂不处理的问题
 
 以下问题已在 2026-08-20 的 dotfiles 审查中确认，当前不在 Stow 链接修复范围内，后续按优先级处理，避免与本次部署修复混在一起：
@@ -473,6 +496,8 @@
 
 - `[ ]` 会话快照无法区分同一应用的多个窗口：nirinit 的快照只记录 `app_id`（不含窗口标题等可区分标识），所以像"两个 VS Code 窗口"这种情况，P3-18 的智能跳过只能按 app_id 整体判断 —— 其中一个已经在跑时，另一个不会被补回来（2026-09-11 实测本机快照里 `code` 确有两条）。属 nirinit 数据结构层面的限制，非本仓库脚本能解决；若将来确实需要，只能跟上游或改用能记录标题的方案。
 - `[ ]` `~/.config/waypaper/config.ini` 现已退出 stow 管理（仅被忽略、仓库内保留为参考种子），其 live 副本与仓库副本会持续漂移且无链接关系，换机时该文件的配置不会自动带过去。见上方 waypaper 条目。
+- `[ ]` 壁纸下载去重是字节级 sha256（P7-1，含超分原图墓碑），同一张图以**不同字节**再次到达（换格式 JPG/PNG/WebP、二次重编码、EXIF/元数据差异）时无法识别为重复；要解决需引入感知哈希（pHash/dHash）与相似度阈值，属较大改动，按需另立任务。
+- `[ ]` 壁纸去重范围仅覆盖 `api-random-download` 下载目录（P7-1 已扩到该目录内全部非隐藏文件），与 `~/Pictures/Wallpapers` 其他目录（如本地随机切换池、手动收藏）之间不做重复对抗；`KEEP_COUNT` 清理移出的图，将来被同一源再次抽到时会重新入库，符合"保留最近 N 张"的滚动语义。
 ~~[x] 统一 Node 版本管理器：`home/.config/zsh/integrations.zsh` 和 `home/.config/fish/conf.d/50-tools.fish` 仍同时初始化 `mise` 与 `fnm`，且文档与维护记录声明不一致。~~ — 2026-09-05 由 ZCode CLI / zcode-20260905 经 P3-13 闭环；最终拍板为统一 fnm（与本条目原建议的 mise 相反，负责人确认目前用不上 mise）；验证: fish -c 实测 + grep 无活跃 mise 初始化
 - `[ ]` 统一脚本扩展名与解释器：`home/.config/niri/scripts/kbd-backlight-color.sh` 实际是 Fish 脚本；建议改名为 `.fish` 并同步调用方，避免 Bash/ShellCheck 误报。
   > 2026-09-14 P4 补充：改名被 sudoers 依赖阻塞——脚本经 `sudo -n (status filename) $argv`（kbd-backlight-color.sh:14）以自身绝对路径提权，`/etc/sudoers.d/kbd-backlight-color` 的 NOPASSWD 白名单钉死了 `.sh` 路径；改名须 root 协同改 sudoers，属高风险区暂缓，当前靠 shebang 解释执行、功能正常。
